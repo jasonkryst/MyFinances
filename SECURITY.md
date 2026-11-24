@@ -8,7 +8,7 @@ MyFinances is a self-hosted personal finance tracking application with strong se
 
 ### Self-Hosted Server Storage (since 7.0.0)
 - **Your server only**: All financial data is stored in your own PostgreSQL server; the browser talks only to that server (same origin) and to the Chart.js CDN
-- **No financial data in browser storage**: Only device preferences (theme, language, currency, Ledger view state) and an unfinished-reconciliation draft live in `localStorage`. `tests/security/test_no_browser_financial_storage.py` enforces this allowlist statically
+- **No financial data in browser storage**: Only device preferences (theme, language, currency, Ledger hidden columns, What's New version) and an unfinished-reconciliation draft live in `localStorage`. `tests/security/test_no_browser_financial_storage.py` enforces this allowlist statically
 - **No cached API responses**: The service worker is network-only for `/api/`, `/auth/` and `/calendar.ics`, so financial data never lands in Cache Storage
 - **Fails closed**: If the server cannot be reached the app shows a blocking "Can't reach your server" screen, never stale or local data
 
@@ -18,7 +18,7 @@ The Node.js + PostgreSQL server protects that data with:
 - **Server-side sessions** — opaque tokens hashed before storage; never stored in plain text
 - **httpOnly / Secure / SameSite=Strict cookies** — session token unreachable from JavaScript
 - **CSRF double-submit tokens** — every mutating request requires a matching `csrf` cookie + header pair
-- **Rate limiting** — login endpoint protected against brute force
+- **Rate limiting** — sign-in allows 5 failed attempts per 15 minutes (successful sign-ins aren't counted); register, forgot-password, reset-password and change-password each allow 5 per 15 minutes, and the public calendar feed allows 60. See [Accounts and sessions](#accounts-and-sessions)
 - **New-password policy** (NIST SP 800-63B rev 4) — 15–128 characters, no composition rules, rejects common, repetitive and context-based passwords on setup, reset and change; optional Have I Been Pwned k-anonymity breach check (`SECURITY_CHECK_BREACHED_PASSWORDS`, fails open); changing or resetting the password signs out other sessions. See [server/README.md](server/README.md#password-security-issue-456)
 - See [DEPLOYMENT.md](DEPLOYMENT.md) for setup and [server/README.md](server/README.md) for architecture
 
@@ -136,7 +136,7 @@ form-action 'self'
 
 #### Browser Storage
 - ❌ No financial data, passwords, API keys or authentication tokens in `localStorage`/`sessionStorage`
-- ✅ Device preferences only (theme, language, currency, Ledger filters/columns, What's New version) plus an unfinished-reconciliation draft
+- ✅ Device preferences only (theme, language, currency, Ledger hidden columns, What's New version) plus an unfinished-reconciliation draft
 - The session token is an httpOnly cookie, unreadable from JavaScript; pre-7.0 browser data (`debtTrackerData`) is removed after the one-time import or download prompt
 
 ### 6. Minimal Dependencies
@@ -145,6 +145,37 @@ form-action 'self'
 - **One frontend library**: Chart.js from CDN (for visualization only)
 - **Small server dependency set**: Express, `pg`, argon2, nodemailer, `express-rate-limit`, `cookie-parser` and `node-pg-migrate`, checked by Dependency Review and Trivy
 - **Code Review Easy**: All source code is readable and auditable
+
+## Accounts and sessions
+
+Details for each item are in [server/README.md](server/README.md).
+
+### Active sessions (7.28.0)
+- Settings → Security lists your signed-in sessions with browser, operating system, network and last activity. You can sign out one session or all the others.
+- The server stores the User-Agent (capped in length) and only the network part of the address (IPv4 /24, IPv6 /48), never the full address.
+- Sessions are identified by an opaque public id. The token hash never leaves the server, and every query is scoped to the signed-in user, so another user's session id is a 404.
+- A sign-in from a browser and operating system pair your account hasn't used before sends a "new sign-in" email. The first device is remembered silently. Turn it off with the `notifyNewSignIn` setting or the in-app-only notification channel. It needs SMTP (see [DEPLOYMENT.md](DEPLOYMENT.md)) and never delays or fails the sign-in.
+
+### Read-only API tokens (7.29.0)
+- Settings → Security can create personal tokens for scripts and dashboards. A token is sent as `Authorization: Bearer mft_...`.
+- A token can only `GET` or `HEAD` under `/api`. It is refused on the sessions, API token and calendar token routes, and never authenticates `/auth` or `/health`.
+- The raw token is shown once. The server keeps only its SHA-256 and a 12-character prefix.
+- Each user can hold 25 tokens. Revoke one at any time; changing or resetting the password revokes all of them.
+- A token is a bearer credential: treat it like a password and use it only over HTTPS.
+
+### Passwords
+- New passwords follow the policy summarized above. The optional breached-password check (`SECURITY_CHECK_BREACHED_PASSWORDS=true`) sends only the first 5 characters of the password's SHA-1 hash to Have I Been Pwned (k-anonymity), fails open if the service is unreachable, and never logs password data. It is off by default, so a default install makes no outbound request.
+
+### Lockout and recovery (7.15.1)
+- Email addresses are compared trimmed and case-insensitively.
+- After 5 failed sign-ins in 15 minutes the app says how many minutes remain, and the server logs the event. Restarting the server clears the counter.
+- Without SMTP, reset a password from the host with `docker compose run --rm server node scripts/reset-password.js`; it applies the password policy and signs out every session.
+- Behind a second reverse proxy, set `TRUST_PROXY_HOPS=2`; never higher than the real number of proxies, since each extra hop lets a client forge its address.
+
+### Change history (7.22.0)
+- Every create, update and delete through the data routes, and plan-settings changes, writes a row to an audit log in the same database statement. Settings → Change history shows it.
+- Not logged: no-op updates, rejected writes, foreign-key cascades, background jobs and Ledger or Forecast view filters.
+- Rows older than 90 days are pruned hourly. Clear All Data empties the log.
 
 ## Deployment Security
 
@@ -351,6 +382,6 @@ Report vulnerabilities through [GitHub private vulnerability reporting](https://
 
 ---
 
-**Last Updated:** November 4, 2026  
+**Last Updated:** November 23, 2026  
 **Version:** 1.2  
 **Status:** Production-Ready
