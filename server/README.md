@@ -70,6 +70,42 @@ The `postgres-data` volume is the only durability layer for this backend —
 use the root-level `backup.sh`/`backup.ps1` and `restore.sh`/`restore.ps1`
 scripts to back it up; see "Backup and Restore" in the root `DEPLOYMENT.md`.
 
+## Environment variables
+
+Set these in `.env` (the root `docker-compose.yml` passes them through) or in your deployment tool. `.env.example` lists them too.
+
+| Variable | Default | Effect |
+|---|---|---|
+| `PORT` | `4000` | Port the API listens on. |
+| `SESSION_TTL_DAYS` | `7` | How long a sign-in session stays valid. |
+| `ALLOW_SETUP` | unset | `true` enables `POST /auth/register`; set it only while creating the first account. |
+| `TRUST_PROXY_HOPS` | `1` | Reverse proxies in front of the server; `2` behind one more proxy (see "Locked out" below). |
+| `JOBS_ENABLED` | `true` | `false` starts no background jobs (see "Background jobs"). |
+| `TZ` | `UTC` | Time zone for job periods and backup file names. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_FROM`, `SMTP_SECURE` | host unset, port `587`, secure `false` | Email (see "Email notifications"); an unset host disables it. |
+| `SECURITY_CHECK_BREACHED_PASSWORDS`, `SECURITY_BREACH_CHECK_URL`, `SECURITY_BREACH_CHECK_TIMEOUT_MS` | off | Breached-password check (see "Password security"). |
+
+`REFRESH_ON_FOCUS_SECONDS` (default 60) is read by the nginx container, not the server: `docker-entrypoint.d/40-ga-env-config.sh` writes it into `env-config.js`, and a returning tab refreshes after that many seconds away.
+
+## API routes
+
+Every `/api` route needs a browser session and, for mutating requests, the CSRF header. `GET`/`HEAD` also accept a read-only API token (see "Change password and sessions"). The routes are mounted in `src/app.js`.
+
+| Path | What it holds |
+|---|---|
+| `/auth/*` | Setup status, register, login, logout, forgot/reset/change password and the password policy (`src/routes/auth.js`). |
+| `/api/accounts`, `/api/bills`, `/api/expenses`, `/api/incomes`, `/api/bonuses`, `/api/debts`, `/api/recurring-templates`, `/api/emergency-funds`, `/api/sinking-funds`, `/api/persons` | CRUD resources. |
+| `/api/reconciliations`, `/api/plan-history`, `/api/retirement-snapshots`, `/api/transfers`, `/api/manual-transactions`, `/api/balance-history`, `/api/net-worth-snapshots` | More CRUD resources. |
+| `/api/settings`, `/api/ledger-overrides`, `/api/ledger-cleared` | Keyed resources, written with `PUT` and removed with `DELETE` by key. |
+| `/api/plan-settings` | The single settings row (`GET`, `PATCH`) and its milestones (`POST`, `DELETE /milestones`). |
+| `/api/notifications` | In-app alerts (see "Notifications"). |
+| `/api/audit-log` | Change history: `GET`, `DELETE` (see "Change log"). |
+| `/api/sessions` | Active sessions: `GET`, `DELETE /:id`, `DELETE ?others=1`. Cookie session only. |
+| `/api/api-tokens` | Read-only API tokens: `GET`, `POST`, `DELETE /:id`. Cookie session only. |
+| `/api/calendar` | Calendar feed token: `GET /token`, `POST /token`. Cookie session only. |
+| `/calendar.ics` | The token-authenticated public calendar feed (rate-limited, no session). |
+| `/health/session-check` | Session and CSRF probe used by tests. |
+
 ## Password security (issue #456)
 
 New passwords follow NIST SP 800-63B rev 4. The rules apply wherever a password

@@ -54,7 +54,9 @@ MyFinances prioritizes your financial data security:
 - ✅ **Minimal Dependencies** — Vanilla JavaScript frontend with no npm packages; the server uses a small set of npm packages (Express, `pg`, argon2, nodemailer) covered by Dependency Review and Trivy
 - ✅ **Secure File Imports** — JSON validation + 2 MB size limit + full re-sanitization on import
 - ✅ **Input Validation** — Numeric bounds, date validation, text sanitization at every entry point
-- ✅ **Authenticated Server** — argon2id password hashing, server-side sessions (opaque token), httpOnly/Secure/SameSite=Strict cookies, CSRF double-submit tokens on every mutating request, NIST-style new-password rules with an optional Have I Been Pwned breach check, and a Settings → Security change-password form
+- ✅ **Authenticated Server** — argon2id password hashing, server-side sessions (opaque token), httpOnly/Secure/SameSite=Strict cookies, CSRF double-submit tokens on every mutating request, NIST-style new-password rules with a strength meter and an optional Have I Been Pwned breach check, and a Settings → Security change-password form
+- ✅ **Active Sessions** — Settings → Security lists every browser signed in to your account (browser, system, last active, and only a truncated network address), with Sign out for one session or all the others; a sign-in from a new browser or system sends an email unless you turn it off
+- ✅ **Read-Only API Tokens** — Settings → Security can create named tokens (shown once, stored only as a hash) for scripts that read your data with `GET` requests under `/api`; they can't write, can't manage sessions or tokens, and are revoked when the password changes
 
 ### Continuous Security Scanning
 The CI pipeline runs five automated scans on every push and pull request to `main`:
@@ -82,8 +84,8 @@ All findings feed into the [GitHub Security tab](https://github.com/jasonkryst/M
 ## 📋 Features
 
 ### Navigation & Accessibility
-- **Grouped main navigation** — Three labeled groups: **Overview** (Health, Accounts, Income), **Manage** (Liabilities, Recurring, Savings, Plan), **Analyze** (Reports, Ledger, Reconcile, Retirement); active-group highlighting, `aria-current`, hamburger menu on ≤768px
-- **Command palette** — Ctrl/Cmd+K or the 🔍 toolbar button opens a fuzzy-search jump list across all 11 pages and common actions; Arrow-key navigation, Enter to activate, Escape restores focus; full `role="dialog"` / `role="listbox"` ARIA semantics
+- **Grouped main navigation** — Three labeled groups: **Overview** (Health, Accounts, Income, People), **Manage** (Liabilities, Recurring, Savings, Plan), **Analyze** (Reports, Ledger, Reconcile, Retirement); active-group highlighting, `aria-current`, hamburger menu on ≤768px
+- **Command palette** — Ctrl/Cmd+K or the 🔍 toolbar button opens a fuzzy-search jump list across every page and common actions; Arrow-key navigation, Enter to activate, Escape restores focus; full `role="dialog"` / `role="listbox"` ARIA semantics
 - **Theme selector (Light / Dark / High Contrast)** — 3-way selector in the Settings modal (gear icon); preference saved on this device. High Contrast targets WCAG AA/AAA with pure black surfaces, bright accent colors, and a bold focus outline on every interactive element; command palette includes a "Cycle theme" action
 - **Print / Save as PDF** — 🖨️ Print button on every page; `@media print` hides forms/controls so only read-only data content prints; browser print-to-PDF doubles as a PDF export
 - **Keyboard navigation** — all interactive elements reachable by keyboard; modals trap focus and Escape-to-close; calendar day-cells keyboard-activatable
@@ -93,7 +95,13 @@ All findings feed into the [GitHub Security tab](https://github.com/jasonkryst/M
 - **Save-failure banner** — if a change can't be saved to the server, a persistent banner says so (no silent data loss); if the server can't be reached at startup, a full-page screen offers "Try again"
 - **In-app guide** — the ❓ Help button opens `guide.html` in a new tab; theme (including High Contrast) follows the main app preference
 - **$0 ledger amount policy** — Settings → Advanced lets you Allow, Warn about, or Block $0 amounts in ledger overrides and recurring templates (transfers always need more than $0)
-- **Language support (English / Español / Polski)** — switch languages from the Settings modal (gear icon). Every page, pop-up and chart is translated, including Ledger-generated transaction names, and number/date formatting follows the selected language. Changing the language re-renders the page you're on.
+- **Language support (English / Español / Polski)** — pick a language and a currency under Settings → Language & Region (gear icon). Number and date formatting follow the selected language, and changing it re-renders the page you're on. Most of the app is translated, including Ledger-generated transaction names; a few areas, such as parts of the Health page and the command palette, are still English (tracked in [ROADMAP.md](ROADMAP.md)). Only the English dictionary loads up front; Spanish and Polish load on demand.
+- **Settings** — a grouped list in the style of a phone's settings app: Appearance, Language & Region, Notifications, Backup & Restore, Advanced, Change history, Security and About, plus a Danger zone row for Clear All Data. Every control saves as soon as you change it, so there is no Done button.
+- **Save status chip** — a small indicator in the header shows Saving, Saved or Not saved, and the browser warns before you close the tab while a save is still pending
+- **Undo** — deleting a debt, income, bonus or recurring template, and archiving a debt, recurring template, account or sinking fund, shows a notice with Undo for 10 seconds (Ctrl/Cmd+Z also works outside text fields)
+- **Live refresh** — changes made in another tab or on another device appear when you return to the tab or when another tab in the same browser saves; a refresh waits while you are editing so it never overwrites what you are typing
+- **Change history** — Settings → Change history lists every create, update and delete made through the app, with the field names and values that changed; entries older than 90 days are removed
+- **Lists are paged** — the Liabilities debt list and the Recurring template list show 25 items per page, with Previous/Next controls once a list is longer than that
 
 ---
 
@@ -121,7 +129,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Account notes** — optional free-text notes (up to 500 characters, multi-line) on each account, e.g. an institution phone number or why a starting balance is unusual. Cards show the first line; expand to read the whole note.
 - **Projected monthly balance** — each account card shows a projected end-of-month balance: starting balance ± all linked income, debt payments, recurring transactions, and expenses for the current month, including any ledger amount overrides
 - **Net worth widget** — current net worth and change from the prior snapshot shown on the Accounts page
-- **Export / Import** — accounts are included in the JSON backup (format version `"4.0.0"`)
+- **Export / Import** — accounts are included in the JSON backup
 
 ---
 
@@ -136,6 +144,10 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Interest Paid to Date** — estimate shown on each debt card, based on original balance and opened date
 - **Payoff Analysis badge** — each credit-card debt card shows a break-even comparison: your plan payment vs. minimum-only, with months saved and interest saved; no-plan state shows minimum-only estimate with a clear banner; toggle between Fixed and % of Balance minimum-payment mode
 - **Accelerate modal** — "Accelerate this debt →" button opens a live-preview modal: type an extra monthly payment and instantly see updated payoff date and interest saved; "Apply to Plan" wires the total into the Strategy page
+- **Promotional APR** — a debt can have an intro rate and an inclusive end date. The payoff plan uses the promo rate until that date and the regular rate after it, and the card shows "0% until Jun 2027 (then 24.99%)". An optional deferred-interest amount adds the interest that accrued during the promo if a balance remains when it ends. A notification fires within 60 days of the end date
+- **Shared debts** — a debt can belong to more than one person (see People) with an ownership split; the default is an equal share
+- **Weekend due-date shift** — debts and recurring templates can keep a weekend due date, or move it to the Friday before or the Monday after (never out of the month)
+- **Refinancing what-if** — a collapsible panel on the Plan page re-runs the plan with a new APR (and optional intro rate) on one debt and shows the interest and months saved or added
 
 ---
 
@@ -144,6 +156,17 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **One-time entries** — bonus, tax refund, cash deposit, check deposit, or other; linkable to an account
 - **Monthly summary** — expected income this month, regular pay, one-time entries, estimated annual total
 - **Debt-to-income ratio** — Plan page shows monthly debt payment as a % of income with a warning above 40%
+- **Gross and net pay** — an optional tax withholding percentage turns the entered amount into take-home pay; cash flow, the Ledger and the Forecast use the net amount
+- **Amount changes that apply from a date** — raising or cutting an income's amount (or a recurring item's) can take effect on a chosen date, so earlier months keep the old amount
+- **End dates** — an income can have an inclusive end date, so a job or contract that stops keeps its history; ended incomes hide behind a *Show ended* toggle
+- **Recurring annual bonuses** — a bonus can repeat every year, optionally until a date; each year has its own Ledger entry
+
+---
+
+### People
+- **Family members** — add the people in your household on the People page and link debts and income to them
+- **Debt ownership split** — a debt linked to two or more people gets an equal share each, or a split you set by percentage
+- **Per-person totals** — the page shows each person's income, debt balance, minimum payments and credit utilization, attributed by share; ended incomes are left out
 
 ---
 
@@ -151,12 +174,13 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Expense budgets** — variable monthly spending targets with date tracking (for calendar and ledger); inline editing in the list
 - **Bills** — fixed monthly costs with due day and category (data model; no standalone add UI — use Recurring Templates for new fixed costs)
 - **Cash Flow Summary** — live panel: Income − Debt minimums − Bills − Budgeted expenses = Net remaining
+- **Category budgets** — on Liabilities → Expenses, set a fixed monthly amount per category or let it derive from the month's scheduled transactions; the Variance report adds a Budget vs. Actual table
 - **Persisted to the server** — expenses and bills are saved to PostgreSQL and included in JSON export/import
 
 ---
 
 ### Recurring Transaction Templates
-- **Three types** — Subscription (outflow), Reimbursement (inflow), Transfer (debit one account, credit another; both Ledger legs are marked ⇄, like one-off transfers)
+- **Four types** — Subscription (outflow), Income (inflow), Reimbursement (inflow), Transfer (debit one account, credit another; both Ledger legs are marked ⇄, like one-off transfers)
 - **Flexible frequency** — Weekly, bi-weekly, monthly, quarterly, yearly
 - **Start and end dates** — constrain to a specific date range
 - **Pause & skip controls** — temporarily pause a template or skip individual months without deleting
@@ -167,9 +191,26 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 
 ### Savings (Emergency Fund & Sinking Funds)
 - **Emergency Fund** — target amount, current savings, monthly contribution, auto-contribution toggle; progress bar + % badge
-- **Sinking Funds** — named savings goals with three allocation methods: Fixed Monthly Amount, Annual Cost ÷ 12, or Target Date Planning (app calculates required monthly amount)
+- **Sinking Funds** — named savings goals with three allocation methods: Fixed Monthly Amount, Annual Cost ÷ 12, or Target Date Planning (app calculates required monthly amount). A target-date fund keeps its date: the card shows the deadline, the amount needed per month now and a status of On track, Behind, Ahead, Past due or Funded
+- **Home Purchase** — a sub-tab with a mortgage affordability calculator, a list of debts to clear before qualifying and a PMI threshold tracker
 - **Auto-contribute** — auto-contributions appear as dedicated outflows in the Ledger, Reports, and Account projections
 - **Integrated with Reports** — contributions appear in Income vs. Expenses, Money Flow chart, Variance Dashboard, and account projections
+
+---
+
+### Notifications
+- **Bell and page** — the bell in the header lists alerts with an unread count; *View all* opens the Notifications page, which filters by type, status, account and date range and groups alerts by day. The bell follows the page's saved Type, Status and Account filters
+- **Alert types** — bill due soon or today (debts and recurring outflows that aren't Cleared), low balance (a threshold you set per account), overdrawn account, projected low balance, promotional rate ending, and sinking fund behind or past due
+- **Delivery** — in-app, email, or both, as one email per alert or a digest; email needs SMTP settings on the server (see [DEPLOYMENT.md](DEPLOYMENT.md)). Each alert type and the *days ahead* window are set under Settings → Notifications, and an account can be muted for balance alerts
+- **Keyboard** — j/k/x/e/Enter work on the Notifications page and are listed in the keyboard shortcuts panel
+
+---
+
+### Retirement
+- **Retirement accounts** — a Retirement account type (401k, Traditional IRA, Roth IRA, HSA, Other) with an assumed rate of return and an optional employer match; you log balance and contribution snapshots per period
+- **Charts and projection** — balance over time, contributions versus growth, a balance breakdown, and a projection to a target date with conservative, moderate and aggressive scenarios
+- **Monthly income in retirement** — a withdrawal-rate slider (2% to 8%) turns each projected balance into a monthly estimate
+- **Coast FIRE** — shows the earliest month you could stop contributing and still reach your target, using your own target or the FIRE number from Health
 
 ---
 
@@ -187,6 +228,8 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Unified transaction list** — income, one-time entries, debts, bills, expenses, recurring templates, savings contributions, and reconciliation markers in one scrollable view
 - **Account + date range filters** — filter by account and by range (All, Past & Today, Next 30/60/90 Days, Through Next Month)
 - **Manual transactions** — an Add Transaction button records a one-off purchase, refund or withdrawal (Expense or Income, amount, date, description, category, memo) on any account; it moves balances and every report, counts as spending but not toward a category's budget, starts out Cleared, and is edited or deleted from its own row (no override)
+- **Search and saved filters** — a Search box matches name, category or memo; account, date range, sort, status, category and page size are saved on the server, so another browser or device sees the same filters
+- **Transfers** — a one-off transfer between two accounts shows as two ⇄ legs that net to zero; start one from an account card or the Ledger toolbar
 - **Amount overrides** — modal-based Override / Edit override / Reset per transaction; overrides are keyed by type+id+account+date so they survive ledger re-sorts; changing an override immediately recalculates running balances, Reports, and account projections
 - **Cleared tracking** — a Cleared checkbox per transaction records whether it has actually posted to the account, plus the timestamp it was marked cleared (shown as the checkbox's tooltip); keyed the same way as amount overrides, so it's independent of ledger re-sorts. Purely informational — it does not affect running balances — useful for spotting scheduled transactions (bills, recurring items) that haven't posted on the day they were expected to
 - **Running balance** — continuous balance column; snaps to the statement balance at each reconciliation marker when "Adjust Balance" mode is active
@@ -199,7 +242,8 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Income vs. Expenses** — chart with income, recurring costs, and debt minimums for the current month
 - **Money Flow** — cumulative income/outflow/net tracked day-by-day through the month; per-account balance table
 - **Variance Dashboard (What Changed)** — current vs. previous period deltas for income, expenses, recurring costs, debt minimums, and net available; a Range selector (Single Month/Quarter/Half Year/Year) aggregates across multiple months instead of just one, compared against the equivalent-length prior period
-- **Net Worth** — historical trend chart (3/6/12 month), Net Worth vs. Liabilities, Asset Growth vs. Debt Reduction, snapshot history audit table, manual snapshot capture; milestone celebrations at +$5K increments
+- **Year in review** — a Reports tab that sums up a calendar year in short sentences: what happened first, then what your plan says; the current year is compared with the same months last year, and estimates are tagged
+- **Net Worth** — historical trend chart (3/6/12 month; before your first snapshot it is estimated from balance history, and the current month shows live), Net Worth vs. Liabilities, Asset Growth vs. Debt Reduction, snapshot history audit table, manual snapshot capture; milestone celebrations at +$5K increments
 - **Spending Analysis** — doughnut pie of all outflows for the selected period; 6-month stacked bar trend; ranked category list with change % badges (vs. prior period or vs. same period last year); drill-down modal per category; the same Range selector as the Variance Dashboard aggregates multiple months (e.g. a quarter) into one view
 - **Cash Flow Forecast** — project balances 1/2/3/6/12 months ahead for total cash position or a single account; notable-month driver flags; negative-balance and intra-month dip warnings
 - **Summary Report** — Monthly/Yearly toggle with cash flow, per-account balance changes, and net worth for the selected period
@@ -229,6 +273,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 ### Data Management
 - **Server storage** — every change is saved to your PostgreSQL server as you make it; sign in from any device to see the same data. Data left in a browser by a pre-7.0 version is offered for a one-time import (or download/removal) after sign-in
 - **JSON export** — one-click full backup including accounts, debts, income, bills, expenses, recurring templates, snapshots, overrides, reconciliations, and settings
+- **Settings-only backup** — a small separate file for just your preferences (theme, language, currency and option toggles), never your financial data
 - **JSON import** — Replace (full restore) or Merge (append debts; restore income, bills, expenses, overrides); legacy v1.0 files accepted; 2 MB max; full re-sanitization after import; a collapsible warning list reports any coerced fields or rejected records, and a malformed file shows the specific parse error inline
 - **CSV export** — debt payment schedule + per-debt summary; Ledger CSV with custom column picker
 - **Clear All Data** — wipe everything and start fresh
@@ -280,7 +325,7 @@ Results appear in three tabs:
 | **📋 Debt Summary** | Sortable per-debt table with payoff dates and progress bars; amortization modal |
 | **📅 Schedule** | Tabular (monthly schedule with editable stimulus), Calendar, Chart |
 
-Reloading the app later automatically shows your last-calculated plan's results again — no need to re-enter your payment and re-click Calculate. Every submission is also logged to the collapsible **📜 Plan History** panel (date, payment, strategy, total interest, payoff date), capped at the 20 most recent runs, so you can compare past plans at a glance.
+Reloading the app later automatically shows your last-calculated plan's results again — no need to re-enter your payment and re-click Calculate. Every submission is also logged to the collapsible **📜 Plan History** panel (date, payment, strategy, total interest, payoff date), capped at the 20 most recent runs, so you can compare past plans at a glance. With two or more entries, *Compare two plans* shows each debt's payoff month and interest in both plans and the change.
 
 ### 4 — Track your income
 Navigate to **Income**. Add one row per income source. Use the one-time entry section for bonuses, tax refunds, and irregular deposits.
@@ -289,7 +334,7 @@ Navigate to **Income**. Add one row per income source. Use the one-time entry se
 Navigate to **Liabilities** (Budget sub-tab). Add bills (fixed monthly costs) and expense budgets (variable spending targets with category and date). The Cash Flow Summary panel shows net remaining after all outflows.
 
 ### 6 — Export / Import
-The **Backup & Restore** button (⇅ icon) is in the top-right toolbar on every page, opening a two-tab modal.
+Backup & Restore is a page in Settings (gear icon, or the account menu).
 
 - **Export (JSON)** — complete backup of all data as a single `.json` file
 - **Import (JSON)** — choose Replace (full restore) or Merge (append debts)
@@ -316,126 +361,28 @@ The **Strategy Comparison** panel on the Plan page always shows all four strateg
 
 ### File Structure
 
+The frontend has no build step, so the repository root holds the app itself.
+
 ```
-index.html                  — Main page shell + responsive nav + CSP meta tag
-guide.html                  — In-app usage guide (opened by Help button)
-guide.css                   — Styles for guide.html (externalized for CSP compliance)
-styles.css                  — Responsive styles + dark mode + utilities + print stylesheet
-styles-csp-classes.css      — CSP-compliant utility classes + dynamic CSS variable rules
-manifest.json               — Web app manifest (installability metadata + icon references)
-sw.js                       — Service worker: app-shell precache + Chart.js CDN runtime cache
-src/
-  ├─ app.js                — Main app controller & state (DebtTrackerApp)
-  ├─ ui.js                 — Event listeners, page navigation, mobile menu
-  ├─ commandPalette.js     — Ctrl+K command palette
-  ├─ keyboardShortcuts.js  — Keyboard Shortcuts help panel (KEYBOARD_SHORTCUTS single source of truth)
-  ├─ settings.js           — App settings (reconciliation mode, $0 policy, etc.)
-  ├─ setupWizard.js        — First-run setup wizard + Settings modal wiring
-  ├─ loginGate.js          — Full-page sign-in / first-run setup gate
-  ├─ serverUnreachableGate.js — Full-page "can't reach your server" gate with Try again
-  ├─ serviceWorker.js      — Service worker registration
-  ├─ i18n.js               — Internationalization (t(), locale switching, applyStaticTranslations)
-  ├─ locales/              — i18n locale dictionaries (en.js, es.js, pl.js)
-  ├─ strategy.js           — Payment-plan orchestrator & income widget
-  ├─ strategyPlanCalculation.js — Payment-plan calculation entry points
-  ├─ strategyCalendar.js   — Payment calendar view
-  ├─ strategyComparison.js — Interest comparison & what-if simulator
-  ├─ strategySummaryTable.js — Debt summary table & amortization modal
-  ├─ strategyScheduleTable.js — Payment schedule table
-  ├─ debts.js              — Debt management (CRUD & inline editing)
-  ├─ debtBreakEven.js      — Break-even badge, mini chart & accelerate-debt modal
-  ├─ accounts.js           — Account management & balance projections
-  ├─ bonusAdvisor.js       — Bonus/one-time income advisor
-  ├─ income.js             — Income sources & one-time entries
-  ├─ bills.js              — Bills data model (no standalone add UI — use Recurring)
-  ├─ recurring.js          — Recurring transaction templates
-  ├─ savings.js            — Emergency fund & sinking fund tracking
-  ├─ ledger.js             — Transaction ledger page rendering & CSV export
-  ├─ ledgerTransactions.js — Ledger transaction aggregation (pure computation)
-  ├─ ledgerOverrides.js    — Per-transaction manual amount overrides
-  ├─ ledgerCleared.js      — Per-transaction cleared/posted tracking with timestamp
-  ├─ reconciliation.js     — Account statement reconciliation
-  ├─ retirement.js         — Retirement page rendering (account cards, snapshot log, charts, projection, Coast FIRE date)
-  ├─ health.js             — Financial health dashboard (DTI, savings rate, runway)
-  ├─ spending.js           — Spending analysis (category breakdowns, trends)
-  ├─ reports.js            — Reports page orchestrator (month nav)
-  ├─ reportsNetWorth.js    — Net worth snapshots & widget
-  ├─ reportsCalendar.js    — Reports calendar grid & day-detail modal
-  ├─ reportsCashFlow.js    — Income/expense & money flow reports
-  ├─ reportsMoneyFlowSankey.js — Money Flow Sankey chart
-  ├─ reportsVariance.js    — Budget variance report
-  ├─ reportsSummary.js     — Reports summary metrics
-  ├─ forecast.js           — Cash Flow Forecast (Reports tab)
-  ├─ charts.js             — Chart rendering & lifecycle
-  ├─ storage.js            — Boot probe, load from the server, plan-settings save, clear all
-  ├─ sanitizers.js         — Sanitizers for persisted/imported record shapes
-  ├─ dataExport.js         — JSON/CSV export & import
-  ├─ dataTransferModal.js  — Postgres-to-local data transfer modal
-  ├─ postgresSync.js       — Per-resource Postgres mutation helpers (pgPost/pgPatch/pgDelete); diff-only, versioned PATCH
-  ├─ recordVersions.js     — Pure diff/conflict helpers for row-versioned PATCHes (#578)
-  ├─ liveRefresh.js        — Cross-tab and on-focus refresh (#575)
-  ├─ refreshPolicy.js      — Pure refresh decisions (threshold, deferral, view state)
-  ├─ ledgerKeyRemap.js     — Pure Ledger override/cleared key remapping on import (#520)
-  ├─ postgresImport.js     — loadFromPostgres() fan-out to all 15 resource endpoints
-  ├─ pgMigrationModal.js   — One-time local→Postgres migration modal
-  ├─ breakEven.js          — Per-debt break-even calculation engine (plan vs. min-only)
-  ├─ debtCalculator.js     — Pure calculation engine (no side effects, no DOM access)
-  ├─ retirementCalculator.js — Pure retirement projection engine (future-value projection, growth/contribution split, Coast FIRE)
-  ├─ guideTheme.js         — Applies saved dark-mode theme to guide.html
-  ├─ guideNav.js           — In-app guide navigation helpers
-  └─ utils.js              — Formatting, date utilities, sanitization, chart tables
-server/                     — Self-hosted Node.js + PostgreSQL API (required since 7.0.0)
-  ├─ src/index.js          — Express app (auth, CRUD routes, CSRF, rate-limiting)
-  ├─ migrations/           — node-pg-migrate SQL migration files
-  ├─ scripts/create-user.js — Bootstrap admin user (argon2id hashed)
-  ├─ docker-entrypoint.sh  — Reads Docker secret → sets DATABASE_URL before Node starts
-  ├─ Dockerfile            — node:24-alpine image (build context = repo root for sanitizer reuse)
-  └─ README.md             — Server setup, dev, and deployment guide
-tests/ (778 tests across 81 files)
-  ├─ conftest.py              — Shared fixtures & utilities
-  ├─ README.md                — Comprehensive test documentation
-  ├─ security/ (65 tests)     — XSS, CSP, input validation, static scan
-  │   ├─ test_xss.py, test_csp.py
-  │   └─ test_input_validation.py, test_static_scan.py
-  ├─ features/ (389 tests)    — Per-feature CRUD, calculations, business logic
-  │   ├─ test_accounts.py, test_debts.py, test_income.py, test_bills.py
-  │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
-  │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
-  │   ├─ test_health.py, test_forecast.py, test_reconciliation.py
-  │   ├─ test_spending_analysis.py, test_storage_import.py, test_sync_error_banner.py
-  │   ├─ test_debt_calculator.py, test_strategy.py, test_settings.py
-  │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py, test_versioning.py
-  │   ├─ test_break_even.py, test_interest_income.py, test_i18n.py, test_i18n_coverage.py, test_i18n_render_guard.py, test_i18n_render_guard_empty.py
-  │   ├─ test_server_only_storage.py, test_pwa.py, test_pwa_icons.py, test_analytics.py
-  │   ├─ test_cash_flow_trend.py, test_money_flow_sankey.py, test_validation_modals.py
-  │   └─ test_issue_92_export.py, test_issue_93_expense_save.py
-  ├─ ui/ (249 tests)          — UI/UX, responsiveness, accessibility
-  │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py, test_high_contrast_theme.py
-  │   ├─ test_css_load.py, test_accessibility.py, test_main_nav.py
-  │   ├─ test_charts.py, test_chart_accessibility.py, test_guide_theme.py
-  │   ├─ test_guide_nav.py, test_reduced_motion.py, test_command_palette.py
-  │   ├─ test_setup_wizard.py, test_overview_print.py, test_remaining_pages_print.py
-  │   ├─ test_table_mobile_scroll.py, test_data_transfer_modal.py, test_delete_confirm_modal.py
-  │   ├─ test_settings_theme_location.py, test_pwa_update_banner.py
-  │   ├─ test_debt_actions.py, test_recurring_actions.py, test_reports_actions.py
-  │   └─ test_reports_nav.py, test_reconciliation_actions.py, test_spending_ui.py, test_strategy_calendar.py, test_whatif_simulator.py
-  ├─ a11y/ (10 tests)         — Site-wide WCAG 2.1 AA accessibility audit
-  │   └─ test_a11y_audit.py, run_a11y_audit.py
-  ├─ integration/ (18 tests)  — End-to-end workflows, import/export, data persistence
-  │   ├─ test_smoke.py, test_workflows.py, test_interest_income_workflow.py
-  │   └─ test_pwa_offline.py
-  └─ postgres/ (Postgres-specific: auth, import, mutations, legacy data)
-      ├─ test_postgres_bootstrap.py     — Auth, login gate, session handling
-      ├─ test_postgres_import.py        — loadFromPostgres fan-out + import round-trip
-      ├─ test_postgres_mutations.py     — Per-resource CRUD via pgPost/pgPatch/pgDelete
-      ├─ test_postgres_migration.py     — local→Postgres one-time migration modal flow
-      ├─ test_postgres_notifications.py — Mailpit-backed end-to-end coverage for the test-email flow
-      └─ test_postgres_setup_wizard.py  — First-run setup wizard against the Postgres backend
-tools/
-  ├─ debug/                   — Ad-hoc manual debugging scripts (not part of pytest suite)
-  └─ generate-icons.js        — One-time PWA icon generator (Node zlib only, not run in CI)
-icons/                        — Generated PWA icon set (tools/generate-icons.js output)
+index.html, guide.html      — App shell (with the CSP meta tag) and the in-app usage guide
+styles.css, styles-csp-classes.css, guide.css — Stylesheets (no inline styles, for the CSP)
+manifest.json, sw.js, icons/ — PWA manifest, service worker and generated icon set
+env-config.js               — Placeholder for the optional analytics setting (the Docker image generates the real one)
+src/                        — Frontend ES modules, one per feature, plus src/locales/ (en, es, pl)
+server/                     — Node.js + Express API over PostgreSQL: routes, auth, migrations,
+                              background jobs, email templates, scripts and its own tests (server/test/)
+tests/                      — pytest + Playwright suites (features, ui, security, a11y, integration,
+                              postgres), Jest unit tests (tests/unit/) and the shared harness
+tools/                      — Dev tooling: Stryker scope and per-file floors, Lighthouse sign-in, icon generator
+docs/                       — architecture/ (module map and internals), audit/ (security, a11y, test reports),
+                              history/ (archived roadmap), superpowers/ (design specs), examples/, implementation/
+docker-compose.yml, docker-compose.dev.yml, docker-compose.mailpit.yml, Dockerfile, nginx.conf,
+docker-entrypoint.d/        — The Docker stack: nginx + server + PostgreSQL, a dev override that
+                              bind-mounts the frontend, and a Mailpit override for email testing
+setup.sh, setup.ps1, backup.*, restore.* — Secrets setup, backup and restore scripts
 ```
+
+For the module map (which file owns what), see [CLAUDE.md](CLAUDE.md) and [docs/architecture/](docs/architecture/).
 
 > **Known gap:** The standalone Bills UI (`#billForm`/`#billList`) was removed in favor of Recurring Templates, but `bills.js` still defines the full bills data model and calculation logic — `app.bills` is read by `accounts.js`, `health.js`, `ledger.js`, and `strategy.js`, and round-trips through import/export. There is currently no reachable UI to add or edit a bill.
 
@@ -443,9 +390,12 @@ icons/                        — Generated PWA icon set (tools/generate-icons.j
 
 - **[README.md](README.md)** — You are here
 - **[CHANGELOG.md](CHANGELOG.md)** — Version history and release notes
-- **[ROADMAP.md](ROADMAP.md)** — Planned features, known gaps, technical debt tracking
+- **[ROADMAP.md](ROADMAP.md)** — Current roadmap (Now / Next / Later) and recent releases; the earlier v4-era roadmap is in [docs/history/ROADMAP-v4.md](docs/history/ROADMAP-v4.md)
 - **[SECURITY.md](SECURITY.md)** — Security practices, CSP policy, vulnerability reporting
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** — Production deployment guides (Nginx, Apache, Docker)
+- **[AGENTS.md](AGENTS.md)** — Operational notes for automated agents (running the test suite locally)
+- **[CLAUDE.md](CLAUDE.md)** — Project rulebook: commands, architecture, conventions
+- **[docs/architecture/](docs/architecture/)** — Module map and internals: [features](docs/architecture/features.md), [storage](docs/architecture/storage.md), [testing](docs/architecture/testing.md)
 - **[tests/README.md](tests/README.md)** — Comprehensive test documentation
 - **[docs/audit/security/](docs/audit/security/)** — Security audit reports
 - **[docs/audit/a11y/](docs/audit/a11y/)** — Accessibility audit reports
@@ -516,92 +466,41 @@ form-action 'self'
 
 ---
 
-## 🧪 Testing Suite (Updated September 4, 2026)
+## 🧪 Testing Suite
 
-### Test Statistics
-- **Total Tests**: 731 comprehensive tests (plus 47 Postgres/CI-only), all passing
-- **Test Files**: 74 organized across 6 categories (81 including `postgres/`)
-- **Framework**: pytest with Playwright browser automation
-- **Coverage**: All major features + security + UI + accessibility + integration paths
+Every Playwright test runs against a real stack and wipes the server's data, so never point the tests at a deployment that holds real data. Setup, environment variables and the shard layout are in [tests/README.md](tests/README.md) and [docs/architecture/testing.md](docs/architecture/testing.md).
 
-### Test Categories
+### Test Suites
+Counts are from 2026-11-23 (v7.32.1) and will drift; the CI run is the source of truth. The Playwright counts are test functions found with `grep` (parametrized cases run more); the Jest and server counts are what those runners report.
 
-#### 🔐 Security Tests (65 tests)
-- **XSS Prevention** — Input sanitization across accounts, income, debts, recurring, savings, reconciliation, spending, health, ledger
-- **CSP Compliance** — Strict Content Security Policy enforcement; meta tag / nginx header sync check
-- **Input Validation** — Bounds checking, unicode, special characters, negative-amount guards on all forms
-- **Static Analysis** — Code patterns, hardcoded secrets, dependencies
-
-#### 🎯 Feature Tests (389 tests)
-- **Accounts** — CRUD, projections, graceful orphaning of linked items on deletion; interest-rate (% APY) badge display — threshold/formatting boundaries, multi-account scoping, edit-to-clear, reload persistence, import clamping
-- **Debts** — Liability management, interest, amortization, fixed-amount validation
-- **Interest Income** — monthly compounding deposit engine, last-day posting, override-aware compounding, negative/zero/sub-cent skips, Reports/Forecast integration
-- **Debt Calculator** — Strategies (incl. multi-debt priority ordering), daily compounding, back-calculator, stimulus edge cases
-- **Strategy / Plan** — Avalanche/Snowball/Priority switching, comparison panel, stimulus validation, plan history logging/cap, last-plan restore on load
-- **Income** — Sources, frequencies, totals, negative-amount rejection (add + inline edit paths)
-- **Expenses** — Add/edit/delete, amount/date validation
-- **Bills** — Data model, sanitization, calculation integration
-- **Recurring** — All frequencies, pause/resume, skip-month, mark-as-paid, account linkage, validation
-- **Ledger** — Filtering, amount-override modal, cleared-checkbox tracking, key collision checks, CSV export column picker
-- **Reports** — Income vs expenses, money flow, net worth analytics, tab grouping, date-boundary handling
-- **Savings** — Emergency funds, sinking funds, persistence
-- **Net Worth** — Snapshots, milestones, historical calculations
-- **Financial Health** — All six cards, empty states, nav links
-- **Cash Flow Forecast** — Horizon/account selection, notable months, negative-balance warnings, intra-month dip detection
-- **Account Reconciliation** — Statement balance adjustments, expected-transaction matching, sanitization, import/export
-- **Spending Analysis** — Category breakdowns, month-over-month trends
-- **Settings** — Reconciliation mode persistence and import/export round-trip
-- **Storage Import** — Sanitizer primitives, adversarial inputs for all record types, legacy v1.0 format
-- **Server-only storage** — persistence across reload, unreachable/login gates, no financial keys in browser storage, save-failure banner
-- **Main Nav Groups** — Grouped navigation structure (Overview/Manage/Analyze)
-- **Break-Even Analysis** — badge no-plan and plan-active states, min-type toggle, accelerate modal (open/preview/apply), plan table columns, fixed-amount exclusion, edge cases (0% APR, balance=minimum, invalid percent, $0/$negative extra)
-- **Analytics** — optional self-hosted Google Analytics stays off with no `window.__ENV__.GA_MEASUREMENT_ID`; injects `gtag.js`/`dataLayer` when it's present; `index.html`/`guide.html` wiring
-
-#### 🎨 UI/UX Tests (249 tests)
-- **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing, table horizontal scroll
-- **Modals** — Visibility toggling, close buttons, amortization, calendar day-detail, ledger export
-- **Dark Mode** — Theme switching, contrast, persistence, corrupted-localStorage fallback
-- **High Contrast Theme** — 3-way selector wiring, `dark-mode`+`high-contrast-mode` class pairing, persistence, corrupted-value fallback, focus-ring, `.nav-group-label` contrast regression guard
-- **CSS Loading** — External stylesheet, utility classes, responsive breakpoints
-- **Accessibility** — Keyboard navigation, ARIA labels, semantic HTML, Results tab-bar semantics
-- **Guide Theme** — `guide.html` dark/light mode sync, nav back-link
-- **Charts** — Chart.js instance destroy-before-recreate on repeated re-render
-- **Chart Accessibility** — `.sr-only` data-table fallback present for health, spending, forecast, net-worth, strategy, and budget cash-flow charts
-- **Reduced Motion** — CSS transition-duration collapse and `Chart.defaults.animation` disabled under `prefers-reduced-motion`
-- **Command Palette** — Ctrl+K / toolbar open, filtering, empty-state, arrow-key navigation, Enter-to-navigate, Escape/backdrop close
-- **Keyboard Shortcuts Panel** — palette command + account-menu entry points, rows match `KEYBOARD_SHORTCUTS`, focus trap, Escape/backdrop close with focus restore, CSP-safe rendering
-- **Setup Wizard** — First-run modal, setting persistence, skip flow
-- **Print Buttons** — Present on Overview pages (Health/Accounts/Income) and all remaining pages; `@media print` stylesheet hides forms
-- **Table Mobile Scroll** — Ledger, reconciliation expected, and report tables scroll within `.table-wrapper` on narrow viewports
-- **Main Nav** — Grouped active-state highlighting and keyboard reachability
-- **Reports Nav / Actions** — Tab-bar grouping, sticky positioning, dark mode, tab-switching visibility
-- **Debt / Recurring / Reconciliation Actions** — Inline edit, mark-paid, reconcile-modal flows
-- **Spending UI** — Pie/bar charts, ranked list, drill-down modal
-
-#### ♿ Accessibility Audit (10 tests)
-Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs, duplicate IDs, orphaned form inputs, unnamed interactive elements, missing alt text, computed WCAG 1.4.3 colour contrast, modal Escape-to-close, mobile nav `aria-expanded`.
-
-#### 🔄 Integration Tests (18 tests)
-- **End-to-End Workflows** — Complete user journeys (account → debt → net worth → reconciliation)
-- **Data Persistence** — Cross-navigation data integrity
-- **Import/Export** — JSON roundtrip, CSV schedule export (incl. comma/quote escaping), full clear-all-data → reimport → render-every-page consistency check
-- **Ledger CSV Export** — Column-picker modal (incl. cleared/cleared-at columns), filtered export, column persistence
+| Suite | Where | Approx. count | What it covers |
+|-------|-------|---------------|----------------|
+| Features | `tests/features/` | 1,675 in 131 files | Per-feature CRUD and business logic: accounts, debts, income, recurring, savings, Ledger, Reports, Forecast, reconciliation, notifications, retirement, people, i18n coverage and render guard, PWA, versioning |
+| UI/UX | `tests/ui/` | 478 in 47 files | Mobile layout and clipping, modals, dark and high-contrast themes, contrast ratios, command palette, keyboard shortcuts, Settings, setup wizard, print |
+| Security | `tests/security/` | 85 in 7 files | XSS, CSP (meta tag and nginx header kept in sync), input validation, static scan, no financial data in browser storage |
+| Accessibility | `tests/a11y/` | 10 in 1 file | Site-wide sweep of every page in both themes: ARIA references, duplicate IDs, names, contrast |
+| Integration | `tests/integration/` | 20 in 4 files | End-to-end workflows, smoke tests, import/export round trips |
+| Postgres | `tests/postgres/` | 89 in 12 files | Sign-in and login gate, import, per-resource mutations, legacy data migration, setup wizard, email through Mailpit |
+| Jest unit | `tests/unit/` | 1,735 tests in 66 suites | Pure modules: calculation engine, sanitizers, formatting, sync and projection cores |
+| Server | `server/test/` | 527 tests in 37 files | `node:test` suite for routes, auth, migrations, jobs, notifications and the calendar feed, against a real PostgreSQL |
 
 ### Quick Test Commands
 
 ```bash
-pytest tests/ -v                  # All 778 tests (requires Docker for postgres/)
-pytest tests/security/ -v         # 65 security tests
-pytest tests/features/ -v         # 389 feature tests
-pytest tests/ui/ -v               # 249 UI/UX tests
-pytest tests/a11y/ -v             # 10 accessibility audit tests
-pytest tests/integration/ -v      # 18 integration tests
-pytest -m "security" -v           # All security tests by marker
+pytest tests/ -v                  # All Playwright tests (needs the running stack)
+pytest tests/security/ -v         # Security
+pytest tests/features/ -v         # Features
+pytest tests/ui/ -v               # UI/UX
+pytest tests/a11y/ -v             # Accessibility audit
+pytest tests/integration/ -v      # Integration
+pytest -m "security" -v           # By marker
 pytest -m "not slow" -v           # Skip slow tests
+npm run test:unit                 # Jest unit tests
+cd server && npm test             # Server tests (needs a test PostgreSQL, see server/README.md)
 ```
 
 ### 🧬 Mutation Testing (Jest + Stryker)
-A separate, dev-only Node toolchain mutation-tests the pure calculation/formatting/sanitization functions in `src/debtCalculator.js`, `src/utils.js`, and `src/sanitizers.js` — not the Python suite above. It runs as the `mutation-testing` job in CI (`.github/workflows/ci.yml`).
+A separate, dev-only Node toolchain mutation-tests the pure calculation, formatting, sanitization and core modules (the debt and retirement calculators, sanitizers, the shared projection, merge, notification and net worth cores, and more). It is not part of the Python suite and runs as the `mutation-testing` CI job. Each scoped file has its own score floor (`tools/mutationFloors.json`), checked by `tools/mutationFloors.cjs`; a pull request that touches a scoped file runs the same check against the baseline from `main`. The scope is listed by function name in `tools/strykerScope.mjs`.
 
 ```bash
 npm install
@@ -609,13 +508,8 @@ npm run test:unit        # Jest unit tests
 npm run test:mutation     # Stryker mutation run (HTML report at reports/mutation/mutation.html)
 ```
 
-### Security Scan Results (June 19, 2026)
-
-| Severity | Count | Status |
-|----------|-------|--------|
-| HIGH | 0 | ✅ |
-| MEDIUM | 0 | ✅ |
-| LOW | 12 | ✅ All properly handled |
+### Lighthouse
+CI runs Lighthouse against the signed-in app (not the sign-in screen), and fails if the audit did not load real data. See [docs/architecture/testing.md](docs/architecture/testing.md).
 
 ---
 

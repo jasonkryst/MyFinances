@@ -377,8 +377,16 @@ docker compose up -d                                   # restart containers
 docker compose run --rm server npm run migrate up      # apply any new migrations
 ```
 
-Portainer auto-update handles steps 2–3 automatically; you only need to run migrations manually
-if a release adds new database tables (check the `CHANGELOG.md` entry for "migration").
+Portainer auto-update handles steps 2–3 automatically. The server also applies any pending
+migrations every time it starts, and refuses to start if one fails, so the last command is
+optional; running it just shows the result sooner. `CHANGELOG.md` names the migration number in
+each release that adds one.
+
+### Password checks, sign-in emails and API tokens
+
+- **Breached-password check (optional).** Set `SECURITY_CHECK_BREACHED_PASSWORDS=true` in `.env` to reject new passwords found in Have I Been Pwned. The server needs outbound HTTPS to `api.pwnedpasswords.com` (or set `SECURITY_BREACH_CHECK_URL` to a mirror), sends only a 5-character hash prefix, and accepts the password if the service can't be reached. It is off by default.
+- **Emails need SMTP.** The new-device sign-in email and the notification emails are sent only when SMTP is configured (see "Email Notifications (Optional)" below). Without it, alerts still appear in the app.
+- **Read-only API tokens.** Settings → Security creates tokens that read your data with `GET` requests and an `Authorization: Bearer mft_...` header. A token is a bearer credential: serve the stack over HTTPS and keep tokens as private as a password. The bundled nginx passes the `Authorization` header to the server unchanged, and so do other reverse proxies by default; if yours strips it, tokens will answer `401`.
 
 ### Backup and Restore
 
