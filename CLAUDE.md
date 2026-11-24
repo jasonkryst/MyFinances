@@ -20,7 +20,7 @@ MyFinances is a privacy-first, self-hosted personal finance tracker (debt payoff
 docker compose up -d                                                # http://localhost:32900
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d   # bind-mounts the frontend: edit, then refresh
 ```
-A plain static file server does not work: the app needs the API. The stack needs `secrets/postgres_password.txt` and `secrets/smtp_password.txt` (empty is fine); `setup.sh`/`setup.ps1` create them (see `DEPLOYMENT.md`). The dev override bind-mounts the frontend read-only into nginx and has been run live; an edited asset needs a `sw.js` `CACHE_NAME` bump (or an unregistered service worker) to show.
+A plain static file server does not work: the app needs the API. The stack needs `secrets/postgres_password.txt`; `setup.sh`/`setup.ps1` create it (see `DEPLOYMENT.md`). Since 8.0.0 the SMTP password is the `SMTP_PASSWORD` environment variable (`.env` or stack variables), not a secret file. The dev override bind-mounts the frontend read-only into nginx and has been run live; an edited asset needs a `sw.js` `CACHE_NAME` bump (or an unregistered service worker) to show.
 
 ### Tests
 ```bash

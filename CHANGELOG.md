@@ -4,6 +4,31 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.0.0] — 2026-11-24
+
+### BREAKING
+- **The SMTP password is an environment variable.** The server reads it from `SMTP_PASSWORD`, set with the other `SMTP_*` values (root `.env`, Portainer stack variables or the shell). `secrets/smtp_password.txt` is no longer read, and compose no longer lists an `smtp_password` secret, so the file is no longer required either.
+
+### Upgrade
+1. **If you send email**, set `SMTP_PASSWORD` with the other `SMTP_*` values: in the root `.env` (single-quoted, `SMTP_PASSWORD='...'`, so `$`, `#` and spaces stay literal; keep the file private with `chmod 600 .env`), as a Portainer stack variable, or in the shell. A password containing a single quote has to be a stack or shell variable. Rotating the SMTP password at the same time is a good idea. Without email, skip this step.
+2. **Remove the old secret file** from the deployment directory (the folder with `docker-compose.yml` and `secrets/postgres_password.txt`):
+   - Linux or macOS: `rm -f secrets/smtp_password.txt`
+   - Windows PowerShell: `Remove-Item secrets\smtp_password.txt -ErrorAction SilentlyContinue`
+   - Portainer: delete `smtp_password.txt` from the host secrets folder you created during setup (for example `/opt/myfinances/secrets/smtp_password.txt`).
+3. **Remove `SMTP_SECRET_FILE`** from `.env` or the stack variables if you set it; nothing reads it now.
+4. Run `docker compose up -d`, or redeploy the stack.
+
+Don't re-run `setup.sh`/`setup.ps1` on an existing deployment: they reopen registration and try to create a user. If a mail-server user is set without a password, the server logs a warning at startup.
+
+### Changed
+- `setup.sh`/`setup.ps1` write the password into `.env` as `SMTP_PASSWORD='...'` (`setup.sh` also restricts `.env` to its owner). Declining email writes an empty `SMTP_HOST=`, so later runs don't ask again. Their closing message no longer mentions the storage selector removed in 7.0.0.
+- `server/docker-entrypoint.sh` no longer reads `/run/secrets/smtp_password`, and warns when a mail-server user is set without a password.
+- `secrets/smtp_password.txt.example` is removed.
+- CI no longer creates an empty `secrets/smtp_password.txt`.
+
+### Tests
+- `tests/features/test_smtp_password_env.py` (shard K) checks that compose passes `SMTP_PASSWORD` and defines no `smtp_password` secret, that the entrypoint never sets the password from a file, that it warns for a user without a password, and that it stays quiet with a password, for a relay with no sign-in, and with email off. A negative case proves the checks catch the 7.x wiring.
+
 ## [7.32.1] — 2026-11-23
 
 ### Changed

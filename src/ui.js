@@ -1049,6 +1049,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '8.0.0 — 2026-11-24',
+        items: [
+            '<strong>For self-hosters: the email password moved.</strong> The SMTP password is now the <code>SMTP_PASSWORD</code> setting (in <code>.env</code> or your stack variables) instead of the <code>secrets/smtp_password.txt</code> file. If you send email, set it before restarting, then delete the old file; the upgrade steps are in the changelog and DEPLOYMENT.md. Nothing changes in the app itself.'
+        ]
+    },
+    {
         version: '7.32.0 — 2026-11-23',
         items: [
             '<strong>Sinking fund alerts:</strong> you get a notification when a target-date sinking fund falls 10% or more behind the monthly pace you planned, or passes its date with money still to save. The alert clears once the fund catches up or is funded. Turn it off under <em>Settings → Notifications → Sinking fund behind</em>.'

@@ -371,21 +371,18 @@ when an account is created. It's off by default. See
 Run `setup.sh`/`setup.ps1` and answer "y" when asked to configure SMTP, or
 configure manually:
 
-- Set `SMTP_HOST`, `SMTP_PORT` (default `587`), `SMTP_USER`, `SMTP_FROM`,
-  and `SMTP_SECURE` (`true`/`false`) as environment variables on the
-  `server` service — a root `.env` file works with the provided
-  `docker-compose.yml`.
-- Place the SMTP account's password in `secrets/smtp_password.txt`, a
-  Docker secret using the same pattern as
-  `secrets/postgres_password.txt` — `docker-entrypoint.sh` reads it into
-  `SMTP_PASSWORD` at container startup.
+- Set `SMTP_HOST`, `SMTP_PORT` (default `587`), `SMTP_USER`,
+  `SMTP_PASSWORD`, `SMTP_FROM` and `SMTP_SECURE` (`true`/`false`) as
+  environment variables on the `server` service. A root `.env` file works
+  with the provided `docker-compose.yml`; single-quote the password there
+  (`SMTP_PASSWORD='...'`) and keep the file private.
+- Since 8.0.0 `secrets/smtp_password.txt` is not read. If `SMTP_HOST` and
+  `SMTP_USER` are set but `SMTP_PASSWORD` is empty, `docker-entrypoint.sh`
+  logs a warning at startup.
 
-Leaving `SMTP_HOST` unset disables the feature entirely — nothing fails
+Leaving `SMTP_HOST` unset disables the feature entirely: nothing fails
 to start, and the test-email endpoint just returns
-`503 EMAIL_NOT_CONFIGURED`. `secrets/smtp_password.txt` must still exist
-(even empty) because Docker Compose requires every file a service's
-`secrets:` list references to be present — `setup.sh`/`setup.ps1` create
-it either way.
+`503 EMAIL_NOT_CONFIGURED`.
 
 ### Verifying it works
 

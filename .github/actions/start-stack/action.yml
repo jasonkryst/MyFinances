@@ -43,7 +43,6 @@ runs:
       run: |
         mkdir -p secrets
         echo "ci-db-password" > secrets/postgres_password.txt
-        : > secrets/smtp_password.txt
     - name: Start stack
       shell: bash
       env:

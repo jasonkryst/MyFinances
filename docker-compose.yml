@@ -81,6 +81,9 @@ services:
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
+      # Since 8.0.0 the SMTP password is this variable (in .env, a Portainer
+      # stack variable or the shell); secrets/smtp_password.txt is no longer read.
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_SECURE: ${SMTP_SECURE:-false}
       # Set ALLOW_SETUP=true in the environment ONLY during initial account creation.
@@ -104,7 +107,6 @@ services:
       TRUST_PROXY_HOPS: "${TRUST_PROXY_HOPS:-1}"
     secrets:
       - postgres_password
-      - smtp_password
     depends_on:
       postgres:
         condition: service_healthy
@@ -156,5 +158,3 @@ volumes:
 secrets:
   postgres_password:
     file: ${POSTGRES_SECRET_FILE:-./secrets/postgres_password.txt}
-  smtp_password:
-    file: ${SMTP_SECRET_FILE:-./secrets/smtp_password.txt}

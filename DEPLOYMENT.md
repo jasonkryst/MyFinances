@@ -359,8 +359,8 @@ Portainer can watch your GitHub repository and redeploy automatically on every p
    ```
    This path must match the `POSTGRES_SECRET_FILE` value you set in step 6.
 
-   Also ensure `secrets/smtp_password.txt` exists on the host (empty is fine) — see
-   "Upgrading an existing deployment" under Email Notifications below.
+   For email, set `SMTP_PASSWORD` (with the other `SMTP_*` values) as a Portainer
+   stack variable; see Email Notifications below.
 
 > **One-time vs. ongoing:** `setup.sh` only needs to run once to generate the secret and
 > create the admin user. After that, Portainer handles all future deploys automatically —
@@ -445,11 +445,35 @@ full configuration steps. `setup.sh`/`setup.ps1` prompt for it during
 first-time setup; declining leaves it disabled with no further action
 needed.
 
-**Upgrading an existing deployment:** `docker-compose.yml` requires `secrets/smtp_password.txt` to exist (empty is fine) even if you never plan to use email. If you deployed before this feature existed and don't use `setup.sh`/`setup.ps1` for updates (e.g. Portainer GitOps), create it once: `touch secrets/smtp_password.txt` on the host, in the same directory as `secrets/postgres_password.txt`.
+**The SMTP password is an environment variable (8.0.0).** Set `SMTP_PASSWORD` with
+the other `SMTP_*` values: in the root `.env` file, as a Portainer stack variable, or
+in the shell that runs `docker compose`. In `.env`, single-quote it
+(`SMTP_PASSWORD='...'`) so `$`, `#` and spaces are kept literally; a password that
+contains a single quote has to be set as a stack or shell variable. `.env` now holds
+a credential, so keep it private (`chmod 600 .env`). It shows up in
+`docker compose config` and `docker inspect` output, so don't paste those publicly.
 
-To configure it later, delete `secrets/smtp_password.txt` and write a new password
-into it, edit `.env` with your SMTP settings, then run `docker compose up -d` again
-to pick up the change. (Don't re-run `setup.sh`/`setup.ps1` on an existing
+**Upgrading from 7.x:** `secrets/smtp_password.txt` is no longer read, and compose no
+longer needs it.
+
+1. If you send email, set `SMTP_PASSWORD` as described above (consider rotating the
+   SMTP password while you're at it). Without email, skip this step.
+2. Remove the old secret file from the deployment directory, the folder that holds
+   `docker-compose.yml` and `secrets/postgres_password.txt`:
+   - Linux or macOS: `rm -f secrets/smtp_password.txt`
+   - Windows PowerShell: `Remove-Item secrets\smtp_password.txt -ErrorAction SilentlyContinue`
+   - Portainer: delete `smtp_password.txt` from the host secrets folder you created
+     during setup (for example `/opt/myfinances/secrets/smtp_password.txt`), and remove
+     an `SMTP_SECRET_FILE` stack variable if you set one.
+3. Remove `SMTP_SECRET_FILE` from `.env` too if you set it there; nothing reads it now.
+4. Run `docker compose up -d` (or redeploy the stack).
+
+Don't re-run `setup.sh`/`setup.ps1` for this on an existing deployment: they reopen
+registration and try to create a user. If a mail-server user is set without a password,
+the server logs a warning at startup.
+
+To change the settings later, edit `.env` (or the stack variables), then run
+`docker compose up -d` again to pick up the change. (Don't re-run `setup.sh`/`setup.ps1` on an existing
 deployment — its later steps assume no user account exists yet and will fail on
 one that already does.)
 
