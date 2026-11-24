@@ -4,6 +4,7 @@ import { normalizeText, normalizeMultilineText, sanitizeFiniteNumber, sanitizeIn
 import { isAllowedSetting } from './settingsSchema.js';
 import { sanitizeWeekendRule } from './weekendRule.js';
 import { sanitizeAmountChanges } from './amountSchedule.js';
+import { MANUAL_SPLIT_MIN, MANUAL_SPLIT_MAX, toCents } from './manualSplits.js';
 import { isValidIsoDate } from './sinkingFundSchedule.js';
 
 const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Pension', 'Other'];
@@ -650,6 +651,46 @@ export function sanitizeTransfer(record, idFallback) {
     };
 }
 
+// #688: splits are `[{ category, amount, memo? }]`, or null for an unsplit
+// record. Junk shapes (non-objects) are dropped; a split with no category or a
+// non-numeric amount is KEPT (category '' / amount NaN) so
+// isValidManualTransaction() rejects the whole record rather than silently
+// shrinking the list into one that still balances. A non-array value (junk)
+// becomes `false`, which the validator also rejects; absent/null/[] is null.
+// Amounts round to cents; they keep the parent's sign (see manualSplits.js).
+export function sanitizeManualSplits(value) {
+    if (value === null || value === undefined) return null;
+    if (!Array.isArray(value)) return false;
+    if (value.length === 0) return null;
+    return value
+        .filter(s => s && typeof s === 'object' && !Array.isArray(s))
+        .slice(0, MANUAL_SPLIT_MAX + 1)
+        .map(s => {
+            const out = {
+                category: normalizeText(s.category, 40),
+                amount: sanitizeFiniteNumber(s.amount, NaN)
+            };
+            if (Number.isFinite(out.amount)) out.amount = Math.round(out.amount * 100) / 100;
+            const memo = normalizeText(s.memo, 200);
+            if (memo) out.memo = memo;
+            return out;
+        });
+}
+
+// True when `splits` is a valid split list for a parent of `amount`: 2 to 20
+// parts, each with a category and a finite, non-zero amount of the parent's
+// sign within the 1e9 cap, summing EXACTLY to the parent in integer cents.
+function _validManualSplits(splits, amount) {
+    if (!Array.isArray(splits) || splits.length < MANUAL_SPLIT_MIN || splits.length > MANUAL_SPLIT_MAX) return false;
+    let cents = 0;
+    for (const s of splits) {
+        if (!s || !s.category || !Number.isFinite(s.amount) || s.amount === 0 || Math.abs(s.amount) > 1e9) return false;
+        if ((s.amount > 0) !== (amount > 0)) return false;
+        cents += toCents(s.amount);
+    }
+    return cents === toCents(amount);
+}
+
 // Manual one-off transaction (#584): a dated actual the user entered in the
 // Ledger. `amount` is signed (negative = money out); the UI takes a direction
 // plus a positive amount. Like sanitizeTransfer there is no clamp: an invalid
@@ -667,16 +708,21 @@ export function sanitizeManualTransaction(record, idFallback) {
         name: normalizeText(record?.name, 100),
         category: normalizeText(record?.category, 40) || 'Other',
         memo: normalizeText(record?.memo, 200),
+        splits: sanitizeManualSplits(record?.splits),
         createdAt
     };
 }
 
 // The single validity rule for a manual transaction, shared by import
 // (sanitizeParsedState) and the server route: an account, a name and a
-// finite, non-zero amount within the app's 1e9 cap.
+// finite, non-zero amount within the app's 1e9 cap, and (#688) splits, when
+// present, that sum exactly to the amount.
 export function isValidManualTransaction(tx) {
-    return !!tx && tx.accountId !== null && !!tx.name
-        && Number.isFinite(tx.amount) && tx.amount !== 0 && Math.abs(tx.amount) <= 1e9;
+    if (!(!!tx && tx.accountId !== null && !!tx.name
+        && Number.isFinite(tx.amount) && tx.amount !== 0 && Math.abs(tx.amount) <= 1e9)) return false;
+    // #688: no splits is valid; present splits must balance the amount.
+    if (tx.splits === null || tx.splits === undefined) return true;
+    return _validManualSplits(tx.splits, tx.amount);
 }
 
 // The single validity rules for transfers, reconciliations and recurring
