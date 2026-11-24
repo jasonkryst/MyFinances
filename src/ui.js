@@ -1080,6 +1080,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '8.4.0 — 2026-11-24',
+        items: [
+            '<strong>Restoring or merging a backup is much faster, and all-or-nothing.</strong> An import used to send your data to the server one record at a time, so a large backup took many seconds and a failure part-way could leave things half done. It now goes up in one step: either everything is imported or nothing changes.'
+        ]
+    },
+    {
         version: '8.3.0 — 2026-11-24',
         items: [
             '<strong>Split one transaction across several categories.</strong> A store receipt that mixes groceries, household items and a gift, or a deposit made of parts, can now be a single Ledger transaction. In <em>Add Transaction</em>, choose <em>Split across categories</em> and divide the total; it saves once the remaining amount reaches zero. The Ledger keeps one row with a <em>Split</em> badge, while Spending and Budget vs. Actual count each part under its own category.'

@@ -318,8 +318,8 @@ _SEED_JS = """
 # can wipe the server before its single page load instead of booting the app,
 # wiping and reloading (#550). The collection order is read from the same
 # src/resourceDeletion.js the browser uses; the extra calls and the plan
-# settings defaults below must match pgDeleteAll, which
-# tests/features/test_harness_reset.py checks.
+# settings defaults below must match pgDeleteAll and src/planSettingsDefaults.js,
+# which tests/features/test_harness_reset.py checks.
 _PLAN_SETTINGS_DEFAULTS = {
     "strategy": None,
     "monthlyPayment": None,

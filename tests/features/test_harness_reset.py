@@ -35,9 +35,11 @@ def test_extra_calls_match_pg_delete_all():
 
 
 def test_plan_settings_defaults_match_pg_delete_all():
-    src, _ = _pg_delete_all_body()
-    m = re.search(r'const DEFAULT_PLAN_SETTINGS = \{(.*?)\n\};', src, re.S)
-    assert m, 'DEFAULT_PLAN_SETTINGS not found'
+    # #529: the defaults live in a pure module shared with the server's bulk import.
+    _, body = _pg_delete_all_body()
+    assert 'DEFAULT_PLAN_SETTINGS' in body, 'pgDeleteAll must reset the plan settings to DEFAULT_PLAN_SETTINGS'
+    m = re.search(r'export const DEFAULT_PLAN_SETTINGS = \{(.*?)\n\};', _read('src/planSettingsDefaults.js'), re.S)
+    assert m, 'DEFAULT_PLAN_SETTINGS not found in src/planSettingsDefaults.js'
     js_keys = re.findall(r'^\s{4}(\w+):', m.group(1), re.M)
     assert js_keys == list(_PLAN_SETTINGS_DEFAULTS)
 

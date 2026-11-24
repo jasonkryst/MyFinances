@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.4.0] — 2026-11-24
+
+### Changed
+- **Importing a backup is one request, and all-or-nothing (#529).** Replace and merge used to send one request per record from the browser (the audit's 432 KB sample took 1,881 requests and 6.7 s) and undid a failure by wiping and re-posting a client-side copy, a rollback that could itself fail half-way. The browser now sends the whole backup to the new `POST /api/import`, and the server imports it in a single database transaction: a record the server rejects answers 400 with the collection and index, and nothing changes (the change log gets no rows from a failed import either). The algorithm moved, unchanged in behaviour, to the pure `src/importCore.js`, shared by the server and the Jest tests; the per-record routes are untouched and now share their insert, upsert, delete-all and plan-settings code with the import. Two imports for one account run one after the other.
+- **Self-hosters with their own reverse proxy:** `POST /api/import` accepts bodies up to 25 MB (the rest of the API stays at 1 MB). The bundled nginx has a matching `location = /api/import` with a 120 s read timeout; a proxy in front of it needs the same limit (see DEPLOYMENT.md).
+
 ## [8.3.0] — 2026-11-24
 
 ### Added

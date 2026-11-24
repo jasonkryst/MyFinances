@@ -2,6 +2,10 @@ import express from 'express';
 import { query } from './db.js';
 import { recordJsonSql, auditCteSql } from './audit.js';
 
+// What the routes run their SQL on. Bulk import (#529) passes a transaction
+// client with the same query() instead.
+const poolDb = { query };
+
 export function createCrudResource({ table, columns, sanitize, requiredFields = [], foreignKeys = {}, foreignKeyArrays = {}, jsonColumns = [] }) {
     const router = express.Router();
     const jsFields = Object.keys(columns);
@@ -39,12 +43,18 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
     // key (e.g. accountId) -- ids are sequential bigserials, so without
     // this check any authenticated user could attach their own records to
     // another tenant's account just by guessing/incrementing an id.
-    async function findUnownedForeignKey(userId, clean) {
+    async function findUnownedForeignKey(userId, clean, db = poolDb) {
         for (const [field, refTable] of Object.entries(foreignKeys)) {
             const value = clean[field];
             if (value === null || value === undefined) continue;
-            const { rows } = await query(`SELECT 1 FROM ${refTable} WHERE id = $1 AND user_id = $2`, [value, userId]);
+            // A bulk import (#529) passes a Set of the ids already proven to be
+            // this user's, so thousands of records on the same few accounts
+            // cost one check each instead of one per record.
+            const cacheKey = `${refTable}:${value}`;
+            if (db.ownedIds?.has(cacheKey)) continue;
+            const { rows } = await db.query(`SELECT 1 FROM ${refTable} WHERE id = $1 AND user_id = $2`, [value, userId]);
             if (rows.length === 0) return field;
+            db.ownedIds?.add(cacheKey);
         }
         return null;
     }
@@ -54,12 +64,12 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
     // array column, so a legacy row may still hold the id of a deleted
     // record: a PATCH is checked only when it sends that field, so editing
     // an unrelated field of such a row still works.
-    async function findUnownedForeignKeyArray(userId, clean, onlyFields = null) {
+    async function findUnownedForeignKeyArray(userId, clean, onlyFields = null, db = poolDb) {
         for (const [field, refTable] of Object.entries(foreignKeyArrays)) {
             if (onlyFields && !onlyFields.includes(field)) continue;
             const ids = Array.isArray(clean[field]) ? [...new Set(clean[field])] : [];
             if (ids.length === 0) continue;
-            const { rows } = await query(
+            const { rows } = await db.query(
                 `SELECT count(*)::int AS n FROM ${refTable} WHERE user_id = $1 AND id = ANY($2::bigint[])`,
                 [userId, ids]
             );
@@ -70,8 +80,8 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
 
     // The GET body for one user. Also used by the background jobs (#579) to
     // load a user's data in exactly the shape the browser receives.
-    async function listForUser(userId) {
-        const { rows } = await query(
+    async function listForUser(userId, db = poolDb) {
+        const { rows } = await db.query(
             `SELECT ${selectList} FROM ${table} WHERE user_id = $1 ORDER BY id`,
             [userId]
         );
@@ -86,32 +96,49 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
         }
     });
 
+    // Validate and insert one record for `userId` on `db` (the pool, or a
+    // transaction client during a bulk import, #529). Resolves to { row } or,
+    // for a payload the route answers with a 400, { error: message }. The
+    // audit row is written by the same statement.
+    async function insertRecord(userId, body, db = poolDb) {
+        const clean = sanitize(body, Date.now());
+        if (!clean) return { error: 'Invalid payload' };
+        if (requiredFields.some(f => isMissing(clean[f]))) return { error: `${requiredFields[0]} is required` };
+        const unownedField = await findUnownedForeignKey(userId, clean, db)
+            || await findUnownedForeignKeyArray(userId, clean, null, db);
+        if (unownedField) return { error: `${unownedField} does not reference a resource you own` };
+        const insertFields = jsFields.filter(f => f !== 'id');
+        const insertCols = insertFields.map(f => columns[f]);
+        const values = insertFields.map(f => toDb(f, clean[f]));
+        const placeholders = insertFields.map((_, i) => `$${i + 2}`);
+        const { rows } = await db.query(
+            `WITH ins AS (
+                INSERT INTO ${table} (user_id, ${insertCols.join(', ')}) VALUES ($1, ${placeholders.join(', ')}) RETURNING ${selectList}
+             ), ${auditCteSql({ table, op: 'create', source: 'ins', rowId: 'ins.id::text', after: json('ins') })}
+             SELECT * FROM ins`,
+            [userId, ...values]
+        );
+        return { row: rowToJson(rows[0]) };
+    }
+
+    // Removes every row of the user's, writing one audit row per record.
+    async function deleteAllForUser(userId, db = poolDb) {
+        await db.query(
+            `WITH del AS (
+                DELETE FROM ${table} WHERE user_id = $1 RETURNING ${selectList}
+             ), ${auditCteSql({ table, op: 'delete', source: 'del', rowId: 'del.id::text', before: json('del') })}
+             SELECT count(*) FROM del`,
+            [userId]
+        );
+    }
+
     router.post('/', async (req, res, next) => {
         try {
-            const clean = sanitize(req.body, Date.now());
-            if (!clean) {
-                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Invalid payload' } });
+            const { row, error } = await insertRecord(req.userId, req.body);
+            if (error) {
+                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: error } });
             }
-            if (requiredFields.some(f => isMissing(clean[f]))) {
-                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${requiredFields[0]} is required` } });
-            }
-            const unownedField = await findUnownedForeignKey(req.userId, clean)
-                || await findUnownedForeignKeyArray(req.userId, clean);
-            if (unownedField) {
-                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${unownedField} does not reference a resource you own` } });
-            }
-            const insertFields = jsFields.filter(f => f !== 'id');
-            const insertCols = insertFields.map(f => columns[f]);
-            const values = insertFields.map(f => toDb(f, clean[f]));
-            const placeholders = insertFields.map((_, i) => `$${i + 2}`);
-            const { rows } = await query(
-                `WITH ins AS (
-                    INSERT INTO ${table} (user_id, ${insertCols.join(', ')}) VALUES ($1, ${placeholders.join(', ')}) RETURNING ${selectList}
-                 ), ${auditCteSql({ table, op: 'create', source: 'ins', rowId: 'ins.id::text', after: json('ins') })}
-                 SELECT * FROM ins`,
-                [req.userId, ...values]
-            );
-            res.status(201).json(rowToJson(rows[0]));
+            res.status(201).json(row);
         } catch (err) {
             next(err);
         }
@@ -206,13 +233,7 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
 
     router.delete('/', async (req, res, next) => {
         try {
-            await query(
-                `WITH del AS (
-                    DELETE FROM ${table} WHERE user_id = $1 RETURNING ${selectList}
-                 ), ${auditCteSql({ table, op: 'delete', source: 'del', rowId: 'del.id::text', before: json('del') })}
-                 SELECT count(*) FROM del`,
-                [req.userId]
-            );
+            await deleteAllForUser(req.userId);
             res.status(204).end();
         } catch (err) {
             next(err);
@@ -220,6 +241,6 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
     });
 
     // Exposed so test/fieldParity.test.js can compare columns to sanitizer output.
-    router.crudConfig = { table, columns, sanitize, listForUser };
+    router.crudConfig = { table, columns, sanitize, listForUser, insertRecord, deleteAllForUser };
     return router;
 }

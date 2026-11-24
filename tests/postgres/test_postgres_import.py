@@ -374,7 +374,10 @@ async def test_postgres_import_malformed_json_rejected(pg_page, base_url, creden
 
 
 async def test_postgres_import_replace_rollback_on_failure(pg_page, base_url, credentials):
-    """If a mid-import POST fails (CSRF stripped), server rolls back to pre-import state."""
+    """If the import request fails (CSRF stripped), the server keeps its pre-import state.
+
+    Since #529 the import is one transactional request, so a failure wipes nothing and needs no
+    client-side rollback; tests/postgres/test_bulk_import.py covers the 500 and 400 cases."""
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
     await _wipe_all(pg_page, base_url)
@@ -396,7 +399,7 @@ async def test_postgres_import_replace_rollback_on_failure(pg_page, base_url, cr
     await pg_page.context.clear_cookies()
     await pg_page.context.add_cookies(non_csrf)
 
-    # Import — replaceForPostgres will wipe data, then all POSTs will 403, rollback fires
+    # Import — POST /api/import is refused (403) before anything runs on the server
     result = await _run_import(pg_page, exported_json, replace=True)
     # Import is expected to fail gracefully (returns False from the catch block)
     await pg_page.wait_for_timeout(3000)
@@ -432,8 +435,7 @@ async def test_postgres_import_expired_session_shows_login_gate(pg_page, base_ur
         });
     }""", exported_json)
 
-    # apiFetch inside postgresImport throws; pgDeleteAll (the first call) goes
-    # through pgFetch which shows the login gate on 401
+    # POST /api/import answers 401, and postgresImport.js asks for sign-in (requestLogin)
     await pg_page.locator('#loginGate').wait_for(state='visible', timeout=10000)
     assert await pg_page.locator('#loginGate').is_visible(), \
         f'Login gate not shown after session expiry during import. Console: {logs}'

@@ -342,6 +342,13 @@ for the browser to send them. For production:
   the moment HTTPS is actually terminated in front of the stack — either way, automatically.
 - If another reverse proxy sits in front of the stack's nginx, set `TRUST_PROXY_HOPS=2` so the server
   reads the right hop's `X-Forwarded-Proto` and client address (see Troubleshooting).
+- **Import size limit.** Restoring or merging a backup (since 8.4.0) is one `POST /api/import` request of up to
+  25 MB; every other API request is limited to 1 MB. The stack's nginx has a `location = /api/import` for it
+  (`client_max_body_size 25m`, 120 s read timeout). A reverse proxy in front of the stack needs the same limit
+  for that path, or large backups fail with `413 Request Entity Too Large` (nginx: `client_max_body_size 25m;`
+  and `proxy_read_timeout 120s;` on `location = /api/import`; Nginx Proxy Manager: an advanced custom location
+  with the same two lines; Traefik: a `buffering` middleware with `maxRequestBodyBytes`; Caddy: `request_body`
+  `max_size 25MB`). The import is one database transaction, so a request that is cut off changes nothing.
 
 ### Portainer GitOps (Automated Deploys on Push)
 

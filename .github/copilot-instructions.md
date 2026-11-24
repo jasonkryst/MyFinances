@@ -141,7 +141,7 @@ Located in `src/debtCalculator.js` (classic script, exposed as global `DebtCalcu
 - `saveToStorage(app, fields)` (name is historical) PATCHes only the named `/api/plan-settings` fields, e.g. `app.saveToStorage(['budgetCategories'])` (issue #564); `PLAN_SETTINGS_FIELDS` in `src/planSettingsPatch.js` lists them. Record mutations never call it (#521); they write their own record through `postgresSync.js`. With no known field it sends nothing.
 - Every record type has a `sanitize*` function in `sanitizers.js` that enforces types, bounds and allowed enums, using the shared primitives from `utils.js`: `normalizeText`, `sanitizeFiniteNumber`, `sanitizeInteger`, `sanitizeDateISO`. It runs on import and, server-side, on every write.
 - **A new persisted field needs a sanitizer entry, a migration and a `columns` entry in its `server/src/routes/*.js` route**, or the server silently drops it.
-- JSON export/import (format version `"3.0"`, 2 MB import limit) lives in `dataExport.js`; import goes through `postgresImport.js`.
+- JSON export/import (format version `"3.0"`, 2 MB import limit) lives in `dataExport.js`; import is one `POST /api/import` request (`postgresImport.js` sends it, `src/importCore.js` runs it on the server in one transaction).
 - Browsers that still hold pre-7.0 `debtTrackerData` get a one-time import (empty server) or download-or-remove (non-empty server) prompt.
 
 ### Ledger transaction system

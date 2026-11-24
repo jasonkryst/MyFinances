@@ -47,18 +47,20 @@ export const USER_STATE_COLLECTIONS = {
     balanceHistory: balanceHistoryRouter,
 };
 
-const list = (router, userId) => router.crudConfig.listForUser(userId);
+const list = (router, userId, db) => router.crudConfig.listForUser(userId, db);
 
 // Plan settings (strategy, monthly payment, Ledger/Forecast view state, ...)
 // are not loaded: nothing in the projection or the snapshot metrics reads them.
-export async function loadUserState(userId) {
+// `db` is the pool by default, or a transaction client (bulk import reads the
+// current state inside its transaction, #529).
+export async function loadUserState(userId, db) {
     const entries = Object.entries(USER_STATE_COLLECTIONS);
     const [lists, snapshots, settingsRows, overrides, cleared] = await Promise.all([
-        Promise.all(entries.map(([, router]) => list(router, userId))),
-        list(netWorthSnapshotsRouter, userId),
-        list(settingsRouter, userId),
-        list(ledgerOverridesRouter, userId),
-        list(ledgerClearedRouter, userId),
+        Promise.all(entries.map(([, router]) => list(router, userId, db))),
+        list(netWorthSnapshotsRouter, userId, db),
+        list(settingsRouter, userId, db),
+        list(ledgerOverridesRouter, userId, db),
+        list(ledgerClearedRouter, userId, db),
     ]);
     const app = {};
     entries.forEach(([field], i) => { app[field] = lists[i]; });

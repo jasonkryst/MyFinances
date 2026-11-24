@@ -5,6 +5,7 @@ import { mapWithConcurrency, IMPORT_CONCURRENCY } from './concurrency.js';
 import { createShadowStore, diffFields, classifyConflict, itemPath } from './recordVersions.js';
 import { deletionLayers } from './resourceDeletion.js';
 import { invalidateProjectionCache } from './projectionCache.js';
+import { DEFAULT_PLAN_SETTINGS } from './planSettingsDefaults.js';
 
 // Last server-confirmed copy of every record, keyed by item path (#578).
 const shadows = createShadowStore();
@@ -326,17 +327,6 @@ export async function pgDeleteMilestones(app) {
     await pgFetch(app, 'DELETE', '/api/plan-settings/milestones');
 }
 
-const DEFAULT_PLAN_SETTINGS = {
-    strategy: null,
-    monthlyPayment: null,
-    perMonthStimulus: [],
-    ledgerSettings: { accountFilter: 'all', dateRange: 'around7', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all', categoryFilter: 'all', pageSize: 25 },
-    forecastSettings: { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 },
-    retirementTargetDate: null,
-    homePurchasePlan: null,
-    budgetCategories: {},
-    reconDrafts: {}
-};
 
 export async function pgDeleteAll(app) {
     shadows.clear();
