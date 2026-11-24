@@ -1,5 +1,7 @@
 # GitHub Copilot Instructions — MyFinances
 
+> **The rules live in [`CLAUDE.md`](../CLAUDE.md)** (with detail in [`docs/architecture/`](../docs/architecture/)) **and [`AGENTS.md`](../AGENTS.md).** This file is an older summary and may lag behind them; where they disagree, follow CLAUDE.md and AGENTS.md.
+
 ## Project overview
 
 MyFinances is a **privacy-first, self-hosted** personal finance tracker (debt payoff planning, accounts, income, budgets, savings, net worth, cash flow forecasting). The frontend is **vanilla ES6+ JavaScript with no build step and no framework**. Since v7.0.0 the self-hosted Node.js + PostgreSQL server (`server/`) is the **only storage**: the app needs the Docker stack (nginx + server + Postgres) and keeps no financial data in browser storage. The only external frontend dependency is Chart.js, loaded via CDN.

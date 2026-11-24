@@ -73,6 +73,6 @@ def test_no_bare_text_locators(rel):
     bad = find_bare_text_locators(source)
     assert not bad, (
         f"{rel}: bare text= locator(s) on line(s) {bad}. Scope each one to its page "
-        "container (e.g. '#debtsList >> text=...'); see CLAUDE.md, Health per-card "
-        "credit utilization breakdown (#555)."
+        "container (e.g. '#debtsList >> text=...'); see docs/architecture/features.md, "
+        "Health per-card credit utilization breakdown (#555)."
     )

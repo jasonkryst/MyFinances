@@ -18,6 +18,6 @@ Closes #
 - [ ] User data rendered through `innerHTML` goes through `escapeHtml()`; no inline styles or scripts (CSP)
 - [ ] New persisted fields have a sanitizer, a migration and a route `columns` entry
 - [ ] Keyboard and screen-reader use still work (accessible names, focus, contrast)
-- [ ] Docs updated (README, CLAUDE.md, DEPLOYMENT.md) where behaviour changed
+- [ ] Docs updated (README, CLAUDE.md and `docs/architecture/`, AGENTS.md, DEPLOYMENT.md) where behaviour changed
 - [ ] If `APP_VERSION` changed: `CHANGELOG.md`, `sw.js` `CACHE_NAME` and, for a minor version, What's New are updated too
 - [ ] No real financial data, passwords or secrets in code, tests or screenshots
