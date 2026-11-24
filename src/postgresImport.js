@@ -279,6 +279,8 @@ function applyResultsToApp(app, data, { accountResults, personResults, resourceR
     app.retirementTargetDate       = data.retirementTargetDate ?? null;
     app.homePurchasePlan           = data.homePurchasePlan ?? null;
     app.budgetCategories           = data.budgetCategories ?? {};
+    // #587: drafts are not exported; pgDeleteAll emptied them on the server.
+    app.reconDrafts                = {};
 
     if (data.ledgerSettings) {
         app._ledgerAccountFilter = data.ledgerSettings.accountFilter || 'all';

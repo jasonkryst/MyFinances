@@ -334,7 +334,8 @@ const DEFAULT_PLAN_SETTINGS = {
     forecastSettings: { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 },
     retirementTargetDate: null,
     homePurchasePlan: null,
-    budgetCategories: {}
+    budgetCategories: {},
+    reconDrafts: {}
 };
 
 export async function pgDeleteAll(app) {

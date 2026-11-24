@@ -39,6 +39,20 @@ export const ZERO_AMOUNT_POLICIES = ['allow', 'warn', 'block'];
 export const LEDGER_EXPORT_COLUMN_KEYS_COPY = ['date', 'account', 'name', 'amount', 'category', 'balance', 'type', 'cleared', 'clearedAt'];
 export const LEDGER_EXPORT_COLUMNS = 'ledgerExportColumns';
 
+// #587: the Ledger table's columns (ledger.js imports this list) and the ones
+// the user hid, as a comma-separated setting so it follows the user across
+// devices. At least one column stays visible; '' means none hidden.
+export const LEDGER_TABLE_COLUMNS = Object.freeze(['date', 'account', 'name', 'amount', 'balance', 'cleared']);
+export const LEDGER_HIDDEN_COLUMNS = 'ledgerHiddenColumns';
+export function isValidLedgerHiddenColumns(v) {
+    if (typeof v !== 'string') return false;
+    if (v === '') return true;
+    const cols = v.split(',');
+    return cols.length < LEDGER_TABLE_COLUMNS.length
+        && new Set(cols).size === cols.length
+        && cols.every(c => LEDGER_TABLE_COLUMNS.includes(c));
+}
+
 // #211: notification preferences. Every type is on unless set to false;
 // notificationsCore.js (getNotificationPrefs) applies the defaults.
 export const NOTIFY_BILL_DUE = 'notifyBillDue';
@@ -109,6 +123,7 @@ export const SETTINGS_EXPORT_SCHEMA = {
     // Comma-separated list of known ledger export column keys (non-empty).
     [LEDGER_EXPORT_COLUMNS]: v => typeof v === 'string' && v.length > 0
         && v.split(',').every(c => LEDGER_EXPORT_COLUMN_KEYS_COPY.includes(c)),
+    [LEDGER_HIDDEN_COLUMNS]: isValidLedgerHiddenColumns,
 };
 
 // `bct:<category>:healthy|warn` budget thresholds, percent 0..100. Category

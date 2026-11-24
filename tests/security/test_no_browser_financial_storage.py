@@ -42,7 +42,7 @@ def test_scan_sees_the_known_call_sites(findings):
     """Guard the guard: the scanner must actually find the allowlisted calls."""
     hits = [r for r in findings if r[5] is None]
     keys = {r[4] for r in hits}
-    assert len(hits) >= 25, hits
+    assert len(hits) >= 24, hits
     assert {'debtTrackerTheme', 'debtTrackerData', 'debtTrackerStorageBackend',
             'debtTrackerReconInProgress', 'ledgerHiddenColumns'} <= keys, keys
 

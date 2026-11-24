@@ -161,6 +161,8 @@ export async function loadFromPostgres(app, { seed = true, planSettings: knownPl
     app.retirementTargetDate = planSettings.retirementTargetDate ?? null;
     app.homePurchasePlan = planSettings.homePurchasePlan ?? null;
     app.budgetCategories = planSettings.budgetCategories ?? {};
+    // #587: in-progress reconciliations live on the server, so they follow the user across devices.
+    app.reconDrafts = planSettings.reconDrafts ?? {};
     // The loaded rows are the server-confirmed copies PATCHes diff against (#578).
     if (seed) seedShadows(app);
 }

@@ -4,6 +4,20 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.2.0] — 2026-11-24
+
+### Changed
+- **In-progress reconciliations follow you to other devices (#587).** A saved, unfinished reconciliation (#343) used to live only in the browser that started it. It's now stored on the server (`plan_settings.recon_drafts`, migration `1755600000051`), so you can start reviewing a statement on one device and resume it on another. Discarding or completing it clears it everywhere. Drafts are not part of the JSON backup: a replace import or Clear All Data empties them, and a merge import keeps them.
+- **The Ledger's hidden columns follow you too (#587).** The column choice is now the `ledgerHiddenColumns` setting (at least one column stays visible), also included in the Settings-only export. It was previously kept per browser.
+- **One-time move of the old browser copies.** The first time the Reconcile dialog or the Ledger needs them, the old `debtTrackerReconInProgress` and `ledgerHiddenColumns` browser keys are moved to the server and removed. A value the server already has wins. Nothing writes either key again, and the browser-storage allowlist now permits only reading and removing them.
+
+### Fixed
+- Saving, discarding and completing a draft in quick succession could leave an older draft on the server, because the PATCHes were unordered. Draft saves now run one after another, and each sends the current map.
+
+### Server
+- `PATCH /api/plan-settings` accepts `reconDrafts`, sanitized by the new `sanitizeReconDrafts`/`sanitizeReconDraft` (`sanitizers.js`, Stryker-scoped). Keys must be positive integer account ids; values are objects. The caps are 50 accounts, 2000 cleared keys per draft and 200 characters per key. Non-object input clears the map. These PATCHes write no change-log row.
+- The settings route accepts `ledgerHiddenColumns` only when it is `''` or a duplicate-free subset of the Ledger's six columns that leaves at least one visible (`isValidLedgerHiddenColumns`, `settingsSchema.js`).
+
 ## [8.1.0] — 2026-11-24
 
 ### Added

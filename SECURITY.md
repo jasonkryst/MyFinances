@@ -8,7 +8,7 @@ MyFinances is a self-hosted personal finance tracking application with strong se
 
 ### Self-Hosted Server Storage (since 7.0.0)
 - **Your server only**: All financial data is stored in your own PostgreSQL server; the browser talks only to that server (same origin) and to the Chart.js CDN
-- **No financial data in browser storage**: Only device preferences (theme, language, currency, Ledger hidden columns, What's New version) and an unfinished-reconciliation draft live in `localStorage`. `tests/security/test_no_browser_financial_storage.py` enforces this allowlist statically
+- **No financial data in browser storage**: Only device preferences (theme, language, currency, What's New version) live in `localStorage`; since 8.2.0 Ledger hidden columns and unfinished-reconciliation drafts are stored on the server (#587). `tests/security/test_no_browser_financial_storage.py` enforces this allowlist statically
 - **No cached API responses**: The service worker is network-only for `/api/`, `/auth/` and `/calendar.ics`, so financial data never lands in Cache Storage
 - **Fails closed**: If the server cannot be reached the app shows a blocking "Can't reach your server" screen, never stale or local data
 
@@ -136,7 +136,7 @@ form-action 'self'
 
 #### Browser Storage
 - ❌ No financial data, passwords, API keys or authentication tokens in `localStorage`/`sessionStorage`
-- ✅ Device preferences only (theme, language, currency, Ledger hidden columns, What's New version) plus an unfinished-reconciliation draft
+- ✅ Device preferences only (theme, language, currency, What's New version)
 - The session token is an httpOnly cookie, unreadable from JavaScript; pre-7.0 browser data (`debtTrackerData`) is removed after the one-time import or download prompt
 
 ### 6. Minimal Dependencies

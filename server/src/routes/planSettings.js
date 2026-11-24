@@ -1,7 +1,7 @@
 import express from 'express';
 import { query } from '../db.js';
 import { recordJsonSql, auditCteSql } from '../audit.js';
-import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeHomePurchasePlan, sanitizeBudgetCategories, sanitizeLedgerSettings } from '../sanitizers/index.js';
+import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeHomePurchasePlan, sanitizeBudgetCategories, sanitizeLedgerSettings, sanitizeReconDrafts } from '../sanitizers/index.js';
 
 const router = express.Router();
 
@@ -11,6 +11,7 @@ const DEFAULT_FORECAST_SETTINGS = { rangeMonths: 1, accountId: 'total', notableT
 // #580: the plan fields the change log records. Ledger and Forecast filters
 // (ledger_settings, forecast_settings) are view state and change on every
 // filter click, so a PATCH that only touches them writes no audit row.
+// recon_drafts (#587) is unfinished work, not a plan value: not audited either.
 // Named, not written inline: resourceDeletion.test.js treats a route that names its table inline as a collection.
 const AUDIT_TABLE_NAME = 'plan_settings';
 export const AUDITED_PLAN_COLUMNS = {
@@ -32,6 +33,7 @@ function rowToJson(row, milestones) {
         retirementTargetDate: row.retirement_target_date || null,
         homePurchasePlan: row.home_purchase_plan || null,
         budgetCategories: row.budget_categories || {},
+        reconDrafts: row.recon_drafts || {},
         netWorthMilestonesAwarded: milestones
     };
 }
@@ -82,6 +84,8 @@ router.patch('/', async (req, res, next) => {
 
         // Non-object input sanitizes to {}, which clears all explicit budgets.
         const budgetCategories = body.budgetCategories === undefined ? undefined : sanitizeBudgetCategories(body.budgetCategories);
+        // #587: the whole map is replaced; non-object input sanitizes to {}.
+        const reconDrafts = body.reconDrafts === undefined ? undefined : sanitizeReconDrafts(body.reconDrafts);
 
         const sets = [];
         const values = [req.userId];
@@ -93,6 +97,7 @@ router.patch('/', async (req, res, next) => {
         if (retirementTargetDate !== undefined) { values.push(retirementTargetDate); sets.push(`retirement_target_date = $${values.length}`); }
         if (homePurchasePlan !== undefined) { values.push(homePurchasePlan === null ? null : JSON.stringify(homePurchasePlan)); sets.push(`home_purchase_plan = $${values.length}`); }
         if (budgetCategories !== undefined) { values.push(JSON.stringify(budgetCategories)); sets.push(`budget_categories = $${values.length}`); }
+        if (reconDrafts !== undefined) { values.push(JSON.stringify(reconDrafts)); sets.push(`recon_drafts = $${values.length}`); }
 
         if (sets.length > 0) {
             await query(

@@ -193,6 +193,8 @@ export class DebtTrackerApp {
         this.retirementTargetDate = null;
         this.homePurchasePlan = null;
         this.budgetCategories = {};
+        // #587: in-progress reconciliations by account id (plan_settings.recon_drafts).
+        this.reconDrafts = {};
         this.balanceHistory = [];
         this._retireBalanceChart = null;
         this._efBalanceChart = null;
