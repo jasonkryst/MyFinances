@@ -8,7 +8,7 @@ boots against it.
 ## First-time setup
 
 Use `setup.sh` (Linux/macOS) or `setup.ps1` (Windows) from the repo root.
-This generates a secure Postgres password as a Docker secret, starts the
+This generates a secure Postgres password into `.env` (`POSTGRES_PASSWORD`), starts the
 stack, runs migrations, and creates the admin user in one step:
 
     # Linux / macOS
@@ -61,10 +61,11 @@ Docker build context is the repo root (not `server/`) because
 `src/utils.js` by relative import rather than duplicating validation
 logic — the Dockerfile copies that directory into the image at `/src`.
 
-Secrets are handled via Docker secrets (`/run/secrets/postgres_password`),
-not environment variables. `server/docker-entrypoint.sh` reads the secret
-at startup and constructs `DATABASE_URL` internally so the password never
-appears in `docker inspect` output or shell history.
+Since 8.0.0 the database password is the `POSTGRES_PASSWORD` environment
+variable (the Docker secret file is no longer read). `server/docker-entrypoint.sh`
+builds `DATABASE_URL` from it at startup, percent-encoded so any character is
+safe; an explicitly set `DATABASE_URL` wins (local dev, test containers). Without
+either, the server exits with an error naming `POSTGRES_PASSWORD`.
 
 The `postgres-data` volume is the only durability layer for this backend —
 use the root-level `backup.sh`/`backup.ps1` and `restore.sh`/`restore.ps1`
@@ -271,7 +272,7 @@ docker compose cp backup:/backups/<file>.dump ./
 **To restore from a backup file** (destructive: it replaces every object in the
 database, like `restore.sh`), then restart the server:
 ```bash
-docker compose run --rm backup sh -c 'PGPASSWORD=$(tr -d "\r\n" < /run/secrets/postgres_password) pg_restore -h postgres -U myfinances -d myfinances --clean --if-exists /backups/<file>.dump'
+docker compose run --rm backup sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_restore -h postgres -U myfinances -d myfinances --clean --if-exists /backups/<file>.dump'
 docker compose restart server
 ```
 

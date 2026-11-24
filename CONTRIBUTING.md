@@ -38,7 +38,7 @@ By taking part you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Set up a local stack
 
 ```bash
-./setup.sh                 # or setup.ps1 on Windows: creates secrets/*.txt
+./setup.sh                 # or setup.ps1 on Windows: writes POSTGRES_PASSWORD (and optional SMTP_*) to .env
 docker compose up -d       # http://localhost:32900
 ```
 

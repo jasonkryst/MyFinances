@@ -7,27 +7,25 @@ Write-Host "MyFinances -- First-Time Setup"
 Write-Host "=============================="
 Write-Host ""
 
-# -- 1. Generate postgres password ---------------------------------------------
-if (Test-Path "secrets\postgres_password.txt") {
-    Write-Host "-> secrets\postgres_password.txt already exists -- skipping generation"
+# Since 8.0.0 the credentials are variables in .env (POSTGRES_PASSWORD,
+# SMTP_PASSWORD), not files in secrets\. Keep .env private: it holds them.
+function Test-EnvKey([string]$Key) {
+    (Test-Path ".env") -and [bool](Select-String -Path ".env" -Pattern "^$Key=" -Quiet)
+}
+
+# -- 1. Generate the database password -----------------------------------------
+if (Test-EnvKey "POSTGRES_PASSWORD") {
+    Write-Host "-> POSTGRES_PASSWORD already in .env -- skipping generation"
 } else {
-    New-Item -ItemType Directory -Force "secrets" | Out-Null
     $bytes = [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)
     $password = ($bytes | ForEach-Object { $_.ToString("x2") }) -join ""
-    [System.IO.File]::WriteAllText(
-        (Resolve-Path "secrets").Path + "\postgres_password.txt",
-        $password
-    )
-    Write-Host "-> Generated secrets\postgres_password.txt"
+    Add-Content -Path ".env" -Value "POSTGRES_PASSWORD=$password"
+    Write-Host "-> Generated POSTGRES_PASSWORD in .env"
 }
 
 Write-Host ""
 
 # -- 2. Configure SMTP (optional) -----------------------------------------------
-# The SMTP password is the SMTP_PASSWORD variable in .env (8.0.0).
-function Test-EnvKey([string]$Key) {
-    (Test-Path ".env") -and [bool](Select-String -Path ".env" -Pattern "^$Key=" -Quiet)
-}
 
 # Compose reads a single-quoted .env value literally, so the password can hold
 # any character except a single quote.

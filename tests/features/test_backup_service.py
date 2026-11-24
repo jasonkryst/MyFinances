@@ -142,10 +142,13 @@ def test_backup_script_never_leaves_a_fake_backup():
     assert src.index('pg_dump') < src.index('mv "$PARTIAL" "$FILE"')
 
 
-def test_backup_script_strips_crlf_from_secret():
+def test_backup_script_reads_the_password_variable_and_strips_crlf():
+    """8.0.0: the password is POSTGRES_PASSWORD, never the old secret file; a
+    trailing CR (a value saved on Windows) is still stripped (#656)."""
     src = _read(BACKUP_SH)
-    assert "tr -d '\\r\\n' < /run/secrets/postgres_password" in src
-    assert '$(cat /run/secrets/postgres_password)' not in src
+    assert '"${POSTGRES_PASSWORD:?' in src
+    assert re.search(r"POSTGRES_PASSWORD[^\n]*\| tr -d '\\r\\n'", src)
+    assert '/run/secrets/postgres_password' not in src
 
 
 # ------------------------------------------------------------ docs and CI ---

@@ -6,24 +6,28 @@ echo "MyFinances — First-Time Setup"
 echo "=============================="
 echo ""
 
-# ── 1. Generate postgres password ─────────────────────────────────────────────
-if [ -f secrets/postgres_password.txt ]; then
-    echo "→ secrets/postgres_password.txt already exists — skipping generation"
+# Since 8.0.0 the credentials are variables in .env (POSTGRES_PASSWORD,
+# SMTP_PASSWORD), not files in secrets/. .env holds them, so it is kept
+# readable only by you.
+env_has() { [ -f .env ] && grep -q "^$1=" .env; }
+
+# ── 1. Generate the database password ────────────────────────────────────────
+if env_has POSTGRES_PASSWORD; then
+    echo "→ POSTGRES_PASSWORD already in .env — skipping generation"
 else
-    mkdir -p secrets
     if command -v openssl &>/dev/null; then
-        openssl rand -hex 32 > secrets/postgres_password.txt
+        pg_password=$(openssl rand -hex 32)
     else
-        node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))" > secrets/postgres_password.txt
+        pg_password=$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")
     fi
-    echo "→ Generated secrets/postgres_password.txt"
+    echo "POSTGRES_PASSWORD=$pg_password" >> .env
+    chmod 600 .env
+    echo "→ Generated POSTGRES_PASSWORD in .env"
 fi
 
 echo ""
 
 # ── 2. Configure SMTP (optional) ────────────────────────────────────────────
-# The SMTP password is the SMTP_PASSWORD variable in .env (8.0.0).
-env_has() { [ -f .env ] && grep -q "^$1=" .env; }
 
 # Compose reads a single-quoted .env value literally, so the password can hold
 # any character except a single quote.
@@ -58,6 +62,7 @@ else
         if [ -f .env ]; then
             grep -v '^SMTP_' .env > .env.tmp || true
             mv .env.tmp .env
+            chmod 600 .env
         fi
         {
             echo "SMTP_HOST=$smtp_host"

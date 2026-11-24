@@ -1,15 +1,18 @@
 #!/bin/sh
 set -e
 
-# Prefer the Docker secret file; fall back to DATABASE_URL if the file isn't
-# present (local dev, test containers, Portainer env-var injection).
-SECRET_FILE="/run/secrets/postgres_password"
-if [ -f "$SECRET_FILE" ]; then
-    PG_PASS=$(cat "$SECRET_FILE")
-    export DATABASE_URL="postgres://myfinances:${PG_PASS}@postgres:5432/myfinances"
-elif [ -z "${DATABASE_URL:-}" ]; then
-    echo "ERROR: /run/secrets/postgres_password not found and DATABASE_URL is not set" >&2
-    exit 1
+# Since 8.0.0 the database password is the POSTGRES_PASSWORD environment
+# variable (the Docker secret file is no longer read). An explicit DATABASE_URL
+# (local dev, test containers) wins. The password is percent-encoded so @, :
+# and / can't break the URL, and a trailing CR/LF (a .env saved on Windows) is
+# dropped, as initdb drops it when it sets the password (#656).
+if [ -z "${DATABASE_URL:-}" ]; then
+    if [ -z "${POSTGRES_PASSWORD:-}" ]; then
+        echo "ERROR: POSTGRES_PASSWORD is not set (and DATABASE_URL isn't either). Since 8.0.0 the database password is the POSTGRES_PASSWORD environment variable; see DEPLOYMENT.md." >&2
+        exit 1
+    fi
+    PG_PASS_ENC=$(node -e 'process.stdout.write(encodeURIComponent(process.env.POSTGRES_PASSWORD.replace(/[\r\n]+$/, "")))')
+    export DATABASE_URL="postgres://myfinances:${PG_PASS_ENC}@postgres:5432/myfinances"
 fi
 
 # SMTP is optional; email stays off until SMTP_HOST is set

@@ -1051,7 +1051,7 @@ const WHATS_NEW_ENTRIES = [
     {
         version: '8.0.0 — 2026-11-24',
         items: [
-            '<strong>For self-hosters: the email password moved.</strong> The SMTP password is now the <code>SMTP_PASSWORD</code> setting (in <code>.env</code> or your stack variables) instead of the <code>secrets/smtp_password.txt</code> file. If you send email, set it before restarting, then delete the old file; the upgrade steps are in the changelog and DEPLOYMENT.md. Nothing changes in the app itself.'
+            '<strong>For self-hosters: passwords are now settings, not files.</strong> The database and email passwords are the <code>POSTGRES_PASSWORD</code> and <code>SMTP_PASSWORD</code> settings (in <code>.env</code> or your stack variables) instead of files in <code>secrets/</code>. Before restarting, set <code>POSTGRES_PASSWORD</code> to your current database password, then delete the old files; the upgrade steps are in the changelog and DEPLOYMENT.md. Nothing changes in the app itself.'
         ]
     },
     {
