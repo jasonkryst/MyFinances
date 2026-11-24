@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.2.1] — 2026-11-24
+
+### Changed
+- **One calendar builder for the download and the subscription feed (#526).** The `.ics` text helpers, event selection and titles lived in two copies (`src/calendarFeed.js` and `server/src/calendarGenerator.js`). They are now one pure module, `src/calendarCore.js`, so the downloaded file and the webcal feed are built by the same code and a server test checks they are byte-identical. Two small differences between the copies were settled: the webcal feed now also hides archived recurring templates (as the download already did), and a debt's typed next-payment date is now used by the feed (as the download intended) and written as a valid `YYYYMMDD` date in the matching month.
+
+### Fixed
+- **The account menu works from the keyboard (#494).** Enter, Space or the Down arrow on the Account button opens the menu onto its first item (Up arrow: the last). Arrow keys move between items and wrap, Home and End jump, Escape closes it and returns focus to the button, and Tab closes it.
+
 ## [8.2.0] — 2026-11-24
 
 ### Changed
