@@ -2,6 +2,7 @@
 
 import { escapeHtml, getReportDate, formatCurrency, renderChartDataTable, formatMonthLong, isTransferLegTx } from './utils.js';
 import { t, categoryLabel } from './i18n.js';
+import { expandManualSplits } from './manualSplits.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { computeMonthCashFlowTotals } from './reportsCashFlow.js';
 
@@ -9,7 +10,9 @@ const INCOME_COLORS = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#059669', '#
 
 const OUTFLOW_GROUPS = [
     { icon: '🧾', color: '#f59e0b', match: tx => tx.type === 'bill', key: tx => tx.category || 'Other', isCategory: true },
-    { icon: '💸', color: '#8b5cf6', match: tx => tx.type === 'expense' || (tx.type === 'manual' && tx.amount < 0), key: tx => tx.category || 'Other', isCategory: true },
+    { icon: '💸', color: '#8b5cf6', match: tx => tx.type === 'expense' || (tx.type === 'manual' && tx.amount < 0), key: tx => tx.category || 'Other', isCategory: true,
+        // #688: a split manual outflow feeds each split's category.
+        parts: tx => expandManualSplits(tx).map(p => ({ key: p.category, amount: Math.abs(p.amount || 0) })) },
     { icon: '🔄', color: '#06b6d4', match: tx => tx.type === 'recurring' && tx.amount < 0 && !isTransferLegTx(tx), key: tx => tx.category || 'Other', isCategory: true },
     { icon: '💳', color: '#ef4444', match: tx => tx.type === 'debt', key: tx => tx.name || t('reports.sankeyDebt') },
     { icon: '💰', color: '#10b981', match: tx => tx.type === 'savings', key: tx => tx.name || t('reports.sankeySavings') }
@@ -56,8 +59,8 @@ export function computeMoneyFlowSankeyData(app, year, month) {
         const grouped = {};
         for (const tx of monthTxs) {
             if (!group.match(tx)) continue;
-            const key = group.key(tx);
-            grouped[key] = (grouped[key] || 0) + Math.abs(tx.amount || 0);
+            const parts = group.parts ? group.parts(tx) : [{ key: group.key(tx), amount: Math.abs(tx.amount || 0) }];
+            for (const part of parts) grouped[part.key] = (grouped[part.key] || 0) + part.amount;
         }
         for (const [key, amount] of Object.entries(grouped)) {
             if (amount <= 0) continue;

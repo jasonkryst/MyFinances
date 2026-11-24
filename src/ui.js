@@ -1049,6 +1049,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '8.3.0 — 2026-11-24',
+        items: [
+            '<strong>Split one transaction across several categories.</strong> A store receipt that mixes groceries, household items and a gift, or a deposit made of parts, can now be a single Ledger transaction. In <em>Add Transaction</em>, choose <em>Split across categories</em> and divide the total; it saves once the remaining amount reaches zero. The Ledger keeps one row with a <em>Split</em> badge, while Spending and Budget vs. Actual count each part under its own category.'
+        ]
+    },
+    {
         version: '8.2.0 — 2026-11-24',
         items: [
             '<strong>Finish a reconciliation on any device.</strong> When you save your progress in the middle of reconciling a statement, it is now kept on your server, so you can pick it up on your phone or another computer. The Ledger columns you choose to hide follow you the same way.'

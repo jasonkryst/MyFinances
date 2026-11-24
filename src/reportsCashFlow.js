@@ -10,6 +10,7 @@ import {
     isTransferLegTx
 } from './utils.js';
 import { t, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
+import { expandManualSplits } from './manualSplits.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 
@@ -144,8 +145,10 @@ export function renderReportsIncomeExp(app) {
     const expCats = {};
     for (const tx of monthTxs) {
         if (tx.type !== 'expense' && !(tx.type === 'manual' && tx.amount < 0)) continue;
-        const cat = tx.category || 'Other';
-        expCats[cat] = (expCats[cat] || 0) + Math.abs(tx.amount || 0);
+        // #688: a split manual outflow counts toward each split's category.
+        for (const part of expandManualSplits(tx)) {
+            expCats[part.category] = (expCats[part.category] || 0) + Math.abs(part.amount || 0);
+        }
     }
     for (const [cat, amt] of Object.entries(expCats)) {
         outflowLabels.push(`💸 ${escapeHtml(categoryLabel(cat))}`);

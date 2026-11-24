@@ -58,7 +58,7 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
         interestBalances[acct.id] = Number(acct.startingBalance) || 0;
     }
 
-    function addTx({ accountId, date, name, amount, type, sourceId, category, isTransferLeg, counterpartAccountId }) {
+    function addTx({ accountId, date, name, amount, type, sourceId, category, isTransferLeg, counterpartAccountId, splits }) {
         const key = accountId && accountMap[accountId] ? accountId : UNLINKED_KEY;
         const txDate = new Date(date);
         const tx = {
@@ -69,6 +69,7 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
             sourceId,
             category
         };
+        if (Array.isArray(splits) && splits.length > 0) tx.splits = splits; // #688
         if (isTransferLeg) tx.isTransferLeg = true;
         if (counterpartAccountId !== undefined && counterpartAccountId !== null) tx.counterpartAccountId = counterpartAccountId;
         tx.transactionId = makeLedgerTransactionId({
@@ -224,7 +225,8 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
                 amount: Number(mt.amount),
                 type: 'manual',
                 sourceId: mt.id,
-                category: mt.category || 'Other'
+                category: mt.category || 'Other',
+                splits: mt.splits
             });
         }
 
@@ -408,6 +410,7 @@ export function getLedgerTransactionsForMonth(app, year, month, accountId = null
                 isTransferLeg: tx.isTransferLeg === true,
         counterpartAccountId: tx.counterpartAccountId ?? null,
                 category: tx.category,
+                ...(tx.splits ? { splits: tx.splits } : {}),
                 sourceId: tx.sourceId,
                 transactionId: tx.transactionId,
                 cleared: isCleared(app, tx.transactionId),

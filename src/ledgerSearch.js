@@ -2,6 +2,8 @@
 // The term is view state held in memory only: it is free text and may hold
 // payee names, so it is never written to browser storage.
 
+import { transactionCategories } from './manualSplits.js';
+
 // Lower-cased, trimmed term; '' when absent or not a string.
 export function normalizeLedgerSearchTerm(term) {
     return typeof term === 'string' ? term.trim().toLowerCase() : '';
@@ -16,7 +18,9 @@ export function buildLedgerMemoLookup(app) {
         if (xfer?.memo) lookup.set(`transfer|${xfer.id}`, String(xfer.memo));
     }
     for (const mt of app?.manualTransactions || []) {
-        if (mt?.memo) lookup.set(`manual|${mt.id}`, String(mt.memo));
+        // #688: split memos are searchable along with the transaction's memo.
+        const memo = [mt?.memo, ...(Array.isArray(mt?.splits) ? mt.splits.map(s => s?.memo) : [])].filter(Boolean).join(' ');
+        if (memo) lookup.set(`manual|${mt.id}`, memo);
     }
     return lookup;
 }
@@ -28,8 +32,13 @@ export function matchesLedgerSearch(tx, term, memoLookup, labelFn) {
     const needle = normalizeLedgerSearchTerm(term);
     if (!needle) return true;
     if (!tx) return false;
-    const fields = [tx.name, tx.category];
-    if (typeof labelFn === 'function' && tx.category) fields.push(labelFn(tx.category));
+    const fields = [tx.name];
+    // #688: a split transaction is found by any of its split categories.
+    for (const category of transactionCategories(tx, '')) {
+        if (!category) continue;
+        fields.push(category);
+        if (typeof labelFn === 'function') fields.push(labelFn(category));
+    }
     if (memoLookup && tx.sourceId !== undefined && tx.sourceId !== null) {
         fields.push(memoLookup.get(`${tx.type}|${tx.sourceId}`));
     }

@@ -26,6 +26,7 @@ import { paginateList, pageContaining, DEFAULT_PAGE_SIZE } from './pagination.js
 import { renderPagerHtml, pagerDirectionFromEvent, afterPagerRender } from './paginationUi.js';
 import { getAmountOn, getCurrentAmount } from './amountSchedule.js';
 import { amountInputAttrs, renderAppliesFromRow, renderAmountChangeSummary, resolveAmountEdit } from './amountChangeUi.js';
+import { transactionCategories } from './manualSplits.js';
 
 // #678: each occurrence at the amount in effect on its own date.
 function sumOccurrenceAmounts(tmpl, occurrences) {
@@ -208,7 +209,7 @@ function getKnownCategories(app) {
         ...(app.recurringTemplates || []).map(t => t.category),
         ...(app.bills || []).map(b => b.category),
         ...(app.expenses || []).map(e => e.category),
-        ...(app.manualTransactions || []).map(m => m.category),
+        ...(app.manualTransactions || []).flatMap(m => transactionCategories(m, '')),
     ].filter(Boolean);
     return [...new Set([...DEFAULT_CATEGORIES, ...used])].sort();
 }

@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.3.0] — 2026-11-24
+
+### Added
+- **Split a manual transaction across several categories (#688).** A store receipt (groceries, household, a gift) or a deposit made of parts can now be one Ledger transaction with several categories. In the Add/Edit Transaction dialog, choose "Split across categories", add a category, amount and optional memo for each part, and the "Remaining to allocate" line must reach zero before you can save. The Ledger still shows one row (one Cleared checkbox, one balance effect) with a "Split (n)" badge listing the categories; filtering or searching the Ledger by a category finds the transaction when any split has it. Spending, Budget vs. Actual, the Cash Flow and Money Flow category breakdowns and Year in review attribute each part to its own category, for outflows and inflows alike.
+- Ledger CSV export keeps one row per transaction; a split transaction's Category cell lists its categories joined with "; ".
+
+### Server
+- New optional `splits` field (`[{ category, amount, memo? }]`, `jsonb`, migration `1755600000052`) on `manual_transactions`. Split amounts carry the same sign as the transaction amount, there are 2 to 20 of them, and they must add up to the amount exactly (compared in whole cents). This lives in `isValidManualTransaction` (`sanitizers.js`), so both the route (400) and import (record rejected) enforce it. The new pure `src/manualSplits.js` (`expandManualSplits`) is the one way to read a manual transaction's categories; `sanitizeManualSplits` is Stryker-scoped.
+
 ## [8.2.0] — 2026-11-24
 
 ### Changed

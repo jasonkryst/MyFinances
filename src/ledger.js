@@ -8,6 +8,16 @@ import { clearLedgerAmountOverride, openLedgerOverrideModal } from './ledgerOver
 import { setLedgerCleared } from './ledgerCleared.js';
 import { LEDGER_EXPORT_COLUMN_KEYS } from './dataExport.js';
 import { sanitizeLedgerSettings } from './sanitizers.js';
+import { transactionCategories } from './manualSplits.js';
+
+// #688: the badge of a split manual transaction. The visible text is "Split
+// (n)"; the categories follow in screen-reader-only text so the accessible
+// name still starts with what is shown.
+function splitBadgeHtml(tx) {
+    if (!Array.isArray(tx.splits) || tx.splits.length === 0) return '';
+    const list = transactionCategories(tx).map(c => categoryLabel(c)).join(', ');
+    return `<span class="ledger-split-badge" title="${escapeHtml(list)}">${escapeHtml(t('ledger.splitBadge', { count: tx.splits.length }))}<span class="sr-only"> ${escapeHtml(t('ledger.splitCategories', { list }))}</span></span>`;
+}
 
 const LEDGER_ALL_COLS = LEDGER_TABLE_COLUMNS;
 const LEDGER_COL_LABEL_KEYS = { date: 'ledger.colDate', account: 'ledger.colAccount', name: 'ledger.colTransaction', amount: 'ledger.colAmount', balance: 'ledger.colBalance', cleared: 'ledger.colCleared' };
@@ -257,7 +267,7 @@ export function renderLedgerPage(app) {
     // from whatever the other active filters currently show) — otherwise
     // picking an account filter first could make a category disappear from
     // its own dropdown.
-    const allCategories = [...new Set(getLedgerTransactions(app).map(tx => tx.category || 'Other'))].sort();
+    const allCategories = [...new Set(getLedgerTransactions(app).flatMap(tx => transactionCategories(tx)))].sort();
 
     let filterHtml = '';
     const filtersOpen = isCollapsibleOpen('ledgerFiltersBody');
@@ -481,7 +491,7 @@ export function renderLedgerPage(app) {
                 : isTransfer
                     ? `⇄ ${escapeHtml(tx.name || '')}`
                 : isManual
-                    ? `${escapeHtml(tx.name || '')} <span class="ledger-manual-badge">${escapeHtml(t('ledger.manualBadge'))}</span>`
+                    ? `${escapeHtml(tx.name || '')} <span class="ledger-manual-badge">${escapeHtml(t('ledger.manualBadge'))}</span>${splitBadgeHtml(tx)}`
                     : `${isRecurringTransfer ? '⇄ ' : ''}${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}${navIcon}`;
             const transferActions = isTransfer
                 ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-transfer-edit="${tx.sourceId}" aria-label="${escapeHtml(t('ledger.editTransferAria', { name: tx.name || '' }))}">${escapeHtml(t('common.edit'))}</button><button class="ledger-override-clear-btn" data-ledger-transfer-delete="${tx.sourceId}" aria-label="${escapeHtml(t('ledger.deleteTransferAria', { name: tx.name || '' }))}">${escapeHtml(t('common.delete'))}</button></div>`

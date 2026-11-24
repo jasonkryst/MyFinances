@@ -9092,6 +9092,42 @@ body.dark-mode .comparison-table th { color: #e2e8f0; }
     vertical-align: middle;
 }
 body.dark-mode .ledger-manual-badge { background: #312e81; color: #c7d2fe; }
+/* Split manual transactions (#688): Ledger badge and the modal's split editor. */
+.ledger-split-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #fef3c7;
+    color: #78350f;
+    vertical-align: middle;
+}
+body.dark-mode .ledger-split-badge { background: #78350f; color: #fde68a; }
+.manual-tx-split-editor { margin-bottom: 12px; }
+.manual-tx-split-row {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 10px 10px;
+    margin: 0 0 8px;
+    min-width: 0;
+}
+.manual-tx-split-row legend { font-weight: 600; font-size: 0.9rem; padding: 0 4px; }
+.manual-tx-split-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 7.5rem);
+    gap: 8px;
+}
+.manual-tx-split-fields label { display: block; font-size: 0.8rem; color: var(--text-secondary); }
+.manual-tx-split-fields input { width: 100%; box-sizing: border-box; min-width: 0; }
+.manual-tx-split-memo, .manual-tx-split-row .manual-tx-split-remove { grid-column: 1 / -1; }
+.manual-tx-split-row .manual-tx-split-remove { justify-self: start; }
+.manual-tx-split-remaining { margin: 8px 0 0; font-weight: 600; color: var(--text-primary); }
+.manual-tx-split-remaining--over { color: var(--danger-text); }
+@media (max-width: 480px) {
+    .manual-tx-split-fields { grid-template-columns: minmax(0, 1fr); }
+}
 .manual-tx-direction {
     border: 0;
     padding: 0;

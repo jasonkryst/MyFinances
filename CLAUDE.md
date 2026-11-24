@@ -104,6 +104,7 @@ One line per rule; the feature reference (`docs/architecture/features.md`) has t
 - `applyWeekendRule` is the one weekend-shift rule and never leaves the month. [Weekend due-date shift]
 - A new render that loops balances per account or month runs inside `withProjectionCache(app, fn)` and treats the map as read-only. [Projection cache]
 - Every report classifier skips transfer legs (`isTransferLegTx`) and treats a `manual` outflow as an expense and inflow as income; never route recurring transfer legs through `isTransfer`. [Recurring income type, Manual one-off transactions, Account transfer tracking]
+- **Never read a manual transaction's `category` for a report, filter or breakdown**: it may be split (#688); use `expandManualSplits`/`transactionCategories` (`manualSplits.js`). Totals use the whole `amount`. [Manual one-off transactions]
 - `computeSavingsRate` is the one savings-rate definition; never interpolate a `Date` object into HTML. [Number clarity]
 - Reports, Forecast and Health derive from the same data: when changing a data shape, check all three.
 - Coast FIRE's target is never derived from the contribution-inclusive projection. [Coast FIRE]
