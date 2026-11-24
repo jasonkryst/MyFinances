@@ -1,183 +1,27 @@
-// Calendar feed: ICS generation and subscription modal for bills, debts,
-// recurring templates, expenses, and income paydays.
+// Calendar feed: the .ics download and the subscription modal. The ICS text
+// itself is built by the pure src/calendarCore.js, shared with the server's
+// webcal feed (#526).
 
-import { getRecurringOccurrencesInMonth } from './recurring.js';
-import { applyWeekendRule } from './weekendRule.js';
 import { getCsrfCookie } from './storage.js';
 import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
-import { getIncomePaydaysInMonth, discardBody } from './utils.js';
-import { getAmountOn } from './amountSchedule.js';
+import { discardBody } from './utils.js';
+import { buildIcs } from './calendarCore.js';
 
-const WINDOW_MONTHS = 12;
-
-// RFC 5545 text value escaping.
-function icsEscape(text) {
-    return String(text ?? '')
-        .replace(/\\/g, '\\\\')
-        .replace(/;/g, '\\;')
-        .replace(/,/g, '\\,')
-        .replace(/\n/g, '\\n');
-}
-
-// RFC 5545 line folding: max 75 octets per physical line, CRLF + space.
-function icsFold(line) {
-    if (line.length <= 75) return line + '\r\n';
-    let out = '';
-    let pos = 0;
-    while (pos < line.length) {
-        const len = pos === 0 ? 75 : 74;
-        out += (pos === 0 ? '' : ' ') + line.slice(pos, pos + len) + '\r\n';
-        pos += len;
-    }
-    return out;
-}
-
-// Format year/month(0-indexed)/day as YYYYMMDD.
-function isoDateStr(year, month, day) {
-    return `${year}${String(month + 1).padStart(2, '0')}${String(day).padStart(2, '0')}`;
-}
-
-// Build a DESCRIPTION value (raw string, not yet escaped).
-function buildDesc(amount, category, account, appUrl, amountLabel = 'Amount Due') {
-    const parts = [];
-    if (Number(amount) > 0) parts.push(`${amountLabel}: $${Number(amount).toFixed(2)}`);
-    if (category) parts.push(`Category: ${category}`);
-    if (account) parts.push(`Account: ${account}`);
-    if (appUrl) parts.push(`View in MyFinances: ${appUrl}`);
-    return parts.join('\n');
-}
-
-// RFC 5545 YYYYMMDD -> YYYY-MM-DD (the form getAmountOn compares).
-function dateStrToIso(dateStr) {
-    return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
-}
-
-// RFC 5545 YYYYMMDD for the calendar day after dateStr.
-function nextDayStr(dateStr) {
-    const y = parseInt(dateStr.slice(0, 4), 10);
-    const m = parseInt(dateStr.slice(4, 6), 10) - 1;
-    const d = parseInt(dateStr.slice(6, 8), 10);
-    const next = new Date(y, m, d + 1);
-    return isoDateStr(next.getFullYear(), next.getMonth(), next.getDate());
-}
-
-// Build a single VEVENT block (all-day, already CRLF-terminated).
-function vevent(uid, summary, dateStr, description) {
-    const lines = [
-        'BEGIN:VEVENT',
-        `UID:${uid}`,
-        `DTSTART;VALUE=DATE:${dateStr}`,
-        `DTEND;VALUE=DATE:${nextDayStr(dateStr)}`,
-        `SUMMARY:${icsEscape(summary)}`,
-    ];
-    if (description) lines.push(`DESCRIPTION:${icsEscape(description)}`);
-    lines.push('END:VEVENT');
-    return lines.map(icsFold).join('');
-}
-
-// Generate a full ICS string from the current app state.
-export function generateIcs(app) {
-    const accountMap = Object.fromEntries((app.accounts || []).map(a => [a.id, a.name]));
-    const appUrl = window.location.origin;
-    // Mirrors the Liabilities page: archived debts only appear when the
-    // "Show archived debts" setting is on, and are then labeled as such.
-    const showArchived = Boolean(getSetting(app, SHOW_ARCHIVED_DEBTS, false));
-    const now = new Date();
-    const events = [];
-
-    for (let delta = -WINDOW_MONTHS; delta <= WINDOW_MONTHS; delta++) {
-        const ref = new Date(now.getFullYear(), now.getMonth() + delta, 1);
-        const y = ref.getFullYear();
-        const mo = ref.getMonth();
-        const monthKey = `${y}-${String(mo + 1).padStart(2, '0')}`;
-        const daysInMo = new Date(y, mo + 1, 0).getDate();
-
-        for (const bill of app.bills || []) {
-            if (!bill.dueDay) continue;
-            const d = Math.min(bill.dueDay, daysInMo);
-            const dateStr = isoDateStr(y, mo, d);
-            events.push(vevent(
-                `bill-${bill.id}-${dateStr}@myfinances`,
-                `Bill - ${bill.name}`,
-                dateStr,
-                buildDesc(bill.amount, bill.category, bill.accountId ? accountMap[bill.accountId] : null, appUrl)
-            ));
-        }
-
-        for (const debt of app.debts || []) {
-            if (debt.archived && !showArchived) continue;
-            if (!debt.dueDate && !debt.nextPaymentDue) continue;
-            let dateStr;
-            if (debt.nextPaymentDue && debt.nextPaymentDue.startsWith(`${y}-${String(mo).padStart(2, '0')}`)) {
-                dateStr = debt.nextPaymentDue;
-            } else if (debt.dueDate) {
-                const d = Math.min(debt.dueDate, daysInMo);
-                // #165: shift a weekend due day per the debt's weekendRule.
-                const due = applyWeekendRule(new Date(y, mo, d, 12), debt.weekendRule);
-                dateStr = isoDateStr(y, mo, due.getDate());
-            } else {
-                continue;
-            }
-            events.push(vevent(
-                `debt-${debt.id}-${dateStr}@myfinances`,
-                `${debt.archived ? 'Debt (Archived)' : 'Debt'} - ${debt.name}`,
-                dateStr,
-                buildDesc(debt.minimumPayment, debt.category, debt.accountId ? accountMap[debt.accountId] : null, appUrl)
-            ));
-        }
-
-        for (const t of (app.recurringTemplates || []).filter(t => !t.archived)) {
-            if (t.paidMonths?.includes(monthKey)) continue;
-            const typeLabel = t.type === 'reimbursement' ? 'Reimbursement'
-                : t.type === 'income' ? 'Income'
-                : t.type === 'transfer' ? 'Transfer' : 'Subscription';
-            const occs = getRecurringOccurrencesInMonth(t, y, mo);
-            for (const occ of occs) {
-                const dateStr = isoDateStr(occ.getFullYear(), occ.getMonth(), occ.getDate());
-                events.push(vevent(
-                    `recurring-${t.id}-${dateStr}@myfinances`,
-                    `${typeLabel} - ${t.name}`,
-                    dateStr,
-                    // #678: the amount in effect on this occurrence.
-                    buildDesc(getAmountOn(t, dateStrToIso(dateStr)), t.category, t.accountId ? accountMap[t.accountId] : null, appUrl)
-                ));
-            }
-        }
-
-        for (const inc of app.incomes || []) {
-            for (const pay of getIncomePaydaysInMonth(inc, y, mo)) {
-                const dateStr = isoDateStr(pay.getFullYear(), pay.getMonth(), pay.getDate());
-                events.push(vevent(
-                    `income-${inc.id}-${dateStr}@myfinances`,
-                    `Payday - ${inc.name}`,
-                    dateStr,
-                    buildDesc(getAmountOn(inc, dateStrToIso(dateStr)), null, inc.accountId ? accountMap[inc.accountId] : null, appUrl, 'Amount')
-                ));
-            }
-        }
-
-        for (const exp of app.expenses || []) {
-            if (!exp.date) continue;
-            const expDate = exp.date instanceof Date ? exp.date : new Date(exp.date);
-            if (expDate.getFullYear() !== y || expDate.getMonth() !== mo) continue;
-            const dateStr = isoDateStr(y, mo, expDate.getDate());
-            events.push(vevent(
-                `expense-${exp.id}-${dateStr}@myfinances`,
-                `Expense - ${exp.name}`,
-                dateStr,
-                buildDesc(exp.budgetAmount, exp.category, exp.accountId ? accountMap[exp.accountId] : null, appUrl)
-            ));
-        }
-    }
-
-    return [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PRODID:-//MyFinances//MyFinances Calendar Feed//EN',
-        'CALSCALE:GREGORIAN',
-        'METHOD:PUBLISH',
-        'X-WR-CALNAME:MyFinances',
-    ].map(icsFold).join('') + events.join('') + 'END:VCALENDAR\r\n';
+// Generate a full ICS string from the current app state. `now` is injectable.
+export function generateIcs(app, now = new Date()) {
+    return buildIcs({
+        accounts: app.accounts,
+        bills: app.bills,
+        debts: app.debts,
+        recurringTemplates: app.recurringTemplates,
+        incomes: app.incomes,
+        expenses: app.expenses,
+        // Mirrors the Liabilities page: archived debts only appear when the
+        // "Show archived debts" setting is on, and are then labeled as such.
+        showArchived: Boolean(getSetting(app, SHOW_ARCHIVED_DEBTS, false)),
+        appUrl: window.location.origin,
+        now,
+    });
 }
 
 // Trigger a browser download of the ICS file.
