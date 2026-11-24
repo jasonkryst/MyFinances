@@ -26,7 +26,7 @@ const PRECACHE_URLS = [
     '/src/reportsVariance.js', '/src/retirement.js', '/src/retirementCalculator.js',
     '/src/sanitizers.js', '/src/savings.js', '/src/serviceWorker.js',
     '/src/settings.js', '/src/settingsBackup.js', '/src/settingsNav.js', '/src/settingsSchema.js', '/src/settingsRemap.js', '/src/setupWizard.js', '/src/spending.js', '/src/storage.js',
-    '/src/calendarFeed.js',
+    '/src/calendarFeed.js', '/src/calendarCore.js',
     '/src/loginGate.js', '/src/people.js', '/src/pgMigrationModal.js', '/src/concurrency.js', '/src/ledgerKeyRemap.js', '/src/mergeDedupe.js', '/src/recordVersions.js', '/src/refreshPolicy.js', '/src/resourceDeletion.js', '/src/liveRefresh.js', '/src/planSettingsPatch.js', '/src/postgresSync.js', '/src/postgresImport.js',
     '/src/serverUnreachableGate.js', '/src/strategy.js', '/src/strategyCalendar.js', '/src/strategyComparison.js',
     '/src/strategyPlanCalculation.js', '/src/strategyScheduleTable.js', '/src/strategySummaryTable.js', '/src/ui.js',

@@ -116,7 +116,6 @@ One line per rule; the feature reference (`docs/architecture/features.md`) has t
 - Every person reference is remapped on import; a new record type that references a person joins `remapFk`. [Debt ownership split]
 - A new undoable delete type handles its Ledger key `type` and cascaded children; account deletes are not undoable. [Undo]
 - `confirmZeroAmountAllowed` is the single $0 gate. [$0 amount policy]
-- The calendar feed's event selection, titles and ICS helpers are duplicated in `calendarFeed.js` and `server/src/calendarGenerator.js`: change both. [Calendar feed]
 
 **Settings, notifications and jobs**
 - **A new setting must be in `SETTINGS_EXPORT_SCHEMA` or `isAllowedSetting`** (`settingsSchema.js`), or the server 400s every write. Place its control on the right Settings page with a `change` handler (save on change, no Done button); a new Settings page needs `SETTINGS_PAGES`, a row, a section, locale keys and a `TRANSLATED_PAGES` entry. The settings-only export never includes settings that hold account ids, Ledger filters or financial arrays. [Settings, Settings-only export/import]

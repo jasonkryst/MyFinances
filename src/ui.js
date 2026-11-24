@@ -613,17 +613,47 @@ export function initAccountMenu(app) {
 
     updateAccountMenuEmail(app);
 
-    const close = () => {
+    // WAI-ARIA APG menu button (#494): the items are a roving tabindex set,
+    // focus moves into the menu on open and returns to the button on Escape.
+    const menuItems = () => [...dropdown.querySelectorAll('[role="menuitem"]:not(.hidden)')];
+    dropdown.querySelectorAll('[role="menuitem"]').forEach(el => el.setAttribute('tabindex', '-1'));
+    const isOpen = () => !dropdown.classList.contains('hidden');
+    const focusItem = (which) => {
+        const items = menuItems();
+        if (!items.length) return;
+        const current = items.indexOf(document.activeElement);
+        let idx;
+        if (which === 'first') idx = 0;
+        else if (which === 'last') idx = items.length - 1;
+        else if (which === 'next') idx = current < 0 ? 0 : (current + 1) % items.length;
+        else idx = current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length;
+        items[idx].focus();
+    };
+    const close = ({ restoreFocus = false } = {}) => {
         dropdown.classList.add('hidden');
         btn.setAttribute('aria-expanded', 'false');
+        if (restoreFocus) btn.focus();
     };
-    const open = () => {
+    const open = (which = null) => {
         dropdown.classList.remove('hidden');
         btn.setAttribute('aria-expanded', 'true');
+        if (which) focusItem(which);
     };
-    const toggle = () => dropdown.classList.contains('hidden') ? open() : close();
+    const toggle = (which = null) => (isOpen() ? close() : open(which));
 
-    btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+    // A click with no pointer (Enter or Space on the button) opens onto the first item.
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(e.detail === 0 ? 'first' : null); });
+    btn.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); if (isOpen()) focusItem('first'); else open('first'); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); if (isOpen()) focusItem('last'); else open('last'); }
+    });
+    dropdown.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); focusItem('next'); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); focusItem('prev'); }
+        else if (e.key === 'Home') { e.preventDefault(); focusItem('first'); }
+        else if (e.key === 'End') { e.preventDefault(); focusItem('last'); }
+        else if (e.key === 'Tab') close(); // focus continues naturally from where it is
+    });
 
     if (whatsNewItem) whatsNewItem.addEventListener('click', () => { close(); openWhatsNewModal(); });
 
@@ -648,9 +678,10 @@ export function initAccountMenu(app) {
     document.addEventListener('click', (e) => {
         if (!wrap.contains(e.target)) close();
     });
-    // Close on Escape
+    // Close on Escape; focus returns to the button when it was inside the menu.
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') close();
+        if (e.key !== 'Escape' || !isOpen()) return;
+        close({ restoreFocus: wrap.contains(document.activeElement) });
     });
 }
 

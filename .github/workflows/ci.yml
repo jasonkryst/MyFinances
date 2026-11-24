@@ -495,6 +495,7 @@ jobs:
           pytest \
             tests/ui/test_accessibility.py \
             tests/ui/test_aria_labels.py \
+            tests/ui/test_account_menu_keyboard.py \
             tests/ui/test_setup_wizard.py \
             tests/ui/test_remaining_pages_print.py \
             tests/ui/test_reports_nav.py \

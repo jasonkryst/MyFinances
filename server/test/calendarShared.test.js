@@ -61,9 +61,9 @@ function windowMonths() {
 }
 
 test('the server no longer carries its own occurrence or payday engine', () => {
-    const src = readFileSync(new URL('../src/calendarGenerator.js', import.meta.url), 'utf8');
+    const src = readFileSync(new URL('../../src/calendarCore.js', import.meta.url), 'utf8');
     assert.doesNotMatch(src, /function (getOccurrences|getPaydays|isEffectivelyPaused)\b/);
-    assert.match(src, /from '\.\.\/\.\.\/src\/recurringOccurrences\.js'/);
+    assert.match(src, /from '\.\/recurringOccurrences\.js'/);
 });
 
 test('recurring events in the feed are exactly the shared occurrence dates', async () => {

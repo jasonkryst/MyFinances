@@ -13,6 +13,14 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Server
 - New optional `splits` field (`[{ category, amount, memo? }]`, `jsonb`, migration `1755600000052`) on `manual_transactions`. Split amounts carry the same sign as the transaction amount, there are 2 to 20 of them, and they must add up to the amount exactly (compared in whole cents). This lives in `isValidManualTransaction` (`sanitizers.js`), so both the route (400) and import (record rejected) enforce it. The new pure `src/manualSplits.js` (`expandManualSplits`) is the one way to read a manual transaction's categories; `sanitizeManualSplits` is Stryker-scoped.
 
+## [8.2.1] — 2026-11-24
+
+### Changed
+- **One calendar builder for the download and the subscription feed (#526).** The `.ics` text helpers, event selection and titles lived in two copies (`src/calendarFeed.js` and `server/src/calendarGenerator.js`). They are now one pure module, `src/calendarCore.js`, so the downloaded file and the webcal feed are built by the same code and a server test checks they are byte-identical. Two small differences between the copies were settled: the webcal feed now also hides archived recurring templates (as the download already did), and a debt's typed next-payment date is now used by the feed (as the download intended) and written as a valid `YYYYMMDD` date in the matching month.
+
+### Fixed
+- **The account menu works from the keyboard (#494).** Enter, Space or the Down arrow on the Account button opens the menu onto its first item (Up arrow: the last). Arrow keys move between items and wrap, Home and End jump, Escape closes it and returns focus to the button, and Tab closes it.
+
 ## [8.2.0] — 2026-11-24
 
 ### Changed
