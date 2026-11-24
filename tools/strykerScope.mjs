@@ -55,6 +55,8 @@ export const MUTATE_SCOPE = {
         'sanitizePlanHistoryDebts',
         // #587
         'sanitizeReconDraft', 'sanitizeReconDrafts',
+        // #688
+        'sanitizeManualSplits',
     ],
     // #548: the pure settings helpers (DOM-free; setSetting's pgPut is mocked in Jest).
     'src/settings.js': [

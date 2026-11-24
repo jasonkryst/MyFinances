@@ -27,7 +27,7 @@ describe('sanitizeManualTransaction', () => {
         const out = sanitizeManualTransaction({ ...coffee, memo: 'with Sam', createdAt: '2026-06-10T10:00:00.000Z' }, 9);
         expect(out).toEqual({
             id: 501, accountId: 1, date: '2026-06-10', amount: -4.5, name: 'Coffee',
-            category: 'Dining', memo: 'with Sam', createdAt: '2026-06-10T10:00:00.000Z'
+            category: 'Dining', memo: 'with Sam', splits: null, createdAt: '2026-06-10T10:00:00.000Z'
         });
         expect(isValidManualTransaction(out)).toBe(true);
     });

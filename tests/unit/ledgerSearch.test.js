@@ -16,6 +16,24 @@ describe('normalizeLedgerSearchTerm', () => {
 });
 
 describe('buildLedgerMemoLookup', () => {
+    test('joins the memo and split memos with one space, skipping blanks (#688)', () => {
+        const lookup = buildLedgerMemoLookup({
+            manualTransactions: [
+                { id: 1, memo: 'Receipt', splits: [{ category: 'A', memo: 'milk' }, { category: 'B' }, null, { category: 'C', memo: 'card' }] },
+                { id: 2, splits: [{ category: 'A', memo: 'only split' }, { category: 'B' }] },
+                { id: 3, splits: [{ category: 'A' }, { category: 'B' }] },
+            ],
+        });
+        expect(lookup.get('manual|1')).toBe('Receipt milk card');
+        expect(lookup.get('manual|2')).toBe('only split');
+        expect(lookup.has('manual|3')).toBe(false);
+    });
+
+    test('null entries in either collection are skipped without throwing', () => {
+        const lookup = buildLedgerMemoLookup({ transfers: [null, { id: 4, memo: 'kept' }], manualTransactions: [null, { id: 5, memo: 'also kept', splits: 'junk' }] });
+        expect([...lookup.entries()]).toEqual([['transfer|4', 'kept'], ['manual|5', 'also kept']]);
+    });
+
     test('keys transfers and manual transactions by type and id', () => {
         const lookup = buildLedgerMemoLookup({
             transfers: [{ id: 1, memo: 'Down payment' }, { id: 2, memo: '' }],
@@ -85,6 +103,31 @@ describe('matchesLedgerSearch', () => {
 
     test('a sourceId of 0 still looks up its memo', () => {
         expect(matchesLedgerSearch({ name: 'x', type: 'manual', sourceId: 0 }, 'zero', new Map([['manual|0', 'zero memo']]), labelFn)).toBe(true);
+    });
+
+    test('a record with no category never matches its label fallback (#688)', () => {
+        const fallbackLabel = c => c || 'Uncategorized';
+        expect(matchesLedgerSearch({ name: 'x' }, 'uncategorized', null, fallbackLabel)).toBe(false);
+        expect(matchesLedgerSearch({ name: 'x' }, 'stryker', null, fallbackLabel)).toBe(false);
+    });
+
+    test('a split transaction matches any of its split categories and their labels (#688)', () => {
+        const split = { name: 'Store', category: 'Groceries', splits: [{ category: 'Groceries', amount: -5 }, { category: 'Gifts', amount: -3 }] };
+        expect(matchesLedgerSearch(split, 'gifts', null, labelFn)).toBe(true);
+        expect(matchesLedgerSearch(split, 'comest', null, labelFn)).toBe(true);
+        expect(matchesLedgerSearch(split, 'rent', null, labelFn)).toBe(false);
+    });
+
+    test('the memo lookup is consulted only with a lookup and a real sourceId', () => {
+        const lookup = new Map([['manual|undefined', 'secret one'], ['manual|null', 'secret two']]);
+        expect(matchesLedgerSearch({ name: 'x', type: 'manual' }, 'secret', lookup, labelFn)).toBe(false);
+        expect(matchesLedgerSearch({ name: 'x', type: 'manual', sourceId: null }, 'secret', lookup, labelFn)).toBe(false);
+        expect(() => matchesLedgerSearch({ name: 'x', type: 'manual', sourceId: 5 }, 'x', null, labelFn)).not.toThrow();
+        expect(matchesLedgerSearch({ name: 'y', type: 'manual', sourceId: 5 }, 'x', null, labelFn)).toBe(false);
+    });
+
+    test('an undefined field never matches the text "undefined"', () => {
+        expect(matchesLedgerSearch({ name: undefined, type: 'manual', sourceId: 1 }, 'undefined', new Map(), labelFn)).toBe(false);
     });
 
     test('regex characters in the term are literal', () => {

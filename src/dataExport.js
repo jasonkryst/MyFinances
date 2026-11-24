@@ -3,6 +3,7 @@
 import { APP_VERSION, normalizeText, sanitizeFiniteNumber } from './utils.js';
 import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
 import { sanitizeParsedState } from './sanitizers.js';
+import { transactionCategories } from './manualSplits.js';
 import { replaceForPostgres, mergeForPostgres } from './postgresImport.js';
 import { PLAN_HISTORY_CAP } from './strategyPlanCalculation.js';
 import { seedMissingBalanceHistory } from './balanceHistory.js';
@@ -257,7 +258,8 @@ function ledgerExportCellValue(tx, key) {
         case 'account': return tx.account || '';
         case 'name': return tx.name || '';
         case 'amount': return Number(tx.amount || 0).toFixed(2);
-        case 'category': return tx.category || '';
+        // #688: one row per transaction; a split transaction lists its categories joined with "; ".
+        case 'category': return transactionCategories(tx, '').join('; ');
         case 'balance': return Number(tx.balance || 0).toFixed(2);
         case 'type': return tx.type || '';
         case 'cleared': return tx.cleared ? 'Yes' : 'No';
