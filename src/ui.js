@@ -1049,6 +1049,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '8.4.0 — 2026-11-24',
+        items: [
+            '<strong>Restoring or merging a backup is much faster, and all-or-nothing.</strong> An import used to send your data to the server one record at a time, so a large backup took many seconds and a failure part-way could leave things half done. It now goes up in one step: either everything is imported or nothing changes.'
+        ]
+    },
+    {
         version: '8.2.0 — 2026-11-24',
         items: [
             '<strong>Finish a reconciliation on any device.</strong> When you save your progress in the middle of reconciling a statement, it is now kept on your server, so you can pick it up on your phone or another computer. The Ledger columns you choose to hide follow you the same way.'

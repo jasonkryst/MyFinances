@@ -152,7 +152,7 @@ async def test_legacy_import_failure_keeps_key(pg_page, base_url):
         else:
             await route.continue_()
 
-    await pg_page.route("**/api/accounts", fail_post)
+    await pg_page.route("**/api/import", fail_post)
     await pg_page.click("#pgMigrationTransferBtn")
     await pg_page.locator("#pgMigrationError").wait_for(state="visible", timeout=15000)
     assert await pg_page.locator("#pgMigrationModal").is_visible()
@@ -175,7 +175,7 @@ async def test_legacy_import_retry_after_failure_succeeds(pg_page, base_url):
                 return
         await route.continue_()
 
-    await pg_page.route("**/api/accounts", fail_first_post)
+    await pg_page.route("**/api/import", fail_first_post)
     await pg_page.click("#pgMigrationTransferBtn")
     await pg_page.locator("#pgMigrationError").wait_for(state="visible", timeout=15000)
     # Still usable: both actions are enabled again and nothing was removed.
@@ -210,7 +210,7 @@ async def test_legacy_import_failure_returns_focus_to_transfer(pg_page, base_url
         else:
             await route.continue_()
 
-    await pg_page.route("**/api/accounts", fail_post)
+    await pg_page.route("**/api/import", fail_post)
     await pg_page.focus("#pgMigrationTransferBtn")
     await pg_page.keyboard.press("Enter")
     await pg_page.locator("#pgMigrationError").wait_for(state="visible", timeout=15000)
@@ -221,7 +221,7 @@ async def test_legacy_import_failure_returns_focus_to_transfer(pg_page, base_url
     assert await pg_page.locator("#pgMigrationTransferBtn").is_enabled()
 
     # Enter now retries from where the user is.
-    await pg_page.unroute("**/api/accounts", fail_post)
+    await pg_page.unroute("**/api/import", fail_post)
     await pg_page.keyboard.press("Enter")
     await pg_page.locator("#pgMigrationModal").wait_for(state="hidden", timeout=15000)
     assert await _key(pg_page) is None

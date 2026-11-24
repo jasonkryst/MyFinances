@@ -200,6 +200,7 @@ tests/
 └── postgres/                     # Postgres-specific tests (selection below)
     ├── test_postgres_bootstrap.py     # Auth, login gate, session handling
     ├── test_postgres_import.py        # loadFromPostgres fan-out + import round-trip
+    ├── test_bulk_import.py            # #529: an import is one POST /api/import and atomic (a 500 or 400 changes nothing)
     ├── test_postgres_mutations.py     # Per-resource CRUD via pgPost/pgPatch/pgDelete
     ├── test_postgres_migration.py     # No migration prompt without a legacy browser key
     ├── test_legacy_local_data.py      # Legacy debtTrackerData: import / decline / failure / cleanup download-remove / Escape

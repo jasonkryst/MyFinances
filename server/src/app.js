@@ -23,6 +23,7 @@ import settingsRouter from './routes/settings.js';
 import ledgerOverridesRouter from './routes/ledgerOverrides.js';
 import ledgerClearedRouter from './routes/ledgerCleared.js';
 import planSettingsRouter from './routes/planSettings.js';
+import importRouter from './routes/import.js';
 import createNotificationsRouter from './routes/notifications.js';
 import personsRouter from './routes/persons.js';
 import auditLogRouter from './routes/auditLog.js';
@@ -40,7 +41,10 @@ export function createApp() {
     // and req.secure/req.protocol ignore the X-Forwarded-Proto header, which
     // auth.js relies on to set the session cookie's Secure flag per request.
     app.set('trust proxy', trustProxyHops());
-    app.use(express.json({ limit: '1mb' }));
+    // The API-wide body limit. POST /api/import carries a whole backup and parses
+    // its own body (routes/import.js, 25 MB), after the session and CSRF checks.
+    const defaultJson = express.json({ limit: '1mb' });
+    app.use((req, res, next) => (req.method === 'POST' && req.path === '/api/import' ? next() : defaultJson(req, res, next)));
     app.use(cookieParser());
 
     // Financial data and session responses must never be stored by a cache.
@@ -84,6 +88,7 @@ export function createApp() {
     api.use('/ledger-cleared', ledgerClearedRouter);
     api.use('/persons', personsRouter);
     api.use('/plan-settings', planSettingsRouter);
+    api.use('/import', importRouter);
     api.use('/notifications', createNotificationsRouter());
     api.use('/audit-log', auditLogRouter);
     api.use('/sessions', sessionsRouter);
