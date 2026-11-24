@@ -1049,6 +1049,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '8.2.0 — 2026-11-24',
+        items: [
+            '<strong>Finish a reconciliation on any device.</strong> When you save your progress in the middle of reconciling a statement, it is now kept on your server, so you can pick it up on your phone or another computer. The Ledger columns you choose to hide follow you the same way.'
+        ]
+    },
+    {
         version: '8.1.0 — 2026-11-24',
         items: [
             '<strong>Find any record from the command palette.</strong> Press <kbd>Ctrl/Cmd+K</kbd> and type part of a name: matching accounts, debts, incomes, recurring items, savings funds and people appear, grouped by type with their amount. Press <kbd>Enter</kbd> to jump straight to that card, ready to edit. The palette is now translated into Spanish and Polish too.'

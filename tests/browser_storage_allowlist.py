@@ -15,8 +15,9 @@ ALLOWED_KEYS = {
     'debtTrackerLastSeenVersion': ({'getItem', 'setItem'}, None),
     # Migration only (#571): filters live on the server; read + remove, never write
     'debtTrackerLedgerFilters': ({'getItem', 'removeItem'}, {'ledger.js'}),
-    'ledgerHiddenColumns': ({'getItem', 'setItem', 'removeItem'}, None),
-    'debtTrackerReconInProgress': ({'getItem', 'setItem', 'removeItem'}, None),
+    # Migration only (#587): Ledger columns and reconcile drafts live on the server
+    'ledgerHiddenColumns': ({'getItem', 'removeItem'}, {'ledger.js'}),
+    'debtTrackerReconInProgress': ({'getItem', 'removeItem'}, {'reconciliation.js', 'storage.js'}),
     # Migration only: read + remove, never write
     'debtTrackerData': ({'getItem', 'removeItem'}, {'app.js', 'pgMigrationModal.js'}),
     # Stale-preference cleanup at boot: remove only

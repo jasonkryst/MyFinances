@@ -539,6 +539,60 @@ export function sanitizeLedgerSettings(record, dateRangeDefault = 'around7') {
     };
 }
 
+// #587: in-progress reconciliations, one per account, stored on the server
+// (plan_settings.recon_drafts) so a review started on one device resumes on
+// another. { [accountId]: { statementBalance, statementStartDate,
+// statementEndDate, note, clearedTxIds, savedAt } }. Keys are positive integer
+// account ids; anything else, and every value that isn't an object, is dropped.
+export const RECON_DRAFTS_MAX_ACCOUNTS = 50;
+export const RECON_DRAFT_MAX_CLEARED = 2000;
+export const RECON_DRAFT_KEY_MAX = 200;
+
+export function sanitizeReconDraft(record) {
+    if (!record || typeof record !== 'object' || Array.isArray(record)) return null;
+    // The statement balance is kept as typed (the input's string value), so a
+    // half-typed "12." resumes exactly; numbers are accepted too.
+    const rawBalance = record.statementBalance;
+    const statementBalance = typeof rawBalance === 'number' && Number.isFinite(rawBalance)
+        ? String(rawBalance)
+        : normalizeText(typeof rawBalance === 'string' ? rawBalance : '', 30);
+    const seen = new Set();
+    const clearedTxIds = [];
+    for (const id of Array.isArray(record.clearedTxIds) ? record.clearedTxIds : []) {
+        if (typeof id !== 'string') continue;
+        const key = normalizeText(id, RECON_DRAFT_KEY_MAX);
+        if (!key || key.length !== id.length || seen.has(key)) continue;
+        seen.add(key);
+        clearedTxIds.push(key);
+        if (clearedTxIds.length >= RECON_DRAFT_MAX_CLEARED) break;
+    }
+    const savedAt = typeof record.savedAt === 'string' && !Number.isNaN(new Date(record.savedAt).getTime())
+        ? new Date(record.savedAt).toISOString()
+        : null;
+    return {
+        statementBalance,
+        statementStartDate: sanitizeDateISO(record.statementStartDate),
+        statementEndDate: sanitizeDateISO(record.statementEndDate),
+        note: normalizeText(record.note, 200),
+        clearedTxIds,
+        savedAt
+    };
+}
+
+export function sanitizeReconDrafts(record) {
+    const out = {};
+    if (!record || typeof record !== 'object' || Array.isArray(record)) return out;
+    let count = 0;
+    for (const [key, value] of Object.entries(record)) {
+        if (!/^[1-9]\d{0,15}$/.test(key) || !Number.isSafeInteger(Number(key))) continue;
+        const draft = sanitizeReconDraft(value);
+        if (!draft) continue;
+        out[key] = draft;
+        if (++count >= RECON_DRAFTS_MAX_ACCOUNTS) break;
+    }
+    return out;
+}
+
 export function sanitizeSetting(record) {
     const key = normalizeText(record?.key, 60);
     if (!key) return null;

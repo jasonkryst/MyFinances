@@ -203,3 +203,65 @@ test('PATCH with a non-object budgetCategories clears to {}, omitting it leaves 
     });
     assert.deepEqual((await res.json()).budgetCategories, {});
 });
+
+// #587: in-progress reconciliations live on the server.
+async function patchDrafts(reconDrafts) {
+    const res = await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ reconDrafts })
+    });
+    assert.equal(res.status, 200);
+    return (await res.json()).reconDrafts;
+}
+
+test('GET returns empty reconDrafts by default (#587)', async () => {
+    const body = await (await fetch(`${baseUrl}/api/plan-settings`, { headers: { Cookie: cookies } })).json();
+    assert.deepEqual(body.reconDrafts, {});
+});
+
+test('PATCH reconDrafts round-trips a draft and replaces the whole map (#587)', async () => {
+    const draft = { statementBalance: '1234.56', statementStartDate: '2026-06-01', statementEndDate: '2026-06-30',
+        note: 'Half way', clearedTxIds: ['income|3|7|2026-06-05', 'debt|1|7|2026-06-10'], savedAt: '2026-06-15T00:00:00.000Z' };
+    assert.deepEqual(await patchDrafts({ 7: draft }), { 7: draft });
+    const got = await (await fetch(`${baseUrl}/api/plan-settings`, { headers: { Cookie: cookies } })).json();
+    assert.deepEqual(got.reconDrafts, { 7: draft });
+    // The map is replaced, so removing an account's draft sends the rest.
+    assert.deepEqual(await patchDrafts({}), {});
+});
+
+test('PATCH reconDrafts sanitizes keys, values and caps (#587)', async () => {
+    const many = Array.from({ length: 3000 }, (_, i) => `k|${i}|7|2026-06-01`);
+    const got = await patchDrafts({
+        7: { statementBalance: 12.5, note: '<b>x</b>', clearedTxIds: [...many, 5, 'k|0|7|2026-06-01'], savedAt: 'nope',
+             statementStartDate: 'garbage' },
+        abc: { statementBalance: '1' },
+        '-3': { statementBalance: '1' },
+        __proto__: { statementBalance: '1' },
+        9: 'not an object',
+        10: [1, 2],
+    });
+    assert.deepEqual(Object.keys(got), ['7']);
+    assert.equal(got[7].statementBalance, '12.5');
+    assert.equal(got[7].note, 'bx/b');
+    assert.equal(got[7].clearedTxIds.length, 2000);
+    assert.equal(got[7].savedAt, null);
+    assert.equal(got[7].statementStartDate, null);
+});
+
+test('PATCH reconDrafts with a non-object clears them (#587)', async () => {
+    await patchDrafts({ 7: { statementBalance: '1', clearedTxIds: [] } });
+    for (const bad of [null, 'x', 5, []]) {
+        assert.deepEqual(await patchDrafts(bad), {});
+    }
+});
+
+test('PATCH reconDrafts leaves other plan fields alone and writes no change-log row (#587)', async () => {
+    await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ strategy: 'snowball' })
+    });
+    const before = (await pool.query('SELECT count(*)::int AS n FROM audit_log')).rows[0].n;
+    await patchDrafts({ 7: { statementBalance: '1', clearedTxIds: [] } });
+    const after = (await pool.query('SELECT count(*)::int AS n FROM audit_log')).rows[0].n;
+    assert.equal(after, before);
+    const got = await (await fetch(`${baseUrl}/api/plan-settings`, { headers: { Cookie: cookies } })).json();
+    assert.equal(got.strategy, 'snowball');
+});

@@ -53,6 +53,8 @@ export const MUTATE_SCOPE = {
         'sanitizeTransfer', 'sanitizeBudgetCategories',
         // #312
         'sanitizePlanHistoryDebts',
+        // #587
+        'sanitizeReconDraft', 'sanitizeReconDrafts',
     ],
     // #548: the pure settings helpers (DOM-free; setSetting's pgPut is mocked in Jest).
     'src/settings.js': [
@@ -60,7 +62,7 @@ export const MUTATE_SCOPE = {
         'getCoastFireTarget', 'getZeroAmountPolicy', 'buildSettingsExport', 'parseSettingsImport',
     ],
     // #569: the shared settings key/value allowlist (browser export + server).
-    'src/settingsSchema.js': ['validateExportedSetting', 'isAllowedSetting'],
+    'src/settingsSchema.js': ['validateExportedSetting', 'isAllowedSetting', 'isValidLedgerHiddenColumns'],
     // #651: account-id settings follow their account on import.
     'src/settingsRemap.js': true,
     'src/retirementCalculator.js': [

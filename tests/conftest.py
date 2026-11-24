@@ -329,6 +329,7 @@ _PLAN_SETTINGS_DEFAULTS = {
     "retirementTargetDate": None,
     "homePurchasePlan": None,
     "budgetCategories": {},
+    "reconDrafts": {},
 }
 _RESET_EXTRA_CALLS = (
     ("DELETE", "/api/plan-settings/milestones", None),

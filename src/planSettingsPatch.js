@@ -16,7 +16,8 @@ export const PLAN_SETTINGS_FIELDS = Object.freeze([
     'forecastSettings',
     'retirementTargetDate',
     'homePurchasePlan',
-    'budgetCategories'
+    'budgetCategories',
+    'reconDrafts'
 ]);
 
 const BUILDERS = {
@@ -58,7 +59,9 @@ const BUILDERS = {
     }),
     retirementTargetDate: app => app.retirementTargetDate || null,
     homePurchasePlan: app => app.homePurchasePlan || null,
-    budgetCategories: app => app.budgetCategories || {}
+    budgetCategories: app => app.budgetCategories || {},
+    // #587: in-progress reconciliations, the whole map (reconciliation.js).
+    reconDrafts: app => app.reconDrafts || {}
 };
 
 // Returns a body object holding only the named fields, or null when no known

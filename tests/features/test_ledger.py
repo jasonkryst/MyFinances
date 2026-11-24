@@ -1327,10 +1327,12 @@ def test_ledger_columns_preference_persists(app_page):
         sel.dispatchEvent(new Event('change', { bubbles: true }));
     }""")
 
-    # Verify it was saved to localStorage
-    saved = page.evaluate("() => localStorage.getItem('ledgerHiddenColumns')")
-    assert saved is not None and 'account' in saved, \
-        f"'account' should be in ledgerHiddenColumns localStorage, got: {saved!r}"
+    # #587: saved as the ledgerHiddenColumns setting on the server, never in browser storage
+    saved = page.evaluate("() => (window.app.settings.find(s => s.key === 'ledgerHiddenColumns') || {}).value")
+    assert saved == 'account', f"'account' should be the ledgerHiddenColumns setting, got: {saved!r}"
+    assert page.evaluate("() => localStorage.getItem('ledgerHiddenColumns')") is None
+    wait_for_api(page, '/api/settings',
+                 lambda rows: any(r['key'] == 'ledgerHiddenColumns' and r['value'] == 'account' for r in rows))
 
     # Re-render the ledger and confirm preference survives
     page.evaluate("() => window.app.refreshCurrentPageData()")

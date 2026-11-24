@@ -1,7 +1,7 @@
 # MyFinances Roadmap
 
 **Last updated**: 2026-11-24
-**Current version**: 8.1.0
+**Current version**: 8.2.0
 
 ## How this is planned
 
@@ -51,7 +51,6 @@ Translating the app into Spanish and Polish is the main open effort. The Health 
 - #687 Optional month-to-month rollover for category budgets.
 - #688 Split one manual transaction across several categories.
 - #363 Desktop UI adjustment.
-- #587 Sync an in-progress reconciliation and the Ledger column choice to the server.
 
 **Documentation and operations**
 - #582 Off-host backups and a restore drill.

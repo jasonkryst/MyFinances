@@ -2,34 +2,46 @@
 
 import { formatCurrency, escapeHtml, formatShortDate, buildPersonPillsHtml, isCollapsibleOpen, buildFiltersLabel } from './utils.js';
 import { t, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
-import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
+import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE, LEDGER_TABLE_COLUMNS, LEDGER_HIDDEN_COLUMNS, isValidLedgerHiddenColumns } from './settings.js';
 import { getFilteredSortedLedgerTransactions, getLedgerTransactions } from './ledgerTransactions.js';
 import { clearLedgerAmountOverride, openLedgerOverrideModal } from './ledgerOverrides.js';
 import { setLedgerCleared } from './ledgerCleared.js';
 import { LEDGER_EXPORT_COLUMN_KEYS } from './dataExport.js';
 import { sanitizeLedgerSettings } from './sanitizers.js';
 
-const LEDGER_ALL_COLS = ['date', 'account', 'name', 'amount', 'balance', 'cleared'];
+const LEDGER_ALL_COLS = LEDGER_TABLE_COLUMNS;
 const LEDGER_COL_LABEL_KEYS = { date: 'ledger.colDate', account: 'ledger.colAccount', name: 'ledger.colTransaction', amount: 'ledger.colAmount', balance: 'ledger.colBalance', cleared: 'ledger.colCleared' };
 const ledgerColLabel = col => t(LEDGER_COL_LABEL_KEYS[col]);
-const LEDGER_COLS_LS_KEY = 'ledgerHiddenColumns';
+// #587: hidden columns are the ledgerHiddenColumns setting (server-side, so
+// they follow the user across devices). Before #587 they were kept in this
+// browser under the same name; the first read migrates that copy once (only
+// when the server has no value yet), then removes the key.
+const LEGACY_LEDGER_COLS_KEY = 'ledgerHiddenColumns';
 
-function loadHiddenCols() {
+export function migrateLegacyHiddenCols(app) {
+    if (app._ledgerColsMigrated) return false;
+    app._ledgerColsMigrated = true;
+    let raw = null;
     try {
-        const raw = localStorage.getItem(LEDGER_COLS_LS_KEY);
-        if (!raw) return new Set();
-        return new Set(raw.split(',').filter(c => LEDGER_ALL_COLS.includes(c)));
-    } catch { return new Set(); }
+        raw = localStorage.getItem(LEGACY_LEDGER_COLS_KEY);
+        localStorage.removeItem(LEGACY_LEDGER_COLS_KEY);
+    } catch (_) { return false; }
+    if (!raw || getSetting(app, LEDGER_HIDDEN_COLUMNS, undefined) !== undefined) return false;
+    const value = LEDGER_ALL_COLS.filter(c => raw.split(',').includes(c)).join(',');
+    if (!value || !isValidLedgerHiddenColumns(value)) return false;
+    setSetting(app, LEDGER_HIDDEN_COLUMNS, value);
+    return true;
 }
 
-function saveHiddenCols(hidden) {
-    try {
-        if (hidden.size === 0) {
-            localStorage.removeItem(LEDGER_COLS_LS_KEY);
-        } else {
-            localStorage.setItem(LEDGER_COLS_LS_KEY, [...hidden].join(','));
-        }
-    } catch { /* quota — non-fatal */ }
+export function loadHiddenCols(app) {
+    migrateLegacyHiddenCols(app);
+    const raw = getSetting(app, LEDGER_HIDDEN_COLUMNS, '');
+    if (!isValidLedgerHiddenColumns(raw)) return new Set();
+    return new Set(raw ? raw.split(',') : []);
+}
+
+function saveHiddenCols(app, hidden) {
+    setSetting(app, LEDGER_HIDDEN_COLUMNS, LEDGER_ALL_COLS.filter(c => hidden.has(c)).join(','));
 }
 
 function openLedgerExportModal(app) {
@@ -344,7 +356,7 @@ export function renderLedgerPage(app) {
     };
     const reconAdjusts = getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false);
 
-    const hiddenCols = loadHiddenCols();
+    const hiddenCols = loadHiddenCols(app);
     const ch = col => hiddenCols.has(col) ? ' class="ledger-col-hidden"' : '';
 
     // #315: cross-nav breadcrumb when arriving here via the Spending
@@ -817,7 +829,7 @@ export function renderLedgerPage(app) {
     // Column visibility multi-select
     const colsSelect = container.querySelector('#ledgerColsSelect');
     if (colsSelect) {
-        const saved = loadHiddenCols();
+        const saved = loadHiddenCols(app);
         Array.from(colsSelect.options).forEach(opt => {
             opt.selected = !saved.has(opt.value);
         });
@@ -829,7 +841,7 @@ export function renderLedgerPage(app) {
                 return;
             }
             const newHidden = new Set(LEDGER_ALL_COLS.filter(c => !selected.has(c)));
-            saveHiddenCols(newHidden);
+            saveHiddenCols(app, newHidden);
             LEDGER_ALL_COLS.forEach(col => {
                 container.querySelectorAll(`[data-col="${col}"]`).forEach(el => {
                     el.classList.toggle('ledger-col-hidden', newHidden.has(col));

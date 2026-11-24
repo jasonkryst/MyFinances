@@ -318,6 +318,7 @@ jobs:
             tests/features/test_category_autocomplete.py \
             tests/features/test_ledger_filter_persistence.py \
             tests/features/test_ledger_filters_server.py \
+            tests/features/test_sync_device_state.py \
             tests/features/test_income_labels.py \
             tests/features/test_data_export.py \
             tests/features/test_settings.py \

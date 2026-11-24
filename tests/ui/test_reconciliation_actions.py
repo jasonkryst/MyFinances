@@ -320,10 +320,10 @@ def test_recon_modal_cancel_with_changes_offers_save_progress(app_page):
     page.wait_for_selector('#reconcileModal', state='hidden', timeout=5000)
 
     saved = page.evaluate("""() => {
-        const raw = JSON.parse(localStorage.getItem('debtTrackerReconInProgress') || '{}');
+        const raw = (window.app.reconDrafts || {});
         return raw['8101'];
     }""")
-    assert saved is not None, "Save Progress should persist state under debtTrackerReconInProgress"
+    assert saved is not None, "Save Progress should keep the draft in app.reconDrafts (#587)"
     assert float(saved['statementBalance']) == 1234.56
 
     balance = page.evaluate('() => window.app.accounts.find(a => a.id === 8101).startingBalance')
@@ -363,7 +363,7 @@ def test_recon_modal_resume_restores_fields_and_shows_banner(app_page):
     page.click('#reconcileModalConfirmBtn')
     page.wait_for_selector('#reconcileModal', state='hidden', timeout=5000)
     remaining = page.evaluate("""() => {
-        const raw = JSON.parse(localStorage.getItem('debtTrackerReconInProgress') || '{}');
+        const raw = (window.app.reconDrafts || {});
         return raw['8102'] || null;
     }""")
     assert remaining is None, "Completing the reconciliation should clear its in-progress state"
@@ -383,7 +383,7 @@ def test_recon_modal_discard_drops_saved_state(app_page):
     page.wait_for_selector('#reconcileModal', state='hidden', timeout=5000)
 
     saved = page.evaluate("""() => {
-        const raw = JSON.parse(localStorage.getItem('debtTrackerReconInProgress') || '{}');
+        const raw = (window.app.reconDrafts || {});
         return raw['8103'] || null;
     }""")
     assert saved is None, "Discard must not persist any in-progress state"
@@ -459,7 +459,7 @@ def test_recon_modal_checking_expected_transaction_counts_as_progress(app_page):
     page.wait_for_selector('#reconcileModal', state='hidden', timeout=5000)
 
     saved = page.evaluate("""() => {
-        const raw = JSON.parse(localStorage.getItem('debtTrackerReconInProgress') || '{}');
+        const raw = (window.app.reconDrafts || {});
         return raw['8106'];
     }""")
     assert saved is not None

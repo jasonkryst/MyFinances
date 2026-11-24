@@ -12,6 +12,7 @@ import { showAlertModal, showReconSaveProgressModal } from './ui.js';
 import { t, accountTypeLabel, categoryLabel } from './i18n.js';
 import { isCleared, getClearedAt } from './ledgerStateCore.js';
 import { buildReconciliationReport, buildReconciliationCsv, reconciliationFilename } from './reconciliationExport.js';
+import { sanitizeReconDraft, sanitizeReconDrafts } from './sanitizers.js';
 
 function _diffClass(diff) {
     if (diff > 0) return 'recon-diff--pos';
@@ -19,48 +20,70 @@ function _diffClass(diff) {
     return 'recon-diff--zero';
 }
 
-// Partial/in-progress reconciliation state (issue #343). Stored directly in
-// localStorage -- NOT via the storage adapter or the main debtTrackerData
-// payload -- because this is transient per-device UI state, not app data:
-// it must survive a page reload while the user is mid-review, but must not
-// round-trip through export/import/Postgres sync, and must be wiped by
-// clearAllData (see storage.js). Keyed by accountId since only one
-// reconciliation can be in progress per account at a time.
-const RECON_IN_PROGRESS_KEY = 'debtTrackerReconInProgress';
+// Partial/in-progress reconciliation state (issue #343), one draft per
+// account. Since #587 it lives on the server (plan_settings.recon_drafts, as
+// app.reconDrafts), so a review started on one device resumes on another. It
+// is not exported; a replace import or Clear All Data empties it. Every change
+// sends the whole map (saveToStorage(['reconDrafts'])).
+//
+// Before #587 drafts were kept in this browser under debtTrackerReconInProgress.
+// The first draft lookup migrates that copy once: entries for accounts that
+// have no server draft are added and saved, then the key is removed. Nothing
+// writes the key again.
+const LEGACY_RECON_KEY = 'debtTrackerReconInProgress';
 
-function _readReconInProgressMap() {
+// Draft saves run one after another and each sends the map as it is when it
+// runs, so quick edits (save, then complete) can never land out of order and
+// leave an older map on the server.
+let draftSaveChain = Promise.resolve();
+function saveDrafts(app) {
+    const run = () => (typeof app.saveToStorage === 'function' ? app.saveToStorage(['reconDrafts']) : null);
+    draftSaveChain = draftSaveChain.then(run, run);
+    return draftSaveChain;
+}
+
+export function migrateLegacyReconDrafts(app) {
+    if (app._reconDraftsMigrated) return false;
+    app._reconDraftsMigrated = true;
+    let legacy = null;
     try {
-        const parsed = JSON.parse(localStorage.getItem(RECON_IN_PROGRESS_KEY) || '{}');
-        return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch (_) {
-        return {};
+        legacy = JSON.parse(localStorage.getItem(LEGACY_RECON_KEY) || 'null');
+    } catch (_) { legacy = null; }
+    try { localStorage.removeItem(LEGACY_RECON_KEY); } catch (_) { /* storage unavailable */ }
+    const clean = sanitizeReconDrafts(legacy);
+    const drafts = { ...(app.reconDrafts || {}) };
+    let added = false;
+    for (const [accountId, draft] of Object.entries(clean)) {
+        if (drafts[accountId]) continue; // the server copy wins
+        drafts[accountId] = draft;
+        added = true;
     }
+    if (!added) return false;
+    app.reconDrafts = drafts;
+    saveDrafts(app);
+    return true;
 }
 
-function _writeReconInProgressMap(map) {
-    try {
-        localStorage.setItem(RECON_IN_PROGRESS_KEY, JSON.stringify(map));
-    } catch (_) {
-        // Storage unavailable/full -- saving progress is best-effort.
-    }
+export function getReconInProgress(app, accountId) {
+    migrateLegacyReconDrafts(app);
+    return (app.reconDrafts || {})[String(accountId)] || null;
 }
 
-export function getReconInProgress(accountId) {
-    return _readReconInProgressMap()[String(accountId)] || null;
+export function saveReconInProgress(app, accountId, data) {
+    migrateLegacyReconDrafts(app);
+    const draft = sanitizeReconDraft(data);
+    if (!draft) return;
+    app.reconDrafts = { ...(app.reconDrafts || {}), [String(accountId)]: draft };
+    return saveDrafts(app);
 }
 
-export function saveReconInProgress(accountId, data) {
-    const map = _readReconInProgressMap();
-    map[String(accountId)] = data;
-    _writeReconInProgressMap(map);
-}
-
-export function clearReconInProgress(accountId) {
-    const map = _readReconInProgressMap();
-    if (String(accountId) in map) {
-        delete map[String(accountId)];
-        _writeReconInProgressMap(map);
-    }
+export function clearReconInProgress(app, accountId) {
+    const drafts = app.reconDrafts || {};
+    if (!(String(accountId) in drafts)) return;
+    const next = { ...drafts };
+    delete next[String(accountId)];
+    app.reconDrafts = next;
+    return saveDrafts(app);
 }
 
 export function getExpectedTransactionsInRange(app, accountId, startDate, endDate) {
@@ -222,7 +245,7 @@ export async function applyReconciliation(app, accountId, statementBalance, note
     // Completing a reconciliation (from either the modal or the Reconcile
     // page's inline card form) supersedes any saved partial progress for
     // this account (issue #343).
-    clearReconInProgress(accountId);
+    clearReconInProgress(app, accountId);
     if (adjustsBalance) {
         account.startingBalance = balance;
         pgPatch(app, `/api/accounts/${accountId}`, account);
@@ -585,7 +608,7 @@ export function openReconcileModal(app, accountId) {
     currentEl.textContent = formatCurrency(account.startingBalance);
     const { start, end } = getDefaultStatementRange(app, accountId);
 
-    const saved = getReconInProgress(accountId);
+    const saved = getReconInProgress(app, accountId);
     const clearedIds = new Set(saved && Array.isArray(saved.clearedTxIds) ? saved.clearedTxIds : []);
 
     const savedBalance = saved ? sanitizeFiniteNumber(saved.statementBalance, NaN) : NaN;
@@ -644,7 +667,7 @@ export function openReconcileModal(app, accountId) {
         const choice = await showReconSaveProgressModal();
         if (choice === 'cancel') return;
         if (choice === 'save') {
-            saveReconInProgress(accountId, {
+            saveReconInProgress(app, accountId, {
                 statementBalance: balanceInput.value,
                 statementStartDate: startInput.value,
                 statementEndDate: endInput.value,
@@ -653,7 +676,7 @@ export function openReconcileModal(app, accountId) {
                 savedAt: new Date().toISOString()
             });
         } else {
-            clearReconInProgress(accountId);
+            clearReconInProgress(app, accountId);
         }
         close();
     };

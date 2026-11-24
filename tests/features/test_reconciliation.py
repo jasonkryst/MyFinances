@@ -11,7 +11,7 @@ from datetime import date
 
 import pytest
 
-from tests.conftest import accept_creates_for_local_parents, seed_state
+from tests.conftest import accept_creates_for_local_parents, seed_state, wait_for_api
 
 
 @pytest.fixture(autouse=True)
@@ -330,13 +330,14 @@ def test_clear_all_data_resets_reconciliations(app_page):
 
 @pytest.mark.feature
 def test_recon_in_progress_save_and_get_round_trip(app_page):
-    """saveReconInProgress persists under debtTrackerReconInProgress, keyed
-    by accountId, and getReconInProgress reads it back (issue #343)."""
+    """saveReconInProgress keeps the draft in app.reconDrafts, keyed by
+    accountId, and saves it to the server (#343, #587)."""
     page = app_page
 
     result = page.evaluate("""async () => {
+        const app = window.app;
         const mod = await import('/src/reconciliation.js');
-        mod.saveReconInProgress(9001, {
+        mod.saveReconInProgress(app, 9001, {
             statementBalance: 1234.56,
             statementStartDate: '2026-06-01',
             statementEndDate: '2026-06-30',
@@ -344,58 +345,100 @@ def test_recon_in_progress_save_and_get_round_trip(app_page):
             clearedTxIds: ['debt|1|9001|2026-06-05'],
             savedAt: '2026-06-15T00:00:00.000Z'
         });
-        const raw = JSON.parse(localStorage.getItem('debtTrackerReconInProgress'));
-        const fetched = mod.getReconInProgress(9001);
-        return { raw, fetched, otherAccount: mod.getReconInProgress(9999) };
+        return { local: localStorage.getItem('debtTrackerReconInProgress'),
+                 fetched: mod.getReconInProgress(app, 9001),
+                 otherAccount: mod.getReconInProgress(app, 9999) };
     }""")
 
-    assert result['raw']['9001']['statementBalance'] == 1234.56
+    assert result['local'] is None, 'Drafts are never written to browser storage (#587)'
+    assert result['fetched']['statementBalance'] == '1234.56'
     assert result['fetched']['note'] == 'Checked bank app'
     assert result['fetched']['clearedTxIds'] == ['debt|1|9001|2026-06-05']
     assert result['otherAccount'] is None, "An account with no saved progress returns null"
+    server = wait_for_api(page, '/api/plan-settings', lambda d: '9001' in (d.get('reconDrafts') or {}))
+    assert server['reconDrafts']['9001']['clearedTxIds'] == ['debt|1|9001|2026-06-05']
 
 
 @pytest.mark.feature
 def test_recon_in_progress_clear_removes_only_that_account(app_page):
     """clearReconInProgress drops one account's entry without disturbing
-    another account's saved progress."""
+    another account's saved progress, on the server too."""
     page = app_page
 
     result = page.evaluate("""async () => {
+        const app = window.app;
         const mod = await import('/src/reconciliation.js');
-        mod.saveReconInProgress(9001, { statementBalance: 100, clearedTxIds: [] });
-        mod.saveReconInProgress(9002, { statementBalance: 200, clearedTxIds: [] });
-        mod.clearReconInProgress(9001);
-        return { cleared: mod.getReconInProgress(9001), remaining: mod.getReconInProgress(9002) };
+        mod.saveReconInProgress(app, 9001, { statementBalance: 100, clearedTxIds: [] });
+        mod.saveReconInProgress(app, 9002, { statementBalance: 200, clearedTxIds: [] });
+        mod.clearReconInProgress(app, 9001);
+        return { cleared: mod.getReconInProgress(app, 9001), remaining: mod.getReconInProgress(app, 9002) };
     }""")
 
     assert result['cleared'] is None
-    assert result['remaining']['statementBalance'] == 200
+    assert result['remaining']['statementBalance'] == '200'
+    server = wait_for_api(page, '/api/plan-settings',
+                          lambda d: list((d.get('reconDrafts') or {}).keys()) == ['9002'])
+    assert server['reconDrafts']['9002']['statementBalance'] == '200'
 
 
 @pytest.mark.feature
-def test_recon_in_progress_survives_corrupted_json(app_page):
-    """A corrupted debtTrackerReconInProgress value is treated as empty
-    rather than throwing, and a subsequent save overwrites it cleanly."""
+def test_recon_in_progress_survives_corrupted_legacy_json(app_page):
+    """Negative: a corrupted pre-#587 debtTrackerReconInProgress value is
+    treated as empty rather than throwing, and the key is removed."""
     page = app_page
 
     result = page.evaluate("""async () => {
+        const app = window.app;
+        app._reconDraftsMigrated = false;
         localStorage.setItem('debtTrackerReconInProgress', '{not valid json');
         const mod = await import('/src/reconciliation.js');
         let threw = false;
         let before = null;
         try {
-            before = mod.getReconInProgress(9001);
+            before = mod.getReconInProgress(app, 9001);
         } catch (e) {
             threw = true;
         }
-        mod.saveReconInProgress(9001, { statementBalance: 50, clearedTxIds: [] });
-        return { threw, before, after: mod.getReconInProgress(9001) };
+        mod.saveReconInProgress(app, 9001, { statementBalance: 50, clearedTxIds: [] });
+        return { threw, before, after: mod.getReconInProgress(app, 9001),
+                 key: localStorage.getItem('debtTrackerReconInProgress') };
     }""")
 
     assert result['threw'] is False
     assert result['before'] is None
-    assert result['after']['statementBalance'] == 50
+    assert result['after']['statementBalance'] == '50'
+    assert result['key'] is None
+
+
+@pytest.mark.feature
+def test_legacy_recon_drafts_migrate_once_and_server_wins(app_page):
+    """#587: a pre-#587 browser draft moves to the server on first use and the
+    key is removed; a draft the server already has for that account is kept."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app._reconDraftsMigrated = false;
+        app.reconDrafts = { '9002': { statementBalance: 'server', clearedTxIds: [] } };
+        localStorage.setItem('debtTrackerReconInProgress', JSON.stringify({
+            '9001': { statementBalance: 77, note: 'from this browser', clearedTxIds: ['a|1|9001|2026-06-05'] },
+            '9002': { statementBalance: 1, clearedTxIds: [] },
+            'bogus': { statementBalance: 3 },
+        }));
+    }""")
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/reconciliation.js');
+        const first = mod.getReconInProgress(app, 9001);
+        const second = mod.migrateLegacyReconDrafts(app);
+        return { first, second, drafts: app.reconDrafts, key: localStorage.getItem('debtTrackerReconInProgress') };
+    }""")
+    assert result['first']['note'] == 'from this browser'
+    assert result['first']['statementBalance'] == '77'
+    assert result['second'] is False, 'Migration runs once'
+    assert result['drafts']['9002']['statementBalance'] == 'server'
+    assert set(result['drafts']) == {'9001', '9002'}
+    assert result['key'] is None
+    wait_for_api(page, '/api/plan-settings', lambda d: '9001' in (d.get('reconDrafts') or {}))
 
 
 @pytest.mark.feature
@@ -408,31 +451,35 @@ def test_apply_reconciliation_success_clears_in_progress_state(app_page):
     result = page.evaluate("""async () => {
         const app = window.app;
         const mod = await import('/src/reconciliation.js');
-        mod.saveReconInProgress(7001, { statementBalance: 999, clearedTxIds: ['x'] });
+        mod.saveReconInProgress(app, 7001, { statementBalance: 999, clearedTxIds: ['x'] });
         await app.applyReconciliation(7001, 1250.50, 'Completed', '2026-06-10');
-        return { remaining: mod.getReconInProgress(7001) };
+        return { remaining: mod.getReconInProgress(app, 7001) };
     }""")
 
     assert result['remaining'] is None, "A successful reconciliation must clear its account's in-progress state"
+    wait_for_api(page, '/api/plan-settings', lambda d: d.get('reconDrafts') == {})
 
 
 @pytest.mark.feature
-def test_clear_all_data_removes_recon_in_progress_key(app_page):
-    """clearAllData wipes the standalone debtTrackerReconInProgress key
-    entirely, not just app.reconciliations (acceptance criterion of #343)."""
+def test_clear_all_data_removes_recon_drafts(app_page):
+    """clearAllData empties the drafts on the server and in memory, and still
+    removes a leftover pre-#587 key (acceptance criterion of #343)."""
     page = app_page
     _seed_reconciliation_account(page)
 
     result = page.evaluate("""async () => {
         const app = window.app;
         const mod = await import('/src/reconciliation.js');
-        mod.saveReconInProgress(7001, { statementBalance: 999, clearedTxIds: [] });
+        mod.saveReconInProgress(app, 7001, { statementBalance: 999, clearedTxIds: [] });
+        localStorage.setItem('debtTrackerReconInProgress', '{}');
         const storageMod = await import('/src/storage.js');
-        storageMod.clearAllData(app, {});
-        return { raw: localStorage.getItem('debtTrackerReconInProgress') };
+        await storageMod.clearAllData(app, {});
+        const r = await fetch('/api/plan-settings');
+        return { raw: localStorage.getItem('debtTrackerReconInProgress'), server: (await r.json()).reconDrafts };
     }""")
 
-    assert result['raw'] is None, "clearAllData must remove the debtTrackerReconInProgress key entirely"
+    assert result['raw'] is None, "clearAllData must remove the legacy debtTrackerReconInProgress key"
+    assert result['server'] == {}
 
 
 @pytest.mark.feature
