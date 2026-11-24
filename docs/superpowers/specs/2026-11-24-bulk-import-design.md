@@ -158,6 +158,27 @@ Positive and negative, at every layer.
 - CHANGELOG 8.4.0 and a What's New entry ("Restoring or merging a backup is much faster and is now
   all-or-nothing").
 
+## Implementation notes (what the code found)
+
+- **JSON round trip on the server.** `sanitizeParsedState` returns expense dates as local-midnight `Date`
+  objects, which the expense route's own sanitizer then rejects (it expects the JSON string a request
+  carries). The server therefore passes the sanitized state through `toWireJson` (`importCore.js`) before
+  `runImport`, exactly as a body sent to the per-record route would arrive. `toWireJson` also writes a
+  local-midnight `Date` as its calendar date instead of a UTC instant, which on the client fixes an
+  off-by-one-day expense date for users east of Greenwich (the old per-record path had it).
+- **Ownership-check cache.** Each insert re-checked its foreign keys with one query; the transaction store
+  carries a Set of ids already proven to be the user's (`db.ownedIds`), so records on the same few accounts
+  cost one check each. Only positive results are cached, and the cache starts empty after the wipe.
+- **Serialized queries.** `loadUserState` fans out with `Promise.all`; the transaction client is wrapped so
+  its queries run one after another (node-postgres deprecates overlapping queries on one client).
+- **Server-side sanitize warnings** are returned in `warnings` too. For a file the browser already
+  sanitized there are none.
+- **Shared modules.** `src/planSettingsDefaults.js` holds `DEFAULT_PLAN_SETTINGS`. The browser imports
+  `importCore.js` only for `toWireJson`; both new modules are in `sw.js` PRECACHE_URLS.
+- **Tests.** `tests/features/test_import_concurrency.py` is retired with the rule it checked (the client
+  no longer fans out an import); `tests/postgres/test_bulk_import.py` replaces it. What's New entries are
+  English literals by convention, so the 8.4.0 entry has no es/pl keys.
+
 ## Out of scope
 
 - Server-side id remapping for ordinary edits (PERF-03) beyond what import needs.
