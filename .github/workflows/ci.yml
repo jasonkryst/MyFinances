@@ -238,6 +238,7 @@ jobs:
             tests/features/test_storage_import.py \
             tests/features/test_i18n.py \
             tests/features/test_i18n_coverage.py \
+            tests/features/test_i18n_leftovers.py \
             tests/features/test_html_lang.py \
             tests/features/test_pwa.py \
             tests/features/test_perf_523_524_533.py \

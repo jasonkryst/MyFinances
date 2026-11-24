@@ -161,6 +161,8 @@ export function applyStaticTranslations(root = document) {
             if (attr && key) el.setAttribute(attr, t(key));
         });
     });
+    // The tab title follows the locale too (#517); only on a whole-document pass.
+    if (typeof document !== 'undefined' && root === document) document.title = t('app.documentTitle');
 }
 
 // Persists the new locale, re-applies static translations, and re-renders

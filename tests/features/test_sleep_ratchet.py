@@ -20,7 +20,7 @@ TESTS_ROOT = Path(__file__).resolve().parents[1]
 THIS_FILE = Path(__file__).resolve()
 
 # Lower this whenever you remove sleeps. Never raise it.
-MAX_SLEEPS = 184
+MAX_SLEEPS = 182
 
 ZERO_SLEEP_FILES = ["features/test_filter_sort.py"]
 

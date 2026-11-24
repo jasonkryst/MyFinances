@@ -646,6 +646,15 @@ TRANSLATED_PAGES = {
             document.getElementById('contributeConfirmBtn').click();
         }""",
     ),
+    # #498: the header toolbar with the account menu open (Sign Out shown).
+    # The signed-in email is data, marked translate="no".
+    'header-account-menu': (
+        ['.header-toolbar'],
+        """async () => {
+            document.getElementById('accountMenuBtn').click();
+            document.getElementById('accountMenuLogoutBtn').classList.remove('hidden');
+        }""",
+    ),
     # #211: the toolbar bell's alert list, one item of every type (read,
     # unread and resolved), rendered from injected state.
     'notifications-panel': (

@@ -276,6 +276,31 @@ docker compose run --rm backup sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_restore
 docker compose restart server
 ```
 
+## Encryption at rest
+
+MyFinances does not encrypt columns itself, and it isn't planned (#583). The
+server computes balances, projections, notifications and net-worth snapshots
+from the stored numbers, so encrypting them inside the database would mean
+either moving every calculation back to the browser or keeping the key next
+to the data, which protects nothing. Encrypt the storage instead:
+
+- **The database volume.** Put Docker's data directory, or at least the
+  `postgres-data` and `backup-data` volumes, on an encrypted disk: LUKS/dm-crypt
+  on Linux, BitLocker on Windows, FileVault on macOS, or your cloud provider's
+  encrypted block storage (for example AWS EBS or GCP persistent disk
+  encryption). This covers a stolen disk or a discarded drive; it does not
+  protect against someone with access to the running host.
+- **Backups that leave the host.** A `.dump` file is a plain copy of every
+  record. Encrypt it before it leaves the machine, for example
+  `gpg --symmetric --cipher-algo AES256 <file>.dump`, or with a backup tool that
+  encrypts client-side (restic, borg, rclone `crypt`). Keep the passphrase
+  somewhere other than the backup.
+- **In transit** is already covered: put the app behind HTTPS (see
+  `DEPLOYMENT.md`), and the Postgres port is not published by the Compose file.
+
+Swap files and Docker's log files can also hold fragments of data; encrypting
+the whole disk covers those too.
+
 ## Notifications (issue #211)
 
 The hourly `notifications` job (`src/jobs/notifications.js`) runs the pure

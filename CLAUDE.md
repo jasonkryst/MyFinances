@@ -80,7 +80,7 @@ Top-level pages are `data-page` buttons in `index.html`. `switchPage(app, pageNa
 
 ### Migrations
 - `server/src/index.js` runs migrations on every startup and refuses an unapplied migration that sorts before an applied one (the server crash-loops, nginx returns 502). **A new migration's number must be higher than the newest one on `main` at merge time**; renumber the later-merging branch. Write migrations idempotently (`IF NOT EXISTS`). `check-migration-order.sh` enforces it in CI.
-- For a migration that touches existing data, write a `down()` that cannot fail on real rows and add a `MIGRATION SAFETY NOTE` saying what a rollback discards. Use `pgm.sql()`, not `db.query()`.
+- For a migration that touches existing data, write a `down()` that cannot fail on real rows and add a `MIGRATION SAFETY NOTE` saying what a rollback discards. Use `pgm.sql()`, not `db.query()`. A `timestamptz` to `date` cast depends on the session time zone: name the zone explicitly (`031` didn't, which is exact only when the database zone never changed; DEPLOYMENT.md "Database time zone", #472).
 - A `NOT VALID` CHECK re-checks legacy rows on any UPDATE (including FK `SET NULL`); see the transfers entry in the feature reference.
 
 ### Versioning

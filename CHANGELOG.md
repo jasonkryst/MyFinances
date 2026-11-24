@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.0.1] — 2026-11-24
+
+### Fixed
+- **Account menu in Spanish and Polish (#498).** Its items (What's New, Calendar Feed, Backup & Restore, Settings, Keyboard Shortcuts, Sign Out), the menu button's label and the Reports Calendar toolbar shortcut were English in every locale. The i18n render guard now scans the whole header toolbar with the menu open (`header-account-menu`); the signed-in email is marked `translate="no"`.
+- **Tab title and Health sparkline (#517).** `document.title` follows the locale. The Health surplus sparkline's screen-reader table headers and its canvas label are translated. In Spanish and Polish, the Help button's tooltip says the guide is English-only; the guide itself stays English.
+- **Spanish wording (#514).** Sinking funds are "fondos de previsión" everywhere (the legacy-data import and skipped-import messages said "fondos de ahorro programado"), and the legacy-data download button says "copia de seguridad JSON".
+
+### Documentation
+- **Encryption at rest (#583).** `server/README.md` explains why the app doesn't encrypt columns and recommends encrypted volumes for the database and backups, plus encrypting backups before they leave the host.
+- **Database time zone (#472).** DEPLOYMENT.md asks for a UTC database and explains when migration `1755600000031`'s `debts.updated_at` cast is exact. A new server test (`migration031Timezone.test.js`) checks the cast in five time zones, shows the one-day shift when the zone changed in between, and checks that the bundled Postgres runs in UTC.
+
 ## [8.0.0] — 2026-11-24
 
 ### BREAKING
