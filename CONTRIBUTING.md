@@ -28,9 +28,12 @@ By taking part you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 - Since v7.0.0 the **self-hosted Node.js + PostgreSQL server (`server/`) is the
   only storage**. The app needs the Docker stack (nginx + server + Postgres);
   a plain static file server no longer works.
-- [CLAUDE.md](CLAUDE.md) is the detailed architecture reference, covering the
-  app object, feature modules, storage, i18n and the test harness. It's written
-  for AI coding agents but is just as useful to people.
+- [CLAUDE.md](CLAUDE.md) is the project's rulebook: commands, architecture,
+  the cross-cutting rules and the merge policy. The detail behind it is in
+  [docs/architecture/](docs/architecture/): [testing](docs/architecture/testing.md),
+  [storage](docs/architecture/storage.md) and [features](docs/architecture/features.md).
+  [AGENTS.md](AGENTS.md) has the operational notes for running the suite and
+  opening PRs. They're written for AI coding agents but are just as useful to people.
 
 ## Set up a local stack
 
