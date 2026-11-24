@@ -1049,6 +1049,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '8.1.0 — 2026-11-24',
+        items: [
+            '<strong>Find any record from the command palette.</strong> Press <kbd>Ctrl/Cmd+K</kbd> and type part of a name: matching accounts, debts, incomes, recurring items, savings funds and people appear, grouped by type with their amount. Press <kbd>Enter</kbd> to jump straight to that card, ready to edit. The palette is now translated into Spanish and Polish too.'
+        ]
+    },
+    {
         version: '8.0.0 — 2026-11-24',
         items: [
             '<strong>For self-hosters: passwords are now settings, not files.</strong> The database and email passwords are the <code>POSTGRES_PASSWORD</code> and <code>SMTP_PASSWORD</code> settings (in <code>.env</code> or your stack variables) instead of files in <code>secrets/</code>. Before restarting, set <code>POSTGRES_PASSWORD</code> to your current database password, then delete the old files; the upgrade steps are in the changelog and DEPLOYMENT.md. Nothing changes in the app itself.'

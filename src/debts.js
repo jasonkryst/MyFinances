@@ -14,7 +14,7 @@ import { renderOwnershipControl, readOwnershipSplit, buildOwnershipSplitHtml } f
 import { sanitizeOwnershipSplit } from './sanitizers.js';
 import { readPromoInputs, renderInlinePromoFields, inlinePromoElements, formPromoElements, renderPromoCardHtml } from './debtPromo.js';
 import { getDebtRateOn } from './promoApr.js';
-import { paginateList, DEFAULT_PAGE_SIZE } from './pagination.js';
+import { paginateList, pageContaining, DEFAULT_PAGE_SIZE } from './pagination.js';
 import { renderPagerHtml, pagerDirectionFromEvent, afterPagerRender } from './paginationUi.js';
 
 function utilizationStatus(pct) {
@@ -692,6 +692,11 @@ export function renderDebtsList(app) {
     // boundary shows its heading on both pages (totals stay the whole group's).
     const flatOrder = [];
     for (const section of sections) for (const d of section.debts) flatOrder.push({ section, debt: d });
+    // #686: the command palette asks for the page holding one debt.
+    if (app._revealDebtId != null) {
+        const p = pageContaining(flatOrder, e => String(e.debt.id) === String(app._revealDebtId), DEFAULT_PAGE_SIZE);
+        if (p) app._debtListPage = p;
+    }
     const debtPage = paginateList(flatOrder, app._debtListPage, DEFAULT_PAGE_SIZE);
     app._debtListPage = debtPage.page;
     const pageSections = [];

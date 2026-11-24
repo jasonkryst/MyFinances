@@ -22,7 +22,7 @@ import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
 import { t as tr, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { getRecurringMonthPaidStatus, buildRecurringPaidBadge, reconcileRecurringPaidState } from './recurringPaid.js';
 import { isEffectivelyPaused, getRecurringOccurrencesInMonth } from './recurringOccurrences.js';
-import { paginateList, DEFAULT_PAGE_SIZE } from './pagination.js';
+import { paginateList, pageContaining, DEFAULT_PAGE_SIZE } from './pagination.js';
 import { renderPagerHtml, pagerDirectionFromEvent, afterPagerRender } from './paginationUi.js';
 import { getAmountOn, getCurrentAmount } from './amountSchedule.js';
 import { amountInputAttrs, renderAppliesFromRow, renderAmountChangeSummary, resolveAmountEdit } from './amountChangeUi.js';
@@ -341,6 +341,11 @@ export function renderRecurringPage(app) {
 
     // #330: only the current page's templates are rendered; filter and sort
     // above already ran over the whole list.
+    // #686: the command palette asks for the page holding one template.
+    if (app._revealRecurringId != null) {
+        const p = pageContaining(displayTemplates, t => String(t.id) === String(app._revealRecurringId), DEFAULT_PAGE_SIZE);
+        if (p) app._recurringListPage = p;
+    }
     const recurringPage = paginateList(displayTemplates, app._recurringListPage, DEFAULT_PAGE_SIZE);
     app._recurringListPage = recurringPage.page;
     const cards = recurringPage.items.map(t => {

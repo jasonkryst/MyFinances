@@ -26,3 +26,13 @@ export function paginateList(items, page, pageSize = DEFAULT_PAGE_SIZE) {
         end: total === 0 ? 0 : startIdx + slice.length,
     };
 }
+
+// The 1-based page that holds the first item matching `predicate`, or null
+// when none does (#686: the command palette opens the page holding a record).
+export function pageContaining(items, predicate, pageSize = DEFAULT_PAGE_SIZE) {
+    const list = Array.isArray(items) ? items : [];
+    let size = Math.floor(Number(pageSize));
+    if (!Number.isFinite(size) || size < 1) size = DEFAULT_PAGE_SIZE;
+    const idx = list.findIndex(predicate);
+    return idx < 0 ? null : Math.floor(idx / size) + 1;
+}

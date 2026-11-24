@@ -2389,14 +2389,14 @@
         </div>
     </div>
     <!-- Command Palette / Quick Jump (Ctrl+K) -->
-    <div id="commandPaletteOverlay" class="modal-overlay cmdpal-overlay hidden" role="dialog" aria-modal="true" aria-label="Quick jump command palette" tabindex="-1">
+    <div id="commandPaletteOverlay" class="modal-overlay cmdpal-overlay hidden" role="dialog" aria-modal="true" aria-label="Quick jump command palette" data-i18n-attr="aria-label:palette.dialogAria" tabindex="-1">
         <div class="cmdpal-panel">
-            <input type="text" id="commandPaletteInput" class="cmdpal-input" placeholder="Jump to a page or run a command…" role="combobox" aria-expanded="true" aria-controls="commandPaletteList" aria-autocomplete="list" aria-label="Search pages and commands" autocomplete="off">
-            <ul id="commandPaletteList" class="cmdpal-list" role="listbox" aria-label="Matching commands"></ul>
+            <input type="text" id="commandPaletteInput" class="cmdpal-input" placeholder="Jump to a page, record or command…" role="combobox" aria-expanded="true" aria-controls="commandPaletteList" aria-autocomplete="list" aria-label="Search pages, records and commands" data-i18n-attr="placeholder:palette.placeholder,aria-label:palette.inputAria" autocomplete="off">
+            <ul id="commandPaletteList" class="cmdpal-list" role="listbox" aria-label="Matching commands" data-i18n-attr="aria-label:palette.listAria"></ul>
             <div class="cmdpal-footer">
-                <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> Navigate</span>
-                <span><kbd>Enter</kbd> Select</span>
-                <span><kbd>Esc</kbd> Close</span>
+                <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> <span data-i18n="palette.footerNavigate">Navigate</span></span>
+                <span><kbd translate="no">Enter</kbd> <span data-i18n="palette.footerSelect">Select</span></span>
+                <span><kbd translate="no">Esc</kbd> <span data-i18n="common.close">Close</span></span>
             </div>
         </div>
     </div>

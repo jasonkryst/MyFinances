@@ -99,6 +99,8 @@ export const MUTATE_SCOPE = {
     'src/weekendRule.js': true,
     // #330: pure list pagination slice/clamp.
     'src/pagination.js': true,
+    // #686: command palette record search (fold, rank, group, cap).
+    'src/paletteSearch.js': true,
     // #578: optimistic-concurrency diff/conflict helpers.
     'src/recordVersions.js': true,
     // #575: refresh-on-focus / cross-tab refresh decisions.

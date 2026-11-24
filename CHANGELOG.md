@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.1.0] — 2026-11-24
+
+### Added
+- **Command palette record search (#686).** While typing, the palette lists the accounts, debts, incomes, recurring templates, emergency and sinking funds, and people whose names match, after the matching commands. Each type gets a heading, and each record shows its type and the amount its card shows. Matching ignores case and accents and ranks name prefixes first; at most five per type. Archived records and ended incomes are not listed (they sit behind a "show" toggle). Enter opens the record's page and sub-tab, opens the list page that holds it (#330 pagination), clears Debt or Recurring filters that would hide it, scrolls its card into view, highlights it for two seconds and focuses its Edit button. Nothing new is stored.
+- The pure `src/paletteSearch.js` (`foldForSearch`, `matchRank`, `matchRecords`; Stryker-scoped) and `pageContaining` in `src/pagination.js`.
+
+### Changed
+- **The command palette is translated (part of #505).** Commands, hints, the placeholder, the footer and the dialog, input and list labels use `t()`/`data-i18n` in en/es/pl, and commands are rebuilt each time the palette opens so they follow the locale. Command matching ignores accents too. The render guard scans the palette (`command-palette`, `command-palette-empty-result`).
+
 ## [8.0.1] — 2026-11-24
 
 ### Fixed
