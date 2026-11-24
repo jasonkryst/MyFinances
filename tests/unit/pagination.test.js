@@ -1,4 +1,4 @@
-import { paginateList, DEFAULT_PAGE_SIZE } from '../../src/pagination.js';
+import { paginateList, pageContaining, DEFAULT_PAGE_SIZE } from '../../src/pagination.js';
 
 const range = n => Array.from({ length: n }, (_, i) => i + 1);
 
@@ -79,5 +79,36 @@ describe('paginateList', () => {
         const r = paginateList(range(5), 3, 2);
         expect(r.items).toEqual([5]);
         expect(r).toMatchObject({ totalPages: 3, start: 5, end: 5 });
+    });
+});
+
+describe('pageContaining (#686)', () => {
+    test('finds the page that holds the item', () => {
+        const items = range(73);
+        expect(pageContaining(items, x => x === 1, 25)).toBe(1);
+        expect(pageContaining(items, x => x === 25, 25)).toBe(1);
+        expect(pageContaining(items, x => x === 26, 25)).toBe(2);
+        expect(pageContaining(items, x => x === 50, 25)).toBe(2);
+        expect(pageContaining(items, x => x === 51, 25)).toBe(3);
+        expect(pageContaining(items, x => x === 73, 25)).toBe(3);
+    });
+
+    test('first match wins', () => {
+        expect(pageContaining([1, 2, 3, 2], x => x === 2, 2)).toBe(1);
+    });
+
+    test('no match, empty list or non-array is null', () => {
+        expect(pageContaining(range(10), x => x === 99, 5)).toBeNull();
+        expect(pageContaining([], () => true, 5)).toBeNull();
+        expect(pageContaining(null, () => true, 5)).toBeNull();
+    });
+
+    test('bad page sizes fall back to the default', () => {
+        const items = range(60);
+        expect(pageContaining(items, x => x === 26)).toBe(2);
+        expect(pageContaining(items, x => x === 26, 0)).toBe(2);
+        expect(pageContaining(items, x => x === 26, -3)).toBe(2);
+        expect(pageContaining(items, x => x === 26, 'x')).toBe(2);
+        expect(pageContaining(items, x => x === 26, 2.9)).toBe(13);
     });
 });

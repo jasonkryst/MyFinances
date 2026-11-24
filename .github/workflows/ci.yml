@@ -524,6 +524,7 @@ jobs:
             tests/ui/test_table_mobile_scroll.py \
             tests/ui/test_data_transfer_modal.py \
             tests/ui/test_command_palette.py \
+            tests/ui/test_command_palette_records.py \
             tests/ui/test_reconciliation_actions.py \
             tests/ui/test_reports_actions.py \
             tests/ui/test_css_load.py \

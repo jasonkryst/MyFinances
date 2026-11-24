@@ -433,6 +433,35 @@ body.dark-mode .text-income {
     opacity: 0.7;
 }
 
+/* #686: record matches, grouped by type under a small heading. */
+.cmdpal-group {
+    padding: 10px 12px 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted, #6b7280);
+}
+
+.cmdpal-item--record .cmdpal-item-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The card a palette record jump lands on, for RECORD_HIGHLIGHT_MS. */
+.cmdpal-highlight {
+    outline: 3px solid var(--primary-color, #2563eb);
+    outline-offset: 2px;
+    animation: cmdpal-highlight-pulse 1s ease-out 2;
+}
+
+@keyframes cmdpal-highlight-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.45); }
+    100% { box-shadow: 0 0 0 12px rgba(37, 99, 235, 0); }
+}
+
 .cmdpal-empty {
     padding: 16px 12px;
     text-align: center;

@@ -1,37 +1,50 @@
 // Command palette / quick-jump (Ctrl+K): keyboard-first navigation across all
-// pages plus a handful of common actions.
-import { escapeHtml } from './utils.js';
+// pages, a handful of common actions and, while typing, the records whose
+// names match (#686). Commands are rebuilt on every open so they follow the
+// current locale.
+import {
+    escapeHtml, formatCurrency, todayISO, isIncomeEnded, computeNetIncomeAmount,
+    refreshFilterDisclosureCounts,
+} from './utils.js';
+import { t } from './i18n.js';
+import { getCurrentAmount } from './amountSchedule.js';
+import { foldForSearch, matchRecords } from './paletteSearch.js';
+
+// How long a jumped-to card stays highlighted.
+export const RECORD_HIGHLIGHT_MS = 2000;
 
 function buildCommands(app) {
-    const nav = (page, label, icon) => ({
-        label,
-        hint: 'Go to page',
+    const page = t('palette.hintPage');
+    const action = t('palette.hintAction');
+    const nav = (pageName, labelKey, icon) => ({
+        label: t(labelKey),
+        hint: page,
         icon,
-        run: () => app.switchPage(page)
+        run: () => app.switchPage(pageName)
     });
 
     return [
-        nav('health', 'Health', '🩺'),
-        nav('accounts', 'Accounts', '🏦'),
-        nav('income', 'Income', '💰'),
-        nav('people', 'People', '👨‍👩‍👧‍👦'),
-        nav('liabilities', 'Liabilities', '💳'),
-        nav('recurring', 'Recurring', '🔁'),
-        nav('savings', 'Savings', '💰'),
+        nav('health', 'nav.health', '🩺'),
+        nav('accounts', 'nav.accounts', '🏦'),
+        nav('income', 'nav.income', '💰'),
+        nav('people', 'nav.people', '👨‍👩‍👧‍👦'),
+        nav('liabilities', 'nav.liabilities', '💳'),
+        nav('recurring', 'nav.recurring', '🔁'),
+        nav('savings', 'nav.savings', '💰'),
         {
-            label: 'Savings — Home Purchase Planning',
-            hint: 'Go to page',
+            label: `${t('nav.savings')} — ${t('savings.tabHome')}`,
+            hint: page,
             icon: '🏠',
             run: () => {
                 app.savingsSubTab = 'home';
                 app.switchPage('savings');
             }
         },
-        nav('strategy', 'Plan', '🎯'),
-        nav('reports', 'Reports', '📈'),
+        nav('strategy', 'nav.strategy', '🎯'),
+        nav('reports', 'nav.reports', '📈'),
         {
-            label: 'Reports — Calendar',
-            hint: 'Go to page',
+            label: `${t('nav.reports')} — ${t('reports.tabCalendar')}`,
+            hint: page,
             icon: '📅',
             run: () => {
                 document.querySelectorAll('.rpt-tab-btn').forEach(b => {
@@ -45,19 +58,19 @@ function buildCommands(app) {
                 app.switchPage('reports');
             }
         },
-        nav('ledger', 'Ledger', '📒'),
-        nav('reconcile', 'Reconcile', '🔄'),
-        nav('retirement', 'Retirement', '🏛️'),
-        nav('notifications', 'Notifications', '🔔'),
+        nav('ledger', 'nav.ledger', '📒'),
+        nav('reconcile', 'nav.reconcile', '🔄'),
+        nav('retirement', 'nav.retirement', '🏛️'),
+        nav('notifications', 'notify.title', '🔔'),
         {
-            label: 'Export backup as JSON',
-            hint: 'Action',
+            label: t('palette.exportJson'),
+            hint: action,
             icon: '⬇️',
             run: () => app.exportAllJSON()
         },
         {
-            label: 'Import backup from JSON',
-            hint: 'Action',
+            label: t('palette.importJson'),
+            hint: action,
             icon: '⬆️',
             run: () => {
                 app.openSettings({ page: 'backup' });
@@ -65,8 +78,8 @@ function buildCommands(app) {
             }
         },
         {
-            label: 'Cycle theme (Light / Dark / High Contrast)',
-            hint: 'Action',
+            label: t('palette.cycleTheme'),
+            hint: action,
             icon: '🌓',
             run: () => {
                 const select = document.getElementById('themeSwitcher');
@@ -78,8 +91,8 @@ function buildCommands(app) {
             }
         },
         {
-            label: 'Calculate payment plan',
-            hint: 'Action',
+            label: t('palette.calcPlan'),
+            hint: action,
             icon: '🧮',
             run: () => {
                 app.switchPage('strategy');
@@ -87,25 +100,155 @@ function buildCommands(app) {
             }
         },
         {
-            label: 'Settings',
-            hint: 'Action',
+            label: t('settings.title'),
+            hint: action,
             icon: '⚙️',
             run: () => document.getElementById('settingsBtn')?.click()
         },
         {
-            label: 'Keyboard shortcuts',
-            hint: 'Action',
+            label: t('settings.aboutShortcuts'),
+            hint: action,
             icon: '⌨️',
             run: () => app.openKeyboardShortcuts()
         },
         {
-            label: 'Open Bonus Advisor',
-            hint: 'Action',
+            label: t('palette.bonusAdvisor'),
+            hint: action,
             icon: '🎯',
-            keywords: 'bonus windfall lump sum one-time payment',
+            keywords: t('palette.bonusKeywords'),
             run: () => { app.switchPage('income'); app.showBonusAdvice(); }
         }
     ];
+}
+
+// ── Records (#686) ────────────────────────────────────────────────────────
+// One entry per record a page shows by default: archived accounts, debts,
+// templates and sinking funds, and ended incomes, are left out (they sit
+// behind a "show" toggle). `figure` is the amount the record's card shows.
+
+const RECORD_ICONS = {
+    account: '🏦', debt: '💳', income: '💰', recurring: '🔁', emergency: '🛟', sinking: '🎯', person: '👤',
+};
+
+// Where each type lives and how to find its card: the Edit button carries the id.
+export const RECORD_TARGETS = {
+    account: { page: 'accounts', edit: id => `[data-account-action="edit"][data-account-id="${id}"]`, card: '.acct-card' },
+    debt: { page: 'liabilities', edit: id => `[data-debt-action="edit"][data-debt-id="${id}"]`, card: '.debt-card', reveal: '_revealDebtId' },
+    income: { page: 'income', edit: id => `[data-income-action="edit"][data-income-id="${id}"]`, card: '.income-card' },
+    recurring: { page: 'recurring', edit: id => `[data-recurring-action="edit"][data-recurring-id="${id}"]`, card: '.recurring-card', reveal: '_revealRecurringId' },
+    emergency: { page: 'savings', sub: 'emergency', edit: id => `[data-emergency-action="edit"][data-emergency-id="${id}"]`, card: '.emergency-card' },
+    sinking: { page: 'savings', sub: 'sinking', edit: id => `[data-sinking-action="edit"][data-sinking-id="${id}"]`, card: '.sinking-card' },
+    person: { page: 'people', edit: id => `[data-person-action="edit"][data-person-id="${id}"]`, card: '.income-card' },
+};
+
+export function buildRecordEntries(app) {
+    const today = todayISO();
+    const entries = [];
+    const add = (type, rec, name, figure) => {
+        if (rec?.id == null) return;
+        entries.push({ type, id: rec.id, name, figure: Number.isFinite(figure) ? figure : null });
+    };
+    for (const a of app.accounts || []) if (!a.archived) add('account', a, a.name, Number(a.startingBalance));
+    for (const d of app.debts || []) {
+        if (d.archived) continue;
+        add('debt', d, d.name, Number(d.debtType === 'fixedAmount' ? d.fixedAmount : d.accountBalance));
+    }
+    for (const inc of app.incomes || []) {
+        if (!isIncomeEnded(inc, today)) add('income', inc, inc.name, computeNetIncomeAmount(inc, today));
+    }
+    for (const tmpl of app.recurringTemplates || []) {
+        if (!tmpl.archived) add('recurring', tmpl, tmpl.name, getCurrentAmount(tmpl, today));
+    }
+    for (const f of app.emergencyFunds || []) {
+        const account = (app.accounts || []).find(a => a.id === f.accountId);
+        if (account) add('emergency', f, account.name, Number(f.currentAmount));
+    }
+    for (const f of app.sinkingFunds || []) if (!f.archived) add('sinking', f, f.name, Number(f.currentAmount));
+    for (const p of app.persons || []) add('person', p, p.name, null);
+    return entries;
+}
+
+function recordToCommand(app, entry) {
+    const type = t(`palette.type.${entry.type}`);
+    return {
+        label: entry.name,
+        hint: entry.figure === null ? type : `${type} · ${formatCurrency(entry.figure)}`,
+        icon: RECORD_ICONS[entry.type],
+        group: entry.type,
+        run: () => jumpToRecord(app, entry),
+    };
+}
+
+function nextFrame() {
+    return new Promise(resolve => requestAnimationFrame(() => resolve()));
+}
+
+async function waitForElement(selector, frames = 30) {
+    for (let i = 0; i < frames; i++) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await nextFrame();
+    }
+    return null;
+}
+
+// Debt and Recurring filters can hide the record: put them back to "all".
+function clearListFilters(app, type) {
+    const ids = type === 'debt'
+        ? ['categoryFilter', 'debtAccountFilter', 'debtInterestFilter', 'debtProgressFilter', 'debtUtilizationFilter']
+        : ['recurringCategoryFilter', 'recurringAccountFilter', 'recurringMonthFilter'];
+    for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    }
+    if (type === 'debt') {
+        app.renderDebtsList();
+    } else {
+        app._recurringOverdueOnly = false;
+        app.renderRecurringPage();
+    }
+    refreshFilterDisclosureCounts();
+}
+
+// Opens the record's page (and sub-tab, and list page), scrolls its card into
+// view, highlights it briefly and focuses its Edit button. Resolves to the
+// card, or null when the record is not on screen (deleted meanwhile).
+export async function jumpToRecord(app, entry) {
+    const target = RECORD_TARGETS[entry?.type];
+    if (!target) return null;
+    const id = String(entry.id);
+    if (target.reveal) app[target.reveal] = entry.id;
+    try {
+        if (target.sub) app.savingsSubTab = target.sub;
+        app.switchPage(target.page);
+        let edit = await waitForElement(target.edit(id));
+        if (!edit && target.reveal) {
+            clearListFilters(app, entry.type);
+            edit = await waitForElement(target.edit(id), 10);
+        }
+        if (!edit) return null;
+        const card = edit.closest(target.card) || edit.parentElement;
+        card.scrollIntoView({ block: 'center', behavior: 'auto' });
+        card.classList.add('cmdpal-highlight');
+        setTimeout(() => card.classList.remove('cmdpal-highlight'), RECORD_HIGHLIGHT_MS);
+        edit.focus({ preventScroll: true });
+        return card;
+    } finally {
+        if (target.reveal) app[target.reveal] = null;
+    }
+}
+
+// Commands whose label or keywords contain the query (accent- and
+// case-insensitive), then the matching records grouped by type.
+export function filterPaletteItems(app, commands, query) {
+    const q = foldForSearch(query);
+    if (!q) return commands;
+    const matched = commands.filter(cmd =>
+        foldForSearch(cmd.label).includes(q) ||
+        (cmd.keywords && foldForSearch(cmd.keywords).includes(q))
+    );
+    const records = matchRecords(buildRecordEntries(app), query).map(e => recordToCommand(app, e));
+    return [...matched, ...records];
 }
 
 export function initCommandPalette(app) {
@@ -115,7 +258,7 @@ export function initCommandPalette(app) {
     const list = document.getElementById('commandPaletteList');
     if (!overlay || !input || !list) return;
 
-    const commands = buildCommands(app);
+    let commands = [];
     let filtered = commands;
     let activeIndex = 0;
     let lastFocused = null;
@@ -125,20 +268,30 @@ export function initCommandPalette(app) {
     }
 
     function render() {
+        let lastGroup = null;
         list.innerHTML = filtered.length
-            ? filtered.map((cmd, i) => `
-                <li role="option" id="cmdpal-opt-${i}" class="cmdpal-item${i === activeIndex ? ' cmdpal-item--active' : ''}" data-index="${i}" aria-selected="${i === activeIndex}">
+            ? filtered.map((cmd, i) => {
+                // A visual heading before each record type; options carry the
+                // type in their hint, so the heading is hidden from the listbox.
+                const heading = cmd.group && cmd.group !== lastGroup
+                    ? `<li class="cmdpal-group" role="presentation" aria-hidden="true">${escapeHtml(t(`palette.group.${cmd.group}`))}</li>`
+                    : '';
+                lastGroup = cmd.group || null;
+                return `${heading}
+                <li role="option" id="cmdpal-opt-${i}" class="cmdpal-item${cmd.group ? ' cmdpal-item--record' : ''}${i === activeIndex ? ' cmdpal-item--active' : ''}" data-index="${i}"${cmd.group ? ` data-record-type="${cmd.group}"` : ''} aria-selected="${i === activeIndex}">
                     <span class="cmdpal-item-icon" aria-hidden="true">${cmd.icon}</span>
                     <span class="cmdpal-item-label">${escapeHtml(cmd.label)}</span>
                     <span class="cmdpal-item-hint">${escapeHtml(cmd.hint)}</span>
-                </li>
-            `).join('')
-            : '<li class="cmdpal-empty">No matching commands</li>';
+                </li>`;
+            }).join('')
+            : `<li class="cmdpal-empty">${escapeHtml(t('palette.empty'))}</li>`;
         input.setAttribute('aria-activedescendant', filtered.length ? `cmdpal-opt-${activeIndex}` : '');
+        list.querySelector('.cmdpal-item--active')?.scrollIntoView({ block: 'nearest' });
     }
 
     function open() {
         lastFocused = document.activeElement;
+        commands = buildCommands(app);
         filtered = commands;
         activeIndex = 0;
         input.value = '';
@@ -147,26 +300,23 @@ export function initCommandPalette(app) {
         setTimeout(() => input.focus(), 0);
     }
 
-    function close() {
+    function close({ restoreFocus = true } = {}) {
         overlay.classList.add('hidden');
-        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+        if (restoreFocus && lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     }
 
     function runActive() {
         const cmd = filtered[activeIndex];
         if (!cmd) return;
-        close();
+        // A record jump moves focus to the record's Edit button itself.
+        close({ restoreFocus: !cmd.group });
         cmd.run();
     }
 
     if (btn) btn.addEventListener('click', open);
 
     input.addEventListener('input', () => {
-        const q = input.value.trim().toLowerCase();
-        filtered = q ? commands.filter(cmd =>
-            cmd.label.toLowerCase().includes(q) ||
-            (cmd.keywords && cmd.keywords.toLowerCase().includes(q))
-        ) : commands;
+        filtered = filterPaletteItems(app, commands, input.value);
         activeIndex = 0;
         render();
     });

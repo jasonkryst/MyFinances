@@ -1,7 +1,7 @@
 # MyFinances Roadmap
 
 **Last updated**: 2026-11-24
-**Current version**: 8.0.1
+**Current version**: 8.1.0
 
 ## How this is planned
 
@@ -14,7 +14,7 @@ The v4-era roadmap (feature phases, technical debt tables and the old test stati
 Translating the app into Spanish and Polish is the main open effort. The Health page and the global chrome are the largest untranslated surfaces.
 
 - #504 Translate the remaining Health page strings and add Health to the i18n render guard.
-- #505 Translate global chrome: the command palette, Keyboard Shortcuts, the What's New title and header aria labels.
+- #505 Translate global chrome: Keyboard Shortcuts, the What's New title and header aria labels (the command palette is done).
 
 ## Next (P2)
 
@@ -48,7 +48,6 @@ Translating the app into Spanish and Polish is the main open effort. The Health 
 **UX and features**
 - #684 A push channel for notifications for self-hosters (ntfy, Gotify, webhook or Web Push).
 - #685 Restore previous values or re-create deleted records from a change history entry.
-- #686 Search and jump to individual records by name in the command palette.
 - #687 Optional month-to-month rollover for category budgets.
 - #688 Split one manual transaction across several categories.
 - #363 Desktop UI adjustment.

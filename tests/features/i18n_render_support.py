@@ -655,6 +655,26 @@ TRANSLATED_PAGES = {
             document.getElementById('accountMenuLogoutBtn').classList.remove('hidden');
         }""",
     ),
+    # #686: the command palette with a query that matches commands and
+    # seeded records (names are bracketed, type hints and group headings not).
+    'command-palette': (
+        ['#commandPaletteOverlay'],
+        """async () => {
+            document.getElementById('commandPaletteBtn').click();
+            const input = document.getElementById('commandPaletteInput');
+            input.value = 'a';
+            input.dispatchEvent(new Event('input'));
+        }""",
+    ),
+    'command-palette-empty-result': (
+        ['#commandPaletteOverlay'],
+        """async () => {
+            document.getElementById('commandPaletteBtn').click();
+            const input = document.getElementById('commandPaletteInput');
+            input.value = 'qqqqqq';
+            input.dispatchEvent(new Event('input'));
+        }""",
+    ),
     # #211: the toolbar bell's alert list, one item of every type (read,
     # unread and resolved), rendered from injected state.
     'notifications-panel': (
