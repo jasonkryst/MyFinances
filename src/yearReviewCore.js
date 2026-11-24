@@ -190,7 +190,7 @@ export function interestEstimate(input) {
 const OCCURRENCES_PER_YEAR = { weekly: 52, biweekly: 26, twice_monthly: 24, monthly: 12, quarterly: 4, yearly: 1 };
 
 // The amount in effect the day before `iso`: the base amount, or the latest
-// change dated before `iso` (#678's rule, inlined: this module imports nothing).
+// change dated before `iso` (#678's rule, inlined: this module imports only pure helpers).
 function _amountBefore(record, iso) {
     let amount = Number(record.amount) || 0;
     const changes = (Array.isArray(record.amountChanges) ? record.amountChanges : [])
@@ -305,7 +305,7 @@ function _incomeOf(t) {
 }
 
 // The Spending tab's categories (spendingCategoryForTx in spending.js),
-// inlined because this module imports nothing: debt payments and savings
+// inlined so this module stays free of spending.js: debt payments and savings
 // contributions are categories too, so both pages agree.
 function _spendingCategory(t) {
     if (!t || t.isTransferLeg || t.type === 'transfer') return null;
