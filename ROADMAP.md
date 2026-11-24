@@ -1,7 +1,7 @@
 # MyFinances Roadmap
 
-**Last updated**: 2026-11-23
-**Current version**: 7.32.1
+**Last updated**: 2026-11-24
+**Current version**: 8.0.1
 
 ## How this is planned
 
@@ -15,10 +15,6 @@ Translating the app into Spanish and Polish is the main open effort. The Health 
 
 - #504 Translate the remaining Health page strings and add Health to the i18n render guard.
 - #505 Translate global chrome: the command palette, Keyboard Shortcuts, the What's New title and header aria labels.
-- Small i18n fixes that go with them:
-  - #498 Account menu items and label are hardcoded English.
-  - #517 Translate `document.title` and the Health sparkline screen-reader table columns; decide on `guide.html`.
-  - #514 Spanish terminology drift in the v7 legacy-data strings.
 
 ## Next (P2)
 
@@ -60,9 +56,7 @@ Translating the app into Spanish and Polish is the main open effort. The Health 
 
 **Documentation and operations**
 - #582 Off-host backups and a restore drill.
-- #583 Document encryption at rest instead of building it.
 - #344 Real offline interaction tests for the PWA.
-- #472 Verify that the migration 031 `debts.updated_at` cast is timezone-safe.
 
 **Deferred storage ideas**
 - #96 Managed or cloud PostgreSQL hosting.
