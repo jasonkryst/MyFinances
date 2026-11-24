@@ -10,6 +10,23 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 - **Importing a backup is one request, and all-or-nothing (#529).** Replace and merge used to send one request per record from the browser (the audit's 432 KB sample took 1,881 requests and 6.7 s) and undid a failure by wiping and re-posting a client-side copy, a rollback that could itself fail half-way. The browser now sends the whole backup to the new `POST /api/import`, and the server imports it in a single database transaction: a record the server rejects answers 400 with the collection and index, and nothing changes (the change log gets no rows from a failed import either). The algorithm moved, unchanged in behaviour, to the pure `src/importCore.js`, shared by the server and the Jest tests; the per-record routes are untouched and now share their insert, upsert, delete-all and plan-settings code with the import. Two imports for one account run one after the other.
 - **Self-hosters with their own reverse proxy:** `POST /api/import` accepts bodies up to 25 MB (the rest of the API stays at 1 MB). The bundled nginx has a matching `location = /api/import` with a 120 s read timeout; a proxy in front of it needs the same limit (see DEPLOYMENT.md).
 
+## [8.3.0] — 2026-11-24
+
+### Added
+- **Split a manual transaction across several categories (#688).** A store receipt (groceries, household, a gift) or a deposit made of parts can now be one Ledger transaction with several categories. In the Add/Edit Transaction dialog, choose "Split across categories", add a category, amount and optional memo for each part, and the "Remaining to allocate" line must reach zero before you can save. The Ledger still shows one row (one Cleared checkbox, one balance effect) with a "Split (n)" badge listing the categories; filtering or searching the Ledger by a category finds the transaction when any split has it. Spending, Budget vs. Actual, the Cash Flow and Money Flow category breakdowns and Year in review attribute each part to its own category, for outflows and inflows alike.
+- Ledger CSV export keeps one row per transaction; a split transaction's Category cell lists its categories joined with "; ".
+
+### Server
+- New optional `splits` field (`[{ category, amount, memo? }]`, `jsonb`, migration `1755600000052`) on `manual_transactions`. Split amounts carry the same sign as the transaction amount, there are 2 to 20 of them, and they must add up to the amount exactly (compared in whole cents). This lives in `isValidManualTransaction` (`sanitizers.js`), so both the route (400) and import (record rejected) enforce it. The new pure `src/manualSplits.js` (`expandManualSplits`) is the one way to read a manual transaction's categories; `sanitizeManualSplits` is Stryker-scoped.
+
+## [8.2.1] — 2026-11-24
+
+### Changed
+- **One calendar builder for the download and the subscription feed (#526).** The `.ics` text helpers, event selection and titles lived in two copies (`src/calendarFeed.js` and `server/src/calendarGenerator.js`). They are now one pure module, `src/calendarCore.js`, so the downloaded file and the webcal feed are built by the same code and a server test checks they are byte-identical. Two small differences between the copies were settled: the webcal feed now also hides archived recurring templates (as the download already did), and a debt's typed next-payment date is now used by the feed (as the download intended) and written as a valid `YYYYMMDD` date in the matching month.
+
+### Fixed
+- **The account menu works from the keyboard (#494).** Enter, Space or the Down arrow on the Account button opens the menu onto its first item (Up arrow: the last). Arrow keys move between items and wrap, Home and End jump, Escape closes it and returns focus to the button, and Tab closes it.
+
 ## [8.2.0] — 2026-11-24
 
 ### Changed

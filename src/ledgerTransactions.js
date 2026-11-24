@@ -3,7 +3,8 @@
 import { formatMonthYear } from './utils.js';
 import { t, categoryLabel } from './i18n.js';
 import { matchesLedgerSearch, buildLedgerMemoLookup, normalizeLedgerSearchTerm } from './ledgerSearch.js';
-import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
+import { transactionHasCategory } from './manualSplits.js';
+import { getSetting,RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getOverrideAmount, getEffectiveAmount, isCleared, getClearedAt } from './ledgerStateCore.js';
 import {
     UNLINKED_KEY, makeLedgerTransactionId, getProjectionBuildCount,
@@ -27,6 +28,7 @@ export function toLedgerTxOutput(app, tx) {
         isTransferLeg: tx.isTransferLeg === true,
         counterpartAccountId: tx.counterpartAccountId ?? null,
         category: tx.category,
+        ...(tx.splits ? { splits: tx.splits } : {}),
         sourceId: tx.sourceId,
         transactionId: tx.transactionId,
         isRollover: tx.type === 'rollover',
@@ -191,6 +193,7 @@ export function getLedgerTransactions(app) {
                 isTransferLeg: tx.isTransferLeg === true,
         counterpartAccountId: tx.counterpartAccountId ?? null,
                 category: tx.category,
+                ...(tx.splits ? { splits: tx.splits } : {}),
                 sourceId: tx.sourceId,
                 transactionId: tx.transactionId,
                 meta: tx.meta || null,
@@ -228,7 +231,8 @@ export function getFilteredSortedLedgerTransactions(app) {
 
     const selectedCategory = app._ledgerCategoryFilter || 'all';
     if (selectedCategory !== 'all') {
-        transactions = transactions.filter(tx => (tx.category || 'Other') === selectedCategory);
+        // #688: a split transaction matches when any split has the category.
+        transactions = transactions.filter(tx => transactionHasCategory(tx, selectedCategory));
     }
 
     const now = new Date();

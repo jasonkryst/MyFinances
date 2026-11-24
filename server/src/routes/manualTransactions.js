@@ -14,6 +14,7 @@ export default createCrudResource({
     sanitize: sanitizeOrReject,
     requiredFields: ['accountId'],
     foreignKeys: { accountId: 'accounts' },
+    jsonColumns: ['splits'],
     columns: {
         id: 'id',
         accountId: 'account_id',
@@ -22,6 +23,7 @@ export default createCrudResource({
         name: 'name',
         category: 'category',
         memo: 'memo',
+        splits: 'splits',
         createdAt: 'created_at'
     }
 });

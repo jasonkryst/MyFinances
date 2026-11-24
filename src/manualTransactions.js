@@ -9,7 +9,8 @@
 // already happened. It is never overridden in the Ledger; editing the record
 // is the one way to change its amount.
 
-import { sanitizeFiniteNumber, sanitizeDateISO, normalizeText, todayISO, withBusy } from './utils.js';
+import { sanitizeFiniteNumber, sanitizeDateISO, normalizeText, todayISO, withBusy, formatCurrency, escapeHtml, markFieldInvalid } from './utils.js';
+import { MANUAL_SPLIT_MIN, MANUAL_SPLIT_MAX, toCents } from './manualSplits.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal } from './ui.js';
@@ -23,12 +24,39 @@ export const MANUAL_TX_MAX_AMOUNT = 1e9;
 
 // Returns '' when valid, otherwise a user-facing error message. `amount` is
 // the positive magnitude typed into the form.
-export function validateManualTransactionInput({ accountId, amount, name, date }) {
+export function validateManualTransactionInput({ accountId, amount, name, date, splits }) {
     if (!Number.isFinite(accountId)) return t('manualTx.errAccount');
     if (!normalizeText(name, 100)) return t('manualTx.errName');
     if (!Number.isFinite(amount) || amount <= 0 || amount > MANUAL_TX_MAX_AMOUNT) return t('manualTx.errAmount');
     if (!sanitizeDateISO(date)) return t('manualTx.errDate');
-    return '';
+    return validateSplitInput(amount, splits).message;
+}
+
+// #688: cents still to allocate (positive = left over, negative = over).
+export function splitRemainingCents(amount, splits) {
+    const total = Number.isFinite(amount) ? toCents(amount) : 0;
+    const used = (splits || []).reduce((sum, s) => sum + (Number.isFinite(s.amount) ? toCents(s.amount) : 0), 0);
+    return total - used;
+}
+
+// No splits (null/undefined) is valid. Otherwise the splits' positive
+// amounts must each have a category and add up to `amount` in whole cents.
+// Returns { message, field } where field names the first offender
+// ('category' | 'amount') so the modal can mark it.
+export function validateSplitInput(amount, splits) {
+    if (splits === null || splits === undefined) return { message: '', field: null };
+    if (!Array.isArray(splits) || splits.length < MANUAL_SPLIT_MIN || splits.length > MANUAL_SPLIT_MAX) {
+        return { message: t('manualTx.errSplitUnbalanced', { amount: formatCurrency(Number.isFinite(amount) ? amount : 0) }), field: 'amount' };
+    }
+    if (splits.some(s => !normalizeText(s.category, 40))) return { message: t('manualTx.errSplitCategory'), field: 'category' };
+    if (splits.some(s => !Number.isFinite(s.amount) || s.amount <= 0 || s.amount > MANUAL_TX_MAX_AMOUNT)) {
+        return { message: t('manualTx.errSplitAmount'), field: 'amount' };
+    }
+    const remaining = splitRemainingCents(amount, splits);
+    if (remaining !== 0) {
+        return { message: t('manualTx.errSplitUnbalanced', { amount: formatCurrency(remaining / 100) }), field: 'amount' };
+    }
+    return { message: '', field: null };
 }
 
 // The Ledger key of a record's single leg (same shape as every other source).
@@ -41,15 +69,26 @@ export function manualTransactionLedgerKey(tx) {
     });
 }
 
-function buildRecord({ accountId, direction, amount, date, name, category, memo }) {
+function buildRecord({ accountId, direction, amount, date, name, category, memo, splits }) {
     const magnitude = Math.abs(Number(amount));
+    const sign = direction === 'income' ? 1 : -1;
+    // #688: split amounts are stored with the transaction's sign. The record's
+    // own category is the first split's, for readers that ignore splits.
+    const hasSplits = Array.isArray(splits) && splits.length > 0;
+    const signedSplits = hasSplits ? splits.map(s => {
+        const out = { category: normalizeText(s.category, 40), amount: sign * Math.round(Math.abs(Number(s.amount)) * 100) / 100 };
+        const splitMemo = normalizeText(s.memo, 200);
+        if (splitMemo) out.memo = splitMemo;
+        return out;
+    }) : null;
     return {
         accountId,
         date: sanitizeDateISO(date),
-        amount: direction === 'income' ? magnitude : -magnitude,
+        amount: sign * magnitude,
         name: normalizeText(name, 100),
-        category: normalizeText(category, 40) || (direction === 'income' ? 'Income' : 'Other'),
-        memo: normalizeText(memo, 200)
+        category: hasSplits ? signedSplits[0].category : (normalizeText(category, 40) || (direction === 'income' ? 'Income' : 'Other')),
+        memo: normalizeText(memo, 200),
+        splits: signedSplits
     };
 }
 
@@ -119,7 +158,8 @@ export function openManualTransactionModal(app, { accountId = null, editId = nul
     const modal = document.getElementById('manualTxModal');
     const ids = ['manualTxModalTitle', 'manualTxAccount', 'manualTxExpense', 'manualTxIncome', 'manualTxAmount',
         'manualTxDate', 'manualTxName', 'manualTxCategory', 'manualTxMemo', 'manualTxError',
-        'manualTxConfirmBtn', 'manualTxCancelBtn', 'manualTxCloseBtn'];
+        'manualTxConfirmBtn', 'manualTxCancelBtn', 'manualTxCloseBtn',
+        'manualTxSplitToggle', 'manualTxSplitEditor', 'manualTxSplitRows', 'manualTxSplitAdd', 'manualTxSplitRemaining'];
     const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
     if (!modal || Object.values(el).some(x => !x)) return;
 
@@ -139,6 +179,96 @@ export function openManualTransactionModal(app, { accountId = null, editId = nul
     el.manualTxCategory.value = editing ? editing.category : '';
     el.manualTxMemo.value = editing ? editing.memo : '';
 
+    // #688: the split editor. `splitRows` is null while the transaction has a
+    // single category; otherwise one { category, amount, memo } per split, the
+    // amounts typed as positive magnitudes (the record stores them signed).
+    let splitRows = editing && Array.isArray(editing.splits) && editing.splits.length > 0
+        ? editing.splits.map(s => ({ category: s.category, amount: String(Math.abs(s.amount)), memo: s.memo || '' }))
+        : null;
+    const categoryGroup = el.manualTxCategory.closest('.form-group');
+    const parsedSplits = () => (splitRows || []).map(r => ({
+        category: r.category, amount: sanitizeFiniteNumber(r.amount, NaN), memo: r.memo
+    }));
+    const updateRemaining = () => {
+        const out = el.manualTxSplitRemaining;
+        const remaining = splitRemainingCents(sanitizeFiniteNumber(el.manualTxAmount.value, NaN), parsedSplits());
+        out.classList.toggle('manual-tx-split-remaining--over', remaining < 0);
+        if (remaining === 0) out.textContent = t('manualTx.splitBalanced');
+        else if (remaining > 0) out.textContent = t('manualTx.splitRemaining', { amount: formatCurrency(remaining / 100) });
+        else out.textContent = t('manualTx.splitOver', { amount: formatCurrency(-remaining / 100) });
+    };
+    const renderSplitEditor = () => {
+        const on = splitRows !== null;
+        el.manualTxSplitToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+        el.manualTxSplitEditor.classList.toggle('hidden', !on);
+        categoryGroup.classList.toggle('hidden', on);
+        el.manualTxSplitAdd.disabled = on && splitRows.length >= MANUAL_SPLIT_MAX;
+        if (!on) { el.manualTxSplitRows.innerHTML = ''; return; }
+        el.manualTxSplitRows.innerHTML = splitRows.map((r, i) => `
+            <fieldset class="manual-tx-split-row" data-split-index="${i}">
+                <legend>${escapeHtml(t('manualTx.splitRowTitle', { n: i + 1 }))}</legend>
+                <div class="manual-tx-split-fields">
+                    <div><label for="manualTxSplitCat${i}">${escapeHtml(t('manualTx.categoryLabel'))}</label>
+                        <input type="text" id="manualTxSplitCat${i}" data-split-field="category" maxlength="40" list="categoryOptions" autocomplete="off" value="${escapeHtml(r.category)}"></div>
+                    <div><label for="manualTxSplitAmt${i}">${escapeHtml(t('manualTx.amountLabel'))}</label>
+                        <input type="number" id="manualTxSplitAmt${i}" data-split-field="amount" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00" value="${escapeHtml(r.amount)}"></div>
+                    <div class="manual-tx-split-memo"><label for="manualTxSplitMemo${i}">${escapeHtml(t('manualTx.memoLabel'))}</label>
+                        <input type="text" id="manualTxSplitMemo${i}" data-split-field="memo" maxlength="200" value="${escapeHtml(r.memo)}"></div>
+                    <button type="button" class="btn btn-secondary btn-small manual-tx-split-remove" data-split-remove="${i}" aria-label="${escapeHtml(t('manualTx.splitRemoveAria', { n: i + 1 }))}">${escapeHtml(t('manualTx.splitRemove'))}</button>
+                </div>
+            </fieldset>`).join('');
+        el.manualTxSplitRows.querySelectorAll('input[data-split-field]').forEach(input => {
+            input.addEventListener('input', () => {
+                const row = splitRows[parseInt(input.closest('[data-split-index]').getAttribute('data-split-index'), 10)];
+                if (row) row[input.getAttribute('data-split-field')] = input.value;
+                updateRemaining();
+            });
+        });
+        el.manualTxSplitRows.querySelectorAll('[data-split-remove]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.getAttribute('data-split-remove'), 10);
+                if (splitRows.length <= MANUAL_SPLIT_MIN) {
+                    // Fewer than two splits is no split: back to one category.
+                    const keep = splitRows[index === 0 ? 1 : 0];
+                    el.manualTxCategory.value = keep ? keep.category : '';
+                    splitRows = null;
+                    renderSplitEditor();
+                    el.manualTxSplitToggle.focus();
+                    return;
+                }
+                splitRows.splice(index, 1);
+                renderSplitEditor();
+                const next = el.manualTxSplitRows.querySelector('[data-split-field="category"]');
+                if (next) next.focus();
+            });
+        });
+        updateRemaining();
+    };
+    el.manualTxSplitToggle.onclick = () => {
+        if (splitRows === null) {
+            splitRows = [
+                { category: normalizeText(el.manualTxCategory.value, 40), amount: '', memo: '' },
+                { category: '', amount: '', memo: '' }
+            ];
+            renderSplitEditor();
+            const firstAmount = el.manualTxSplitRows.querySelector('[data-split-field="amount"]');
+            if (firstAmount) firstAmount.focus();
+        } else {
+            el.manualTxCategory.value = splitRows[0] ? splitRows[0].category : '';
+            splitRows = null;
+            renderSplitEditor();
+        }
+    };
+    el.manualTxSplitAdd.onclick = () => {
+        if (splitRows === null || splitRows.length >= MANUAL_SPLIT_MAX) return;
+        splitRows.push({ category: '', amount: '', memo: '' });
+        renderSplitEditor();
+        const inputs = el.manualTxSplitRows.querySelectorAll('[data-split-field="category"]');
+        if (inputs.length) inputs[inputs.length - 1].focus();
+    };
+    el.manualTxAmount.oninput = () => { if (splitRows !== null) updateRemaining(); };
+    renderSplitEditor();
+
     const setError = (message) => {
         el.manualTxError.textContent = message || '';
         el.manualTxError.classList.toggle('hidden', !message);
@@ -149,6 +279,7 @@ export function openManualTransactionModal(app, { accountId = null, editId = nul
     const close = () => {
         modal.classList.add('hidden'); modal.classList.remove('flex-visible');
         modal.onkeydown = null;
+        el.manualTxAmount.oninput = null;
         if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     };
 
@@ -160,13 +291,27 @@ export function openManualTransactionModal(app, { accountId = null, editId = nul
             date: el.manualTxDate.value,
             name: el.manualTxName.value,
             category: el.manualTxCategory.value,
-            memo: el.manualTxMemo.value
+            memo: el.manualTxMemo.value,
+            splits: splitRows === null ? null : parsedSplits()
         };
         const result = editing
             ? await editManualTransaction(app, editing.id, fields)
             : await addManualTransaction(app, fields);
         if (result.success) close();
-        else if (result.error) setError(result.error);
+        else if (result.error) {
+            setError(result.error);
+            // #688: a split problem marks the offending split field.
+            if (splitRows !== null) {
+                const { field } = validateSplitInput(fields.amount, fields.splits);
+                if (field) {
+                    const rows = [...el.manualTxSplitRows.querySelectorAll('[data-split-field="' + field + '"]')];
+                    const bad = field === 'category'
+                        ? rows.find(r => !normalizeText(r.value, 40))
+                        : (rows.find(r => !(sanitizeFiniteNumber(r.value, NaN) > 0)) || rows[0]);
+                    if (bad) { markFieldInvalid(bad, el.manualTxError); bad.focus(); }
+                }
+            }
+        }
     });
 
     el.manualTxCancelBtn.onclick = close;

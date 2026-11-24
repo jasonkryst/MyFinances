@@ -6,6 +6,7 @@ import {
 } from './utils.js';
 import { t, plural, categoryLabel, getIntlLocale } from './i18n.js';
 import { restoreSavedLedgerFiltersOnce } from './ledger.js';
+import { hasSplits, expandManualSplits } from './manualSplits.js';
 
 export const PALETTE = [
     '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
@@ -36,15 +37,32 @@ export function spendingCategoryForTx(tx) {
     return _catForTx(tx);
 }
 
+// #688: the spending parts of one transaction, as { category, total,
+// transaction }. A split manual outflow contributes one part per split (the
+// drill-down transaction carries that split's own amount); everything else is
+// a single part in its one category.
+export function spendingPartsForTx(tx) {
+    if (tx.type === 'manual' && hasSplits(tx) && !isTransferLegTx(tx)) {
+        if (!(tx.amount < 0)) return [];
+        return expandManualSplits(tx).map(p => ({
+            category: p.category,
+            total: Math.abs(p.amount),
+            transaction: { ...tx, amount: p.amount, category: p.category, splitOfTotal: tx.amount }
+        }));
+    }
+    const category = _catForTx(tx);
+    return category ? [{ category, total: Math.abs(tx.amount || 0), transaction: tx }] : [];
+}
+
 function _aggregate(txs) {
     const m = new Map();
     for (const tx of txs) {
-        const cat = _catForTx(tx);
-        if (!cat) continue;
-        if (!m.has(cat)) m.set(cat, { total: 0, transactions: [] });
-        const b = m.get(cat);
-        b.total += Math.abs(tx.amount || 0);
-        b.transactions.push(tx);
+        for (const { category, total, transaction } of spendingPartsForTx(tx)) {
+            if (!m.has(category)) m.set(category, { total: 0, transactions: [] });
+            const b = m.get(category);
+            b.total += total;
+            b.transactions.push(transaction);
+        }
     }
     return m;
 }

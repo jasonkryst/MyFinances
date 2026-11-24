@@ -1,4 +1,4 @@
-// #689: Year in review. Pure, import-free core: the period and data-floor
+// #689: Year in review. Pure core (its only import is the pure manualSplits.js): the period and data-floor
 // helpers and one rule per insight. Each rule takes the prepared, plain input
 // built by reportsYearReview.js and returns an Insight, an array of them, or
 // null when it has nothing to say:
@@ -9,6 +9,8 @@
 // currency amount, { m: 'YYYY-MM' } a month, { d: 'YYYY-MM-DD' } a date,
 // { pct: n } a percent, { cat: 'Housing' } a stored category; plain strings and
 // numbers are shown as they are. Dates are local YYYY-MM-DD strings.
+
+import { expandManualSplits } from './manualSplits.js';
 
 export const CATEGORY_RISE_MIN_PCT = 10;
 export const CATEGORY_RISE_MIN_AMOUNT = 100;
@@ -188,7 +190,7 @@ export function interestEstimate(input) {
 const OCCURRENCES_PER_YEAR = { weekly: 52, biweekly: 26, twice_monthly: 24, monthly: 12, quarterly: 4, yearly: 1 };
 
 // The amount in effect the day before `iso`: the base amount, or the latest
-// change dated before `iso` (#678's rule, inlined: this module imports nothing).
+// change dated before `iso` (#678's rule, inlined: this module imports only pure helpers).
 function _amountBefore(record, iso) {
     let amount = Number(record.amount) || 0;
     const changes = (Array.isArray(record.amountChanges) ? record.amountChanges : [])
@@ -303,7 +305,7 @@ function _incomeOf(t) {
 }
 
 // The Spending tab's categories (spendingCategoryForTx in spending.js),
-// inlined because this module imports nothing: debt payments and savings
+// inlined so this module stays free of spending.js: debt payments and savings
 // contributions are categories too, so both pages agree.
 function _spendingCategory(t) {
     if (!t || t.isTransferLeg || t.type === 'transfer') return null;
@@ -319,6 +321,14 @@ function _byCategory(monthsTx) {
     const map = new Map();
     for (const txs of (monthsTx || [])) {
         for (const t of (txs || [])) {
+            // #688: a split manual outflow counts toward each split's category.
+            if (t && t.type === 'manual' && !t.isTransferLeg && Array.isArray(t.splits) && t.splits.length > 0) {
+                if (!(Number(t.amount) < 0)) continue;
+                for (const part of expandManualSplits(t)) {
+                    map.set(part.category, (map.get(part.category) || 0) + Math.abs(part.amount));
+                }
+                continue;
+            }
             const cat = _spendingCategory(t);
             if (!cat) continue;
             map.set(cat, (map.get(cat) || 0) + Math.abs(Number(t.amount) || 0));

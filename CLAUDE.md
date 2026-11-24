@@ -104,6 +104,7 @@ One line per rule; the feature reference (`docs/architecture/features.md`) has t
 - `applyWeekendRule` is the one weekend-shift rule and never leaves the month. [Weekend due-date shift]
 - A new render that loops balances per account or month runs inside `withProjectionCache(app, fn)` and treats the map as read-only. [Projection cache]
 - Every report classifier skips transfer legs (`isTransferLegTx`) and treats a `manual` outflow as an expense and inflow as income; never route recurring transfer legs through `isTransfer`. [Recurring income type, Manual one-off transactions, Account transfer tracking]
+- **Never read a manual transaction's `category` for a report, filter or breakdown**: it may be split (#688); use `expandManualSplits`/`transactionCategories` (`manualSplits.js`). Totals use the whole `amount`. [Manual one-off transactions]
 - `computeSavingsRate` is the one savings-rate definition; never interpolate a `Date` object into HTML. [Number clarity]
 - Reports, Forecast and Health derive from the same data: when changing a data shape, check all three.
 - Coast FIRE's target is never derived from the contribution-inclusive projection. [Coast FIRE]
@@ -115,7 +116,6 @@ One line per rule; the feature reference (`docs/architecture/features.md`) has t
 - Every person reference is remapped on import; a new record type that references a person joins `remapFk` (`importCore.js`). [Debt ownership split]
 - A new undoable delete type handles its Ledger key `type` and cascaded children; account deletes are not undoable. [Undo]
 - `confirmZeroAmountAllowed` is the single $0 gate. [$0 amount policy]
-- The calendar feed's event selection, titles and ICS helpers are duplicated in `calendarFeed.js` and `server/src/calendarGenerator.js`: change both. [Calendar feed]
 
 **Settings, notifications and jobs**
 - **A new setting must be in `SETTINGS_EXPORT_SCHEMA` or `isAllowedSetting`** (`settingsSchema.js`), or the server 400s every write. Place its control on the right Settings page with a `change` handler (save on change, no Done button); a new Settings page needs `SETTINGS_PAGES`, a row, a section, locale keys and a `TRANSLATED_PAGES` entry. The settings-only export never includes settings that hold account ids, Ledger filters or financial arrays. [Settings, Settings-only export/import]

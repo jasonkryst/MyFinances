@@ -1696,6 +1696,14 @@
                 <input type="text" id="manualTxCategory" maxlength="40" list="categoryOptions" autocomplete="off">
             </div>
             <div class="form-group modal-form-group">
+                <button type="button" id="manualTxSplitToggle" class="btn btn-secondary btn-small" aria-pressed="false" aria-controls="manualTxSplitEditor" data-i18n="manualTx.splitToggle">Split across categories</button>
+            </div>
+            <div id="manualTxSplitEditor" class="manual-tx-split-editor hidden">
+                <div id="manualTxSplitRows"></div>
+                <button type="button" id="manualTxSplitAdd" class="btn btn-secondary btn-small" data-i18n="manualTx.splitAdd">Add split</button>
+                <p id="manualTxSplitRemaining" class="manual-tx-split-remaining" role="status"></p>
+            </div>
+            <div class="form-group modal-form-group">
                 <label for="manualTxMemo" data-i18n="manualTx.memoLabel">Memo (optional)</label>
                 <input type="text" id="manualTxMemo" maxlength="200">
             </div>
