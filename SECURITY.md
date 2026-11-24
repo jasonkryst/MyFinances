@@ -18,7 +18,7 @@ The Node.js + PostgreSQL server protects that data with:
 - **Server-side sessions** — opaque tokens hashed before storage; never stored in plain text
 - **httpOnly / Secure / SameSite=Strict cookies** — session token unreachable from JavaScript
 - **CSRF double-submit tokens** — every mutating request requires a matching `csrf` cookie + header pair
-- **Rate limiting** — sign-in allows 5 failed attempts per 15 minutes (successful sign-ins aren't counted); register, forgot-password, reset-password and change-password each allow 5 per 15 minutes, and the public calendar feed allows 60. See [Accounts and sessions](#accounts-and-sessions)
+- **Rate limiting** — sign-in, register and change-password each allow 5 failed attempts per 15 minutes (successful ones aren't counted); forgot-password and reset-password allow 5 requests per 15 minutes; the setup-status check allows 20 and the public calendar feed 60. See [Accounts and sessions](#accounts-and-sessions)
 - **New-password policy** (NIST SP 800-63B rev 4) — 15–128 characters, no composition rules, rejects common, repetitive and context-based passwords on setup, reset and change; optional Have I Been Pwned k-anonymity breach check (`SECURITY_CHECK_BREACHED_PASSWORDS`, fails open); changing or resetting the password signs out other sessions. See [server/README.md](server/README.md#password-security-issue-456)
 - See [DEPLOYMENT.md](DEPLOYMENT.md) for setup and [server/README.md](server/README.md) for architecture
 
