@@ -623,7 +623,7 @@ function renderSurplusSection(app) {
         </div>
         ${dipWarningHtml}
         <div class="health-surplus-sparkline-wrap">
-            <canvas id="healthSurplusSparkline" height="80" aria-label="Projected balance over ${windowDays} days"></canvas>
+            <canvas id="healthSurplusSparkline" height="80" aria-label="${escapeHtml(t('health.surplusSparklineCaption', { days: windowDays }))}"></canvas>
         </div>
         ${txDetailHtml}
         ${recs.length > 0 ? `
@@ -716,7 +716,7 @@ function renderSurplusSection(app) {
         });
         renderChartDataTable('healthSurplusSparkline', {
             caption: t('health.surplusSparklineCaption', { days: windowDays }),
-            columns: ['Date', 'Balance'],
+            columns: [t('health.surplusSparklineColDate'), t('health.surplusSparklineColBalance')],
             rows: sparkPoints.map(p => [
                 p.date instanceof Date ? formatShortDate(p.date) : String(p.date),
                 formatCurrency(p.balance),

@@ -518,6 +518,21 @@ npm run migrate up
 node scripts/create-user.js
 node src/index.js
 ```
+
+#### Database time zone
+
+Run Postgres in UTC (`timezone = 'UTC'` in `postgresql.conf`, or
+`ALTER DATABASE myfinances SET timezone TO 'UTC'`), and don't change it on a
+database that already holds data. The bundled `postgres` container is UTC (its
+`TZ` is never set; the `TZ` variable in `.env` only reaches the server and backup
+containers). Migration `1755600000031` (7.0.0) turned `debts.updated_at` from a
+timestamp into a date by casting in the session time zone. That cast is exact
+whenever the database time zone at migration time is the one the values were
+written in, which holds for the bundled container and for any database whose
+time zone never changed; a database whose time zone changed in between could
+see a debt's "last updated" date move by one day. The field is informational
+only, and every other date column has always been a plain `date` (#472).
+
 ### Static Hosting (GitHub Pages, S3, …)
 
 Not supported since 7.0.0: a static host cannot run the API and database the app

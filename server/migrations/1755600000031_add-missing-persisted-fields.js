@@ -14,6 +14,11 @@ export async function up(pgm) {
     // debts.updated_at was timestamptz, which pg returns as '2026-03-04 00:00:00+00';
     // sanitizeDateISO rejects that, so the value was lost on the first PATCH/reload.
     // The app only ever stores a calendar date here, so make it a date.
+    // The cast uses the session TimeZone. Values were written as midnight in
+    // that same zone, so the round trip is exact unless the database's zone
+    // changed between write and migration (bundled Postgres is UTC; #472,
+    // DEPLOYMENT.md "Database time zone", server/test/migration031Timezone).
+    // A future timestamptz -> date cast should name the zone explicitly.
     pgm.sql(`ALTER TABLE debts ALTER COLUMN updated_at TYPE date USING updated_at::date;`);
     pgm.sql(`ALTER TABLE incomes ADD COLUMN IF NOT EXISTS updated_at date;`);
     pgm.sql(`ALTER TABLE debts ADD COLUMN IF NOT EXISTS notes text NOT NULL DEFAULT '';`);

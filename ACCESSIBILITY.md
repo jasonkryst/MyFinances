@@ -59,8 +59,9 @@ These are open and tracked. The
 always has the current list.
 
 - **Account menu:** it uses menu roles without arrow-key navigation (#494).
-- **Untranslated text:** parts of the global chrome, such as the account menu
-  and the command palette, are still English only (#498, #505, #517).
+- **Untranslated text:** parts of the global chrome, such as the command
+  palette and the Keyboard Shortcuts panel, are still English only (#505). The
+  usage guide (`guide.html`) is English only by design.
 
 ## Report a barrier
 
