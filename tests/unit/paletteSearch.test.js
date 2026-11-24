@@ -55,6 +55,23 @@ describe('matchRecords', () => {
         expect(matchRecords(entries, 'visa').map(x => x.id)).toEqual([4, 5, 3, 2, 1]);
     });
 
+    test('same rank sorts by name, whichever id is lower', () => {
+        expect(matchRecords([e('debt', 1, 'Visa Zed'), e('debt', 2, 'Visa Alpha')], 'visa').map(x => x.id)).toEqual([2, 1]);
+        expect(matchRecords([e('debt', 2, 'Visa Zed'), e('debt', 1, 'Visa Alpha')], 'visa').map(x => x.id)).toEqual([1, 2]);
+    });
+
+    test('non-matching entries in a matching type are left out', () => {
+        const out = matchRecords([e('debt', 1, 'Visa'), e('debt', 2, 'Amex'), e('debt', 3, '  ')], 'visa');
+        expect(out.map(x => x.id)).toEqual([1]);
+    });
+
+    test('names are trimmed before ranking', () => {
+        expect(matchRecords([e('debt', 1, '  Visa')], 'vi')[0].id).toBe(1);
+        expect(matchRank('Gold Card', 'card')).toBe(1);
+        expect(matchRank('Gold-card', 'card')).toBe(1);
+        expect(matchRank('Goldcard', 'card')).toBe(2);
+    });
+
     test('ties on name break by id', () => {
         const out = matchRecords([e('debt', 9, 'Visa'), e('debt', 3, 'visa')], 'visa');
         expect(out.map(x => x.id)).toEqual([3, 9]);
