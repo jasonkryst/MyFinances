@@ -6,28 +6,46 @@ echo "MyFinances — First-Time Setup"
 echo "=============================="
 echo ""
 
-# ── 1. Generate postgres password ─────────────────────────────────────────────
-if [ -f secrets/postgres_password.txt ]; then
-    echo "→ secrets/postgres_password.txt already exists — skipping generation"
+# Since 8.0.0 the credentials are variables in .env (POSTGRES_PASSWORD,
+# SMTP_PASSWORD), not files in secrets/. .env holds them, so it is kept
+# readable only by you.
+env_has() { [ -f .env ] && grep -q "^$1=" .env; }
+
+# ── 1. Generate the database password ────────────────────────────────────────
+if env_has POSTGRES_PASSWORD; then
+    echo "→ POSTGRES_PASSWORD already in .env — skipping generation"
 else
-    mkdir -p secrets
     if command -v openssl &>/dev/null; then
-        openssl rand -hex 32 > secrets/postgres_password.txt
+        pg_password=$(openssl rand -hex 32)
     else
-        node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))" > secrets/postgres_password.txt
+        pg_password=$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")
     fi
-    echo "→ Generated secrets/postgres_password.txt"
+    echo "POSTGRES_PASSWORD=$pg_password" >> .env
+    chmod 600 .env
+    echo "→ Generated POSTGRES_PASSWORD in .env"
 fi
 
 echo ""
 
 # ── 2. Configure SMTP (optional) ────────────────────────────────────────────
-if [ -f secrets/smtp_password.txt ]; then
-    echo "→ secrets/smtp_password.txt already exists — skipping SMTP setup"
+
+# Compose reads a single-quoted .env value literally, so the password can hold
+# any character except a single quote.
+write_smtp_password() {
+    if [[ "$1" == *"'"* ]]; then
+        echo "  The SMTP password contains a single quote ('), which a .env file can't hold."
+        echo "  Set SMTP_PASSWORD yourself (Portainer stack variable or shell environment)."
+        return 1
+    fi
+    printf "SMTP_PASSWORD='%s'\n" "$1" >> .env
+    chmod 600 .env
+}
+
+if env_has SMTP_HOST; then
+    echo "→ SMTP settings already in .env — skipping SMTP setup"
 else
     echo ""
     read -rp "Configure SMTP for email notifications? [y/N] " configure_smtp
-    mkdir -p secrets
     if [[ "$configure_smtp" =~ ^[Yy]$ ]]; then
         read -rp "  SMTP host: " smtp_host
         read -rp "  SMTP port [587]: " smtp_port
@@ -41,10 +59,10 @@ else
         read -rp "  From address: " smtp_from
         read -rsp "  SMTP password: " smtp_password
         echo ""
-        printf '%s' "$smtp_password" > secrets/smtp_password.txt
         if [ -f .env ]; then
             grep -v '^SMTP_' .env > .env.tmp || true
             mv .env.tmp .env
+            chmod 600 .env
         fi
         {
             echo "SMTP_HOST=$smtp_host"
@@ -53,9 +71,10 @@ else
             echo "SMTP_FROM=$smtp_from"
             echo "SMTP_SECURE=$smtp_secure"
         } >> .env
-        echo "→ Generated secrets/smtp_password.txt and .env"
+        write_smtp_password "$smtp_password" || true
+        echo "→ Wrote the SMTP settings to .env (readable only by you)"
     else
-        touch secrets/smtp_password.txt
+        echo "SMTP_HOST=" >> .env
         echo "→ Skipping SMTP setup — email notifications will stay disabled"
     fi
 fi
@@ -98,8 +117,7 @@ echo "=============================="
 echo "Setup complete!"
 echo "Open http://localhost:32900 to access MyFinances."
 echo ""
-echo "In the Settings modal, choose 'PostgreSQL' as your storage backend"
-echo "and log in with the credentials you just created."
+echo "Sign in with the credentials you just created."
 echo ""
 echo "IMPORTANT: Disable the registration endpoint now that setup is complete:"
 echo "  export ALLOW_SETUP="

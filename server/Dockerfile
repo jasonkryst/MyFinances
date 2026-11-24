@@ -11,7 +11,7 @@ COPY --chown=node:node server/. .
 COPY --chown=node:node src /src
 COPY server/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-# Docker compose file: secrets default to 0444 so the node user can read /run/secrets/*
+# Credentials arrive as environment variables (POSTGRES_PASSWORD, SMTP_PASSWORD; 8.0.0).
 USER node
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \

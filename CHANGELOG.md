@@ -4,6 +4,39 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.0.0] — 2026-11-24
+
+### BREAKING
+- **Credentials are environment variables, not Docker secret files.** The database password is `POSTGRES_PASSWORD` and the SMTP password is `SMTP_PASSWORD`, set in the root `.env`, as Portainer stack variables or in the shell. `secrets/postgres_password.txt` and `secrets/smtp_password.txt` are no longer read, and compose defines no secrets. Compose refuses to start without `POSTGRES_PASSWORD`, with a message naming it.
+
+### Upgrade
+Do this before pulling 8.0.0 and restarting. DEPLOYMENT.md, "Upgrading to 8.0.0", has the same steps.
+1. **Set `POSTGRES_PASSWORD` to the current database password**, the contents of `secrets/postgres_password.txt`. Postgres stores the password in its data volume when the volume is created, so a different value locks the server out. From the deployment directory: `printf "POSTGRES_PASSWORD='%s'\n" "$(tr -d '\r\n' < secrets/postgres_password.txt)" >> .env && chmod 600 .env`. On Portainer, add it as a stack variable and remove `POSTGRES_SECRET_FILE`. To change the password instead, run `ALTER ROLE` first (DEPLOYMENT.md, "Changing the database password").
+2. **If you send email, set `SMTP_PASSWORD`** with the other `SMTP_*` values. Rotating it is a good idea. Without email, skip this step.
+3. **Remove the old secret files** once the stack runs on 8.0.0:
+   - Linux or macOS: `rm -f secrets/postgres_password.txt secrets/smtp_password.txt`
+   - Windows PowerShell: `Remove-Item secrets\postgres_password.txt, secrets\smtp_password.txt -ErrorAction SilentlyContinue`
+   - Portainer: delete both from the host secrets folder you created during setup (for example `/opt/myfinances/secrets/`).
+4. **Remove `POSTGRES_SECRET_FILE` and `SMTP_SECRET_FILE`** from `.env` or the stack variables if you set them; nothing reads them now.
+5. Run `docker compose up -d`, or redeploy the stack.
+
+In `.env`, single-quote a value with `$`, `#` or spaces; a value containing a single quote has to be a stack or shell variable. `.env` now holds credentials: keep it private and in your host backups. Don't re-run `setup.sh`/`setup.ps1` on an existing deployment: they reopen registration and try to create a user.
+
+### Changed
+- `server/docker-entrypoint.sh` builds `DATABASE_URL` from `POSTGRES_PASSWORD`, percent-encoded so `@`, `:`, `/` and spaces are safe and with a trailing CR/LF dropped. An explicit `DATABASE_URL` still wins, and without either the server exits with an error naming `POSTGRES_PASSWORD`. It no longer reads `/run/secrets/*`, and warns when a mail-server user is set without `SMTP_PASSWORD`.
+- The backup service passes `POSTGRES_PASSWORD` to `pg_dump`; busybox `crond` hands the container's environment to each scheduled run. The documented restore command uses it too.
+- `setup.sh`/`setup.ps1` generate `POSTGRES_PASSWORD` into `.env` and write `SMTP_PASSWORD='...'` there (`setup.sh` restricts `.env` to its owner). Declining email writes an empty `SMTP_HOST=`, so later runs don't ask again. Their closing message no longer mentions the storage selector removed in 7.0.0.
+- `secrets/postgres_password.txt.example` and `secrets/smtp_password.txt.example` are removed. `.gitignore` still excludes `secrets/*.txt`, so a leftover file can't be committed.
+- CI writes `POSTGRES_PASSWORD` to `.env` instead of creating secret files.
+
+### Tests
+- `tests/features/test_credentials_env.py` (shard K, 21 cases):
+  - compose requires `POSTGRES_PASSWORD` for postgres, server and backup, passes `SMTP_PASSWORD` to the server, and defines no secrets
+  - the entrypoint builds an encoded `DATABASE_URL` (plain, special characters, trailing CRLF), keeps an explicit `DATABASE_URL`, fails clearly without a password, never reads `/run/secrets`, and warns only for an SMTP user without a password
+  - a negative case proves the checks catch the 7.x wiring
+- `test_backup_service.py`: the backup script reads `POSTGRES_PASSWORD` (CR/LF stripped), never the secret file.
+- Checked by hand on a fresh isolated stack, with a password containing `@ : / $ #` and a space: Postgres initialized, the server connected and migrated, and a one-off backup wrote a valid dump (62 TOC entries).
+
 ## [7.32.1] — 2026-11-23
 
 ### Changed

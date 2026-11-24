@@ -303,15 +303,19 @@ chmod +x setup.sh
 
 `setup.sh` handles everything automatically:
 
-1. Generates a 64-hex-character cryptographically random Postgres password and writes it to `secrets/postgres_password.txt`
+1. Generates a 64-hex-character cryptographically random Postgres password and writes it to `.env` as `POSTGRES_PASSWORD` (the file is restricted to its owner)
 2. Starts the `postgres` and `server` containers (`docker compose up -d`)
 3. Runs database migrations (`docker compose run --rm server npm run migrate up`)
 4. Prompts you to create the admin user (`docker compose run --rm server node scripts/create-user.js`)
 
-The password is never stored in environment variables, `.env` files, or visible via
-`docker inspect`. It is mounted as a Docker secret at `/run/secrets/postgres_password`
-and the `server/docker-entrypoint.sh` reads it at container startup to construct
-`DATABASE_URL` internally before handing off to Node.
+Since 8.0.0 the credentials are environment variables (`POSTGRES_PASSWORD`, and
+`SMTP_PASSWORD` for email), not Docker secret files. Compose refuses to start without
+`POSTGRES_PASSWORD`. `server/docker-entrypoint.sh` builds `DATABASE_URL` from it at
+startup (percent-encoded, so any character is safe), and the backup service passes it
+to `pg_dump`. Treat `.env` like a password: keep it private (`chmod 600 .env`), out of
+version control (`.gitignore` already excludes it) and in your host backups. The values
+also show in `docker compose config` and `docker inspect` output, so don't paste those
+publicly.
 
 ### First-Time Setup (Windows)
 
@@ -350,21 +354,61 @@ Portainer can watch your GitHub repository and redeploy automatically on every p
 5. Enable **Auto update** — choose polling (every few minutes) or a webhook for instant deploys
 6. Under **Environment variables**, add:
    - `SESSION_TTL_DAYS` = `7` (or your preferred session lifetime)
-   - `POSTGRES_SECRET_FILE` = `/opt/myfinances/secrets/postgres_password.txt` (see step below)
-7. Before clicking **Deploy**, SSH into your server and create the secret file once:
-   ```sh
-   mkdir -p /opt/myfinances/secrets
-   openssl rand -hex 32 > /opt/myfinances/secrets/postgres_password.txt
-   chmod 600 /opt/myfinances/secrets/postgres_password.txt
-   ```
-   This path must match the `POSTGRES_SECRET_FILE` value you set in step 6.
+   - `POSTGRES_PASSWORD` = a long random value, for example the output of
+     `openssl rand -hex 32`. Postgres applies it only when the data volume is first
+     created, so keep it: changing it later needs the steps under
+     [Changing the database password](#changing-the-database-password).
+   - For email, `SMTP_PASSWORD` with the other `SMTP_*` values; see Email Notifications below.
 
-   Also ensure `secrets/smtp_password.txt` exists on the host (empty is fine) — see
-   "Upgrading an existing deployment" under Email Notifications below.
-
-> **One-time vs. ongoing:** `setup.sh` only needs to run once to generate the secret and
+> **One-time vs. ongoing:** `setup.sh` only needs to run once to generate the password and
 > create the admin user. After that, Portainer handles all future deploys automatically —
 > push to `main`, and the stack redeploys within minutes.
+
+### Changing the database password
+
+Postgres stores the password inside its data volume when the volume is first created,
+so changing `POSTGRES_PASSWORD` alone locks the server out. To change it, set the new
+password in the database first, then in the variable:
+
+```bash
+docker compose exec postgres psql -U myfinances -d myfinances -c "ALTER ROLE myfinances PASSWORD 'NEW-PASSWORD';"
+```
+
+Then put the same value in `POSTGRES_PASSWORD` (`.env` or the stack variables) and run
+`docker compose up -d`, which restarts the server and the backup service with it.
+
+### Upgrading to 8.0.0
+
+8.0.0 replaces the Docker secret files with environment variables:
+`secrets/postgres_password.txt` becomes `POSTGRES_PASSWORD`, and
+`secrets/smtp_password.txt` becomes `SMTP_PASSWORD`. Compose no longer reads either
+file and refuses to start without `POSTGRES_PASSWORD`. Before you pull 8.0.0 and restart:
+
+1. **Set `POSTGRES_PASSWORD` to the current database password**, the contents of
+   `secrets/postgres_password.txt`. It has to match what the existing database uses;
+   a different value locks the server out. From the deployment directory (the folder with
+   `docker-compose.yml`):
+   - Linux or macOS: `printf "POSTGRES_PASSWORD='%s'\n" "$(tr -d '\r\n' < secrets/postgres_password.txt)" >> .env && chmod 600 .env`
+     (the single quotes keep `$`, `#` and spaces literal; a password containing a single
+     quote has to be a stack or shell variable)
+   - Portainer: add a `POSTGRES_PASSWORD` stack variable with the file's contents, and
+     remove the `POSTGRES_SECRET_FILE` variable.
+
+   To use a new database password instead, follow
+   [Changing the database password](#changing-the-database-password) first.
+2. **If you send email, set `SMTP_PASSWORD`** with the other `SMTP_*` values (rotating
+   it is a good idea). Without email, skip this step.
+3. **Remove the old secret files** once the stack runs on 8.0.0:
+   - Linux or macOS: `rm -f secrets/postgres_password.txt secrets/smtp_password.txt`
+   - Windows PowerShell: `Remove-Item secrets\postgres_password.txt, secrets\smtp_password.txt -ErrorAction SilentlyContinue`
+   - Portainer: delete both files from the host secrets folder you created during setup
+     (for example `/opt/myfinances/secrets/`).
+4. **Remove `POSTGRES_SECRET_FILE` and `SMTP_SECRET_FILE`** from `.env` or the stack
+   variables if you set them; nothing reads them now.
+5. Run `docker compose up -d`, or redeploy the stack.
+
+Don't re-run `setup.sh`/`setup.ps1` for this on an existing deployment: they reopen
+registration and try to create a user.
 
 ### Updating After Initial Setup
 
@@ -445,11 +489,20 @@ full configuration steps. `setup.sh`/`setup.ps1` prompt for it during
 first-time setup; declining leaves it disabled with no further action
 needed.
 
-**Upgrading an existing deployment:** `docker-compose.yml` requires `secrets/smtp_password.txt` to exist (empty is fine) even if you never plan to use email. If you deployed before this feature existed and don't use `setup.sh`/`setup.ps1` for updates (e.g. Portainer GitOps), create it once: `touch secrets/smtp_password.txt` on the host, in the same directory as `secrets/postgres_password.txt`.
+**The SMTP password is an environment variable (8.0.0).** Set `SMTP_PASSWORD` with
+the other `SMTP_*` values: in the root `.env` file, as a Portainer stack variable, or
+in the shell that runs `docker compose`. In `.env`, single-quote it
+(`SMTP_PASSWORD='...'`) so `$`, `#` and spaces are kept literally; a password that
+contains a single quote has to be set as a stack or shell variable. `.env` now holds
+a credential, so keep it private (`chmod 600 .env`). It shows up in
+`docker compose config` and `docker inspect` output, so don't paste those publicly.
 
-To configure it later, delete `secrets/smtp_password.txt` and write a new password
-into it, edit `.env` with your SMTP settings, then run `docker compose up -d` again
-to pick up the change. (Don't re-run `setup.sh`/`setup.ps1` on an existing
+**Upgrading from 7.x:** `secrets/smtp_password.txt` is no longer read; see
+[Upgrading to 8.0.0](#upgrading-to-800) for the steps, including removing the file. If a
+mail-server user is set without a password, the server logs a warning at startup.
+
+To change the settings later, edit `.env` (or the stack variables), then run
+`docker compose up -d` again to pick up the change. (Don't re-run `setup.sh`/`setup.ps1` on an existing
 deployment — its later steps assume no user account exists yet and will fail on
 one that already does.)
 

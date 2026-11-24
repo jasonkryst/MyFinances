@@ -131,7 +131,7 @@ form-action 'self'
 
 #### Server (PostgreSQL)
 - **Every write re-sanitized**: the server re-runs the same `sanitize*` functions as the frontend before storing a record
-- **Secrets**: in the Docker stack the database password is a Docker secret, not an environment variable
+- **Credentials**: since 8.0.0 the database and SMTP passwords are environment variables (`POSTGRES_PASSWORD`, `SMTP_PASSWORD`), usually in the deployment's `.env`. Keep that file private (`setup.sh` writes it with mode 600) and out of version control (`.gitignore` excludes it). The values are visible to anyone who can run `docker inspect` or `docker compose config` on the host, which already implies control of the containers. The server percent-encodes the database password into `DATABASE_URL` and never logs it.
 - **At rest**: protect the `postgres-data` volume and any `pg_dump` backups like the data itself (dumps are not encrypted)
 
 #### Browser Storage

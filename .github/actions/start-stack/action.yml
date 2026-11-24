@@ -38,12 +38,12 @@ runs:
     - name: Load images
       shell: bash
       run: zstd -d -c "${{ runner.temp }}/stack-images/images.tar.zst" | docker load
-    - name: Create Docker secrets
+    - name: Write the stack's .env (database password)
       shell: bash
       run: |
-        mkdir -p secrets
-        echo "ci-db-password" > secrets/postgres_password.txt
-        : > secrets/smtp_password.txt
+        # Since 8.0.0 the database password is POSTGRES_PASSWORD; every later
+        # docker compose call in this job reads it from .env.
+        echo "POSTGRES_PASSWORD=ci-db-password" > .env
     - name: Start stack
       shell: bash
       env:

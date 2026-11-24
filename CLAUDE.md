@@ -20,7 +20,7 @@ MyFinances is a privacy-first, self-hosted personal finance tracker (debt payoff
 docker compose up -d                                                # http://localhost:32900
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d   # bind-mounts the frontend: edit, then refresh
 ```
-A plain static file server does not work: the app needs the API. The stack needs `secrets/postgres_password.txt` and `secrets/smtp_password.txt` (empty is fine); `setup.sh`/`setup.ps1` create them (see `DEPLOYMENT.md`). The dev override bind-mounts the frontend read-only into nginx and has been run live; an edited asset needs a `sw.js` `CACHE_NAME` bump (or an unregistered service worker) to show.
+A plain static file server does not work: the app needs the API. The stack needs `POSTGRES_PASSWORD` in `.env` (or the stack variables); `setup.sh`/`setup.ps1` generate it (see `DEPLOYMENT.md`). Since 8.0.0 the credentials (`POSTGRES_PASSWORD`, `SMTP_PASSWORD`) are environment variables, not Docker secret files, and compose refuses to start without `POSTGRES_PASSWORD`. Postgres applies it only when its volume is created; changing it later needs an `ALTER ROLE` first. The dev override bind-mounts the frontend read-only into nginx and has been run live; an edited asset needs a `sw.js` `CACHE_NAME` bump (or an unregistered service worker) to show.
 
 ### Tests
 ```bash

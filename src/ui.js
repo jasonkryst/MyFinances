@@ -1049,6 +1049,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '8.0.0 — 2026-11-24',
+        items: [
+            '<strong>For self-hosters: passwords are now settings, not files.</strong> The database and email passwords are the <code>POSTGRES_PASSWORD</code> and <code>SMTP_PASSWORD</code> settings (in <code>.env</code> or your stack variables) instead of files in <code>secrets/</code>. Before restarting, set <code>POSTGRES_PASSWORD</code> to your current database password, then delete the old files; the upgrade steps are in the changelog and DEPLOYMENT.md. Nothing changes in the app itself.'
+        ]
+    },
+    {
         version: '7.32.0 — 2026-11-23',
         items: [
             '<strong>Sinking fund alerts:</strong> you get a notification when a target-date sinking fund falls 10% or more behind the monthly pace you planned, or passes its date with money still to save. The alert clears once the fund catches up or is funded. Turn it off under <em>Settings → Notifications → Sinking fund behind</em>.'

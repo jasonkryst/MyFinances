@@ -8,7 +8,7 @@ boots against it.
 ## First-time setup
 
 Use `setup.sh` (Linux/macOS) or `setup.ps1` (Windows) from the repo root.
-This generates a secure Postgres password as a Docker secret, starts the
+This generates a secure Postgres password into `.env` (`POSTGRES_PASSWORD`), starts the
 stack, runs migrations, and creates the admin user in one step:
 
     # Linux / macOS
@@ -61,10 +61,11 @@ Docker build context is the repo root (not `server/`) because
 `src/utils.js` by relative import rather than duplicating validation
 logic — the Dockerfile copies that directory into the image at `/src`.
 
-Secrets are handled via Docker secrets (`/run/secrets/postgres_password`),
-not environment variables. `server/docker-entrypoint.sh` reads the secret
-at startup and constructs `DATABASE_URL` internally so the password never
-appears in `docker inspect` output or shell history.
+Since 8.0.0 the database password is the `POSTGRES_PASSWORD` environment
+variable (the Docker secret file is no longer read). `server/docker-entrypoint.sh`
+builds `DATABASE_URL` from it at startup, percent-encoded so any character is
+safe; an explicitly set `DATABASE_URL` wins (local dev, test containers). Without
+either, the server exits with an error naming `POSTGRES_PASSWORD`.
 
 The `postgres-data` volume is the only durability layer for this backend —
 use the root-level `backup.sh`/`backup.ps1` and `restore.sh`/`restore.ps1`
@@ -271,7 +272,7 @@ docker compose cp backup:/backups/<file>.dump ./
 **To restore from a backup file** (destructive: it replaces every object in the
 database, like `restore.sh`), then restart the server:
 ```bash
-docker compose run --rm backup sh -c 'PGPASSWORD=$(tr -d "\r\n" < /run/secrets/postgres_password) pg_restore -h postgres -U myfinances -d myfinances --clean --if-exists /backups/<file>.dump'
+docker compose run --rm backup sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_restore -h postgres -U myfinances -d myfinances --clean --if-exists /backups/<file>.dump'
 docker compose restart server
 ```
 
@@ -371,21 +372,18 @@ when an account is created. It's off by default. See
 Run `setup.sh`/`setup.ps1` and answer "y" when asked to configure SMTP, or
 configure manually:
 
-- Set `SMTP_HOST`, `SMTP_PORT` (default `587`), `SMTP_USER`, `SMTP_FROM`,
-  and `SMTP_SECURE` (`true`/`false`) as environment variables on the
-  `server` service — a root `.env` file works with the provided
-  `docker-compose.yml`.
-- Place the SMTP account's password in `secrets/smtp_password.txt`, a
-  Docker secret using the same pattern as
-  `secrets/postgres_password.txt` — `docker-entrypoint.sh` reads it into
-  `SMTP_PASSWORD` at container startup.
+- Set `SMTP_HOST`, `SMTP_PORT` (default `587`), `SMTP_USER`,
+  `SMTP_PASSWORD`, `SMTP_FROM` and `SMTP_SECURE` (`true`/`false`) as
+  environment variables on the `server` service. A root `.env` file works
+  with the provided `docker-compose.yml`; single-quote the password there
+  (`SMTP_PASSWORD='...'`) and keep the file private.
+- Since 8.0.0 `secrets/smtp_password.txt` is not read. If `SMTP_HOST` and
+  `SMTP_USER` are set but `SMTP_PASSWORD` is empty, `docker-entrypoint.sh`
+  logs a warning at startup.
 
-Leaving `SMTP_HOST` unset disables the feature entirely — nothing fails
+Leaving `SMTP_HOST` unset disables the feature entirely: nothing fails
 to start, and the test-email endpoint just returns
-`503 EMAIL_NOT_CONFIGURED`. `secrets/smtp_password.txt` must still exist
-(even empty) because Docker Compose requires every file a service's
-`secrets:` list references to be present — `setup.sh`/`setup.ps1` create
-it either way.
+`503 EMAIL_NOT_CONFIGURED`.
 
 ### Verifying it works
 

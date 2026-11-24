@@ -718,7 +718,7 @@ async def test_full_workflow(async_app_page):
 
 To run tests in CI pipeline:
 
-In `.github/workflows/ci.yml`, the `build-images` job builds the `myfinances` and `myfinances-server` images once per run and uploads them as the `stack-images` artifact. Every Playwright job then runs the `.github/actions/start-stack` composite action, which loads the images, creates the Docker secrets, runs `docker compose up -d --no-build`, waits for nginx and the server healthcheck, creates the test user with `server/scripts/create-user.js` (`ALLOW_SETUP` stays unset) and exports `TEST_BASE_URL`/`TEST_EMAIL`/`TEST_PASSWORD` (plus the `POSTGRES_TEST_*` names). Feature and UI shards list their test files explicitly; `tests/features/test_ci_shard_coverage.py` fails when a file is in no shard.
+In `.github/workflows/ci.yml`, the `build-images` job builds the `myfinances` and `myfinances-server` images once per run and uploads them as the `stack-images` artifact. Every Playwright job then runs the `.github/actions/start-stack` composite action, which loads the images, writes the stack's `.env` (`POSTGRES_PASSWORD`), runs `docker compose up -d --no-build`, waits for nginx and the server healthcheck, creates the test user with `server/scripts/create-user.js` (`ALLOW_SETUP` stays unset) and exports `TEST_BASE_URL`/`TEST_EMAIL`/`TEST_PASSWORD` (plus the `POSTGRES_TEST_*` names). Feature and UI shards list their test files explicitly; `tests/features/test_ci_shard_coverage.py` fails when a file is in no shard.
 
 ---
 

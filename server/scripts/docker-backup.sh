@@ -14,9 +14,10 @@ mkdir -p "$BACKUP_DIR"
 # failed run left a 0-byte .dump). Dump to .partial, rename only on success.
 trap 'rm -f "$PARTIAL"' EXIT
 
-# Strip CR/LF: a secret file saved on Windows ends in CRLF, and initdb drops the
-# CR when it sets the password, so a raw $(cat) fails to authenticate (#656).
-PGPASSWORD=$(tr -d '\r\n' < /run/secrets/postgres_password) \
+# The password is the POSTGRES_PASSWORD environment variable (8.0.0). Strip
+# CR/LF: a .env saved on Windows can end a value in CR, and initdb drops it when
+# it sets the password, so the raw value would fail to authenticate (#656).
+PGPASSWORD=$(printf '%s' "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set}" | tr -d '\r\n') \
     pg_dump -h postgres -U myfinances -d myfinances -Fc -f "$PARTIAL"
 
 mv "$PARTIAL" "$FILE"

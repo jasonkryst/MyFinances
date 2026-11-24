@@ -23,9 +23,7 @@ jobs:
       - uses: actions/checkout@v7
       - name: Build images
         run: |
-          mkdir -p secrets
-          echo "ci-db-password" > secrets/postgres_password.txt
-          : > secrets/smtp_password.txt
+          echo "POSTGRES_PASSWORD=ci-db-password" > .env
           docker compose build
       - name: Save images
         run: docker save myfinances:latest myfinances-server:latest | zstd -T0 > images.tar.zst
@@ -371,6 +369,7 @@ jobs:
             tests/features/test_skip_guard.py \
             tests/features/test_sleep_ratchet.py \
             tests/features/test_locator_scope_guard.py \
+            tests/features/test_credentials_env.py \
             tests/features/test_settings_redesign_guard.py \
             tests/features/test_community_files.py \
             tests/features/test_ci_fail_fast.py \
