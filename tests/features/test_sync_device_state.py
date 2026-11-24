@@ -51,7 +51,11 @@ def test_reconciliation_started_on_one_device_resumes_on_another(app_page, brows
     page.wait_for_selector('#reconSaveProgressModal.flex-visible', timeout=5000)
     page.click('#reconSaveProgressSaveBtn')
     page.wait_for_selector('#reconcileModal', state='hidden', timeout=5000)
-    wait_for_api(page, '/api/plan-settings', lambda d: str(acct) in (d.get('reconDrafts') or {}))
+    # Wait for the whole draft, not just its key: the second device must not
+    # read the server before the saved values are there (flaked on main).
+    wait_for_api(page, '/api/plan-settings', lambda d: (
+        ((d.get('reconDrafts') or {}).get(str(acct)) or {}).get('note') == 'Half way through'
+        and ((d.get('reconDrafts') or {}).get(str(acct)) or {}).get('statementBalance') == '1234.56'))
     assert page.evaluate("() => localStorage.getItem('debtTrackerReconInProgress')") is None
 
     context, other = _second_device(browser)

@@ -135,15 +135,17 @@ export function isKnownSettingKey(key) {
     return Object.prototype.hasOwnProperty.call(SETTINGS_EXPORT_SCHEMA, key) || BCT_KEY_RE.test(key);
 }
 
-// The validators as a Map: the server runs validateExportedSetting on
-// imported keys (#529), so a key is looked up, never used to index an object.
-const SCHEMA_VALIDATORS = new Map(Object.entries(SETTINGS_EXPORT_SCHEMA));
+// The validators as fixed pairs. The server runs validateExportedSetting on
+// imported keys (#529), so the incoming key is only compared against known
+// keys and never used to pick a function to call.
+const SCHEMA_VALIDATORS = Object.entries(SETTINGS_EXPORT_SCHEMA);
 
 // True when `value` is acceptable for `key`; false for unknown keys.
 export function validateExportedSetting(key, value) {
     if (typeof key !== 'string' || FORBIDDEN_KEYS.has(key)) return false;
-    const check = SCHEMA_VALIDATORS.get(key);
-    if (check) return check(value);
+    for (const [known, check] of SCHEMA_VALIDATORS) {
+        if (known === key) return check(value);
+    }
     const m = BCT_KEY_RE.exec(key);
     if (m && m[1].length <= BCT_CATEGORY_MAX && !FORBIDDEN_KEYS.has(m[1].trim())) {
         return numberIn(0, 100)(value);
