@@ -139,7 +139,9 @@ export function isKnownSettingKey(key) {
 export function validateExportedSetting(key, value) {
     if (typeof key !== 'string' || FORBIDDEN_KEYS.has(key)) return false;
     if (Object.prototype.hasOwnProperty.call(SETTINGS_EXPORT_SCHEMA, key)) {
-        return SETTINGS_EXPORT_SCHEMA[key](value);
+        // The server also runs this on imported keys (#529): call only an own validator function.
+        const check = SETTINGS_EXPORT_SCHEMA[key];
+        return typeof check === 'function' && check(value);
     }
     const m = BCT_KEY_RE.exec(key);
     if (m && m[1].length <= BCT_CATEGORY_MAX && !FORBIDDEN_KEYS.has(m[1].trim())) {

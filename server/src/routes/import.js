@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { pool } from '../db.js';
 import { sanitizeParsedState } from '../sanitizers/index.js';
 import { runImport, toWireJson } from '../../../src/importCore.js';
@@ -12,6 +13,21 @@ import { createTransactionStore, serializeQueries, ImportRejection } from '../im
 // API's 1 MB default (app.js skips its global parser for this route, and
 // nginx.conf has a matching `location = /api/import`).
 export const IMPORT_BODY_LIMIT = '25mb';
+
+// Imports per user per minute. Each one is a whole-account write in one
+// transaction, so the cap stops a runaway client from monopolising the pool
+// while leaving room for the test harness, which imports once per test. It
+// runs before the body parser, so a refused request is never parsed.
+export const IMPORT_RATE_LIMIT = { windowMs: 60 * 1000, max: 120 };
+
+const importLimiter = rateLimit({
+    ...IMPORT_RATE_LIMIT,
+    // Every /api request is authenticated by now; one user, one budget.
+    keyGenerator: req => `user:${req.userId}`,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: { code: 'RATE_LIMITED', message: 'Too many imports, try again later' } }
+});
 
 const router = express.Router();
 
@@ -35,7 +51,7 @@ async function loadExisting(userId, db) {
     };
 }
 
-router.post('/', express.json({ limit: IMPORT_BODY_LIMIT }), async (req, res, next) => {
+router.post('/', importLimiter, express.json({ limit: IMPORT_BODY_LIMIT }), async (req, res, next) => {
     const { mode, data, strategy } = isPlainObject(req.body) ? req.body : {};
     if (mode !== 'replace' && mode !== 'merge') {
         return badRequest(res, "mode must be 'replace' or 'merge'");

@@ -174,7 +174,8 @@ def test_legacy_modal_keeps_tab_inside_and_releases(legacy_page):
 def test_failed_legacy_import_shows_one_alert(legacy_page):
     """#503: the modal's own error reports the failure; the save banner stays hidden."""
     page = legacy_page
-    page.route('**/api/debts', lambda r: r.fulfill(status=500, body='{}', content_type='application/json')
+    # #529: the whole transfer is one POST /api/import.
+    page.route('**/api/import', lambda r: r.fulfill(status=500, body='{}', content_type='application/json')
                if r.request.method == 'POST' else r.continue_())
     page.click('#pgMigrationTransferBtn')
     expect(page.locator('#pgMigrationError')).to_be_visible(timeout=30000)

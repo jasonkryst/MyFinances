@@ -142,9 +142,14 @@ async function putKeyedEntries(store, src, overrideEntries, clearedEntries, idMa
     }
 }
 
+// The server feeds this user-supplied JSON (#529): iterate only real arrays,
+// never an object's own `length`.
+const asArray = v => (Array.isArray(v) ? v : []);
+
 async function createAll(store, field, records) {
     const out = [];
-    for (let i = 0; i < records.length; i++) out.push(await store.create(field, records[i], i));
+    let i = 0;
+    for (const record of asArray(records)) out.push(await store.create(field, record, i++));
     return out;
 }
 
@@ -158,7 +163,11 @@ function indexById(records) {
 async function createPlanned(store, field, toPost, incomingRecords) {
     const idx = indexById(incomingRecords);
     const out = [];
-    for (let i = 0; i < toPost.length; i++) out.push(await store.create(field, toPost[i], idx.get(toPost[i]?.id) ?? i));
+    let i = 0;
+    for (const record of asArray(toPost)) {
+        out.push(await store.create(field, record, idx.get(record?.id) ?? i));
+        i++;
+    }
     return out;
 }
 
@@ -192,9 +201,9 @@ async function replaceAll(data, store, warnings) {
         const remap = field === 'planHistory'
             ? record => remapPlanHistoryDebtIds(remapFk(record, idMap, personIdMap), debtIds)
             : record => remapFk(record, idMap, personIdMap);
-        const incoming = data[field] || [];
         const results = [];
-        for (let i = 0; i < incoming.length; i++) results.push(await store.create(field, remap(incoming[i]), i));
+        let i = 0;
+        for (const record of asArray(data[field])) results.push(await store.create(field, remap(record), i++));
         resourceResults.push(results);
         if (field === 'debts') debtIds = idPairs(data.debts, results);
     }
