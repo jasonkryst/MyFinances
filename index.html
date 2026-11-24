@@ -27,10 +27,9 @@
          were removed from this list — they're no longer part of the static import graph
          at all (loaded on demand via src/lazyModules.js), and a modulepreload hint would
          force the browser to eagerly fetch+compile them on every load regardless, which
-         is exactly what lazy-loading them is meant to avoid. -->
+         is exactly what lazy-loading them is meant to avoid. Issue #703: es.js and pl.js are
+         not hinted either; i18n.js loads the stored locale on demand. -->
     <link rel="modulepreload" href="src/locales/en.js">
-    <link rel="modulepreload" href="src/locales/es.js">
-    <link rel="modulepreload" href="src/locales/pl.js">
     <link rel="modulepreload" href="src/ledger.js">
     <link rel="modulepreload" href="src/commandPalette.js">
     <link rel="modulepreload" href="src/breakEven.js">

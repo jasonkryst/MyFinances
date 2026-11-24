@@ -3,8 +3,6 @@
 // key (like debtTrackerTheme) — a device display
 // preference, not financial data, and never sent to the server.
 import en from './locales/en.js';
-import es from './locales/es.js';
-import pl from './locales/pl.js';
 
 export const LOCALES = [
     { code: 'en', name: 'English' },
@@ -58,7 +56,35 @@ export function setCurrencyCode(code) {
 
 const LOCALE_CODES = LOCALES.map(l => l.code);
 const DEFAULT_LOCALE = 'en';
-const DICTIONARIES = { en, es, pl };
+// English is bundled; es and pl load on demand (#703: 77 KB gzipped that the
+// landing page never needs for an English user). t() falls back to English
+// until a dictionary is present, so boot awaits ensureLocaleLoaded() for the
+// stored locale before building the app.
+const DICTIONARIES = { en };
+const LOCALE_LOADERS = {
+    es: () => import('./locales/es.js'),
+    pl: () => import('./locales/pl.js'),
+};
+const _loading = {};
+
+// Resolves once the dictionary for `code` is available (immediately for en or
+// one already loaded). A failed load is not cached and leaves English fallback.
+export function ensureLocaleLoaded(code) {
+    if (DICTIONARIES[code] || !LOCALE_LOADERS[code]) return Promise.resolve();
+    if (!_loading[code]) {
+        _loading[code] = LOCALE_LOADERS[code]()
+            .then(mod => { DICTIONARIES[code] = mod.default; })
+            .catch(err => { console.error(`Failed to load locale ${code}`, err); })
+            .finally(() => { delete _loading[code]; });
+    }
+    return _loading[code];
+}
+
+// Fetches the other dictionaries in the background so a later switch in
+// Settings is synchronous. Called after the landing page has rendered.
+export function preloadAllLocales() {
+    return Promise.all(Object.keys(LOCALE_LOADERS).map(ensureLocaleLoaded));
+}
 // Intl locale tags used for Intl.NumberFormat/toLocaleDateString — kept
 // separate from the app-facing short codes so the default ('en') resolves
 // to exactly 'en-US', matching this app's pre-i18n hardcoded formatting.
@@ -140,14 +166,29 @@ export function applyStaticTranslations(root = document) {
 // Persists the new locale, re-applies static translations, and re-renders
 // the currently visible page in place (its JS-rendered strings were built
 // with t() at render time) when the locale actually changed.
+//
+// Always synchronous (#703): the locale, and with it Intl number/date
+// formatting, switches at once. If the dictionary is not loaded yet (a switch
+// before the idle preload finished), t() falls back to English until it
+// arrives, then the translations are applied again.
 export function setLocale(app, code) {
+    const target = LOCALE_CODES.includes(code) ? code : DEFAULT_LOCALE;
     const previous = currentLocale;
-    currentLocale = LOCALE_CODES.includes(code) ? code : DEFAULT_LOCALE;
+    currentLocale = target;
     setLocalePreference(currentLocale);
     applyDocumentLanguage();
     applyStaticTranslations();
-    if (previous !== currentLocale && app && typeof app.refreshCurrentPageData === 'function') {
-        app.refreshCurrentPageData();
+    const refresh = () => {
+        if (app && typeof app.refreshCurrentPageData === 'function') app.refreshCurrentPageData();
+    };
+    if (previous !== currentLocale) refresh();
+    if (!DICTIONARIES[target]) {
+        ensureLocaleLoaded(target).then(() => {
+            // A later switch wins; a failed load leaves English in place.
+            if (currentLocale !== target || !DICTIONARIES[target]) return;
+            applyStaticTranslations();
+            refresh();
+        });
     }
     return currentLocale;
 }
