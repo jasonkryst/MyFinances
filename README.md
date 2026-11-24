@@ -471,7 +471,7 @@ form-action 'self'
 Every Playwright test runs against a real stack and wipes the server's data, so never point the tests at a deployment that holds real data. Setup, environment variables and the shard layout are in [tests/README.md](tests/README.md) and [docs/architecture/testing.md](docs/architecture/testing.md).
 
 ### Test Suites
-Counts are test functions found with `grep` on 2026-11-23 and will drift; the CI run is the source of truth.
+Counts are from 2026-11-23 (v7.32.1) and will drift; the CI run is the source of truth. The Playwright counts are test functions found with `grep` (parametrized cases run more); the Jest and server counts are what those runners report.
 
 | Suite | Where | Approx. count | What it covers |
 |-------|-------|---------------|----------------|
@@ -481,8 +481,8 @@ Counts are test functions found with `grep` on 2026-11-23 and will drift; the CI
 | Accessibility | `tests/a11y/` | 10 in 1 file | Site-wide sweep of every page in both themes: ARIA references, duplicate IDs, names, contrast |
 | Integration | `tests/integration/` | 20 in 4 files | End-to-end workflows, smoke tests, import/export round trips |
 | Postgres | `tests/postgres/` | 89 in 12 files | Sign-in and login gate, import, per-resource mutations, legacy data migration, setup wizard, email through Mailpit |
-| Jest unit | `tests/unit/` | 1,344 in 66 files | Pure modules: calculation engine, sanitizers, formatting, sync and projection cores |
-| Server | `server/test/` | 420 in 37 files | `node:test` suite for routes, auth, migrations, jobs, notifications and the calendar feed, against a real PostgreSQL |
+| Jest unit | `tests/unit/` | 1,735 tests in 66 suites | Pure modules: calculation engine, sanitizers, formatting, sync and projection cores |
+| Server | `server/test/` | 527 tests in 37 files | `node:test` suite for routes, auth, migrations, jobs, notifications and the calendar feed, against a real PostgreSQL |
 
 ### Quick Test Commands
 
