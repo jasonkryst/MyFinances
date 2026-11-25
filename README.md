@@ -174,7 +174,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Expense budgets** — variable monthly spending targets with date tracking (for calendar and ledger); inline editing in the list
 - **Bills** — fixed monthly costs with due day and category (data model; no standalone add UI — use Recurring Templates for new fixed costs)
 - **Cash Flow Summary** — live panel: Income − Debt minimums − Bills − Budgeted expenses = Net remaining
-- **Category budgets** — on Liabilities → Expenses, set a fixed monthly amount per category or let it derive from the month's scheduled transactions; the Variance report adds a Budget vs. Actual table
+- **Category budgets** — on Liabilities → Expenses, set a fixed monthly amount per category or let it derive from the month's scheduled transactions; optionally roll unspent or overspent money into next month; the Variance report adds a Budget vs. Actual table
 - **Persisted to the server** — expenses and bills are saved to PostgreSQL and included in JSON export/import
 
 ---

@@ -1080,6 +1080,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '8.5.0 — 2026-11-24',
+        items: [
+            '<strong>Roll a category budget over to next month.</strong> In <em>Liabilities → Expenses → Category Budgets</em>, choose a rollover for any category: <em>both ways</em> carries unspent money forward and subtracts overspending, <em>overspending only</em> carries just the overspend. The row shows what was carried and what is available this month, and Budget vs. Actual on the Variance report uses the available amount. Leave it off and nothing changes.'
+        ]
+    },
+    {
         version: '8.4.0 — 2026-11-24',
         items: [
             '<strong>Restoring or merging a backup is much faster, and all-or-nothing.</strong> An import used to send your data to the server one record at a time, so a large backup took many seconds and a failure part-way could leave things half done. It now goes up in one step: either everything is imported or nothing changes.'

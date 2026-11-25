@@ -265,3 +265,25 @@ test('PATCH reconDrafts leaves other plan fields alone and writes no change-log 
     const got = await (await fetch(`${baseUrl}/api/plan-settings`, { headers: { Cookie: cookies } })).json();
     assert.equal(got.strategy, 'snowball');
 });
+
+test('PATCH round-trips budget rollover fields and drops an invalid rollover (#687)', async () => {
+    const res = await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(),
+        body: JSON.stringify({ budgetCategories: {
+            Food: { mode: 'fixed', amount: 300, rollover: 'both', rolloverStart: '2026-05' },
+            Rent: { mode: 'derived', rollover: 'overspend', rolloverStart: '2026-01' },
+            Bad: { mode: 'fixed', amount: 10, rollover: 'sideways', rolloverStart: '2026-01' },
+            NoStart: { mode: 'fixed', amount: 10, rollover: 'both' },
+            BadMonth: { mode: 'fixed', amount: 10, rollover: 'both', rolloverStart: '2026-13' }
+        } })
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.budgetCategories.Food, { mode: 'fixed', amount: 300, rollover: 'both', rolloverStart: '2026-05' });
+    assert.deepEqual(body.budgetCategories.Rent, { mode: 'derived', amount: 0, rollover: 'overspend', rolloverStart: '2026-01' });
+    for (const name of ['Bad', 'NoStart', 'BadMonth']) {
+        assert.deepEqual(body.budgetCategories[name], { mode: 'fixed', amount: 10 });
+    }
+    const again = await (await fetch(`${baseUrl}/api/plan-settings`, { headers: { Cookie: cookies } })).json();
+    assert.deepEqual(again.budgetCategories.Food, body.budgetCategories.Food);
+});

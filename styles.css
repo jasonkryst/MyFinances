@@ -8526,6 +8526,10 @@ body.dark-mode .login-gate-form .form-control:focus {
 .cb-name { font-weight: 600; overflow-wrap: anywhere; }
 .cb-derived { font-size: 0.85rem; color: var(--text-muted); }
 .cb-actions { display: flex; gap: 6px; }
+.cb-rollover { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.cb-rollover-start[hidden] { display: none; }
+.cb-carried { font-size: 0.85rem; color: var(--text-muted); min-width: 0; overflow-wrap: anywhere; }
+.cb-carried:empty { display: none; }
 .cb-error { grid-column: 1 / -1; color: var(--danger-color, #dc2626); font-size: 0.82rem; }
 .cb-error:empty { display: none; }
 .cb-add { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
@@ -8568,6 +8572,7 @@ body.dark-mode .login-gate-form .form-control:focus {
 }
 .bva-mode--fixed { color: var(--primary-color); border-color: var(--primary-color); }
 .bva-row--over { background: rgba(220, 38, 38, 0.08); }
+.bva-carry { grid-column: 1 / -1; font-size: 0.85rem; color: var(--text-muted); }
 .bva-neg { color: #b91c1c; font-weight: 700; }
 .bva-pos { color: #166534; }
 body.dark-mode .bva-neg { color: #fca5a5; }
@@ -8584,6 +8589,7 @@ body.dark-mode .bva-pos { color: #86efac; }
         font-weight: 600;
         color: var(--text-muted);
     }
+    .bva-carry::before { content: none; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

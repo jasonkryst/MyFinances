@@ -1,6 +1,7 @@
 // Explicit per-category monthly budgets (issue #255).
 //
-// app.budgetCategories: { [category]: { mode: 'fixed' | 'derived', amount } }.
+// app.budgetCategories: { [category]: { mode: 'fixed' | 'derived', amount,
+// rollover?: 'both' | 'overspend', rolloverStart?: 'YYYY-MM' } } (rollover: #687).
 // A category with no entry is "derived": its budget is the scheduled
 // (pre-override) amount of the month's bills / expenses / outflow recurring
 // templates in that category - bucketed with the exact classifier the Spending
@@ -14,6 +15,10 @@ import { t, categoryLabel } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { spendingCategoryForTx, computeSpendingByCategoryRange } from './spending.js';
 import { BUDGET_CATEGORY_MAX_AMOUNT, BUDGET_CATEGORY_MAX_ENTRIES } from './sanitizers.js';
+import { withProjectionCache } from './projectionCache.js';
+import {
+    isValidRolloverMode, isValidRolloverStart, computeRolloverCarry, rolloverMonthsBefore
+} from './budgetRollover.js';
 
 const FORBIDDEN_KEYS = ['__proto__', 'constructor', 'prototype'];
 
@@ -23,6 +28,49 @@ function _configured(app) {
 
 function _isFixed(entry) {
     return !!entry && entry.mode === 'fixed';
+}
+
+function _rolloverOf(entry) {
+    return entry && isValidRolloverMode(entry.rollover) && isValidRolloverStart(entry.rolloverStart)
+        ? { mode: entry.rollover, start: entry.rolloverStart }
+        : null;
+}
+
+// Carry into (year, month) for each rollover category: Map<category, carry>.
+// One derived + actual pass per month, shared by every rollover category.
+export function computeRolloverCarriesForApp(app, year, month) {
+    const configured = _configured(app);
+    const out = new Map();
+    const monthsByStart = new Map();
+    for (const cat of Object.keys(configured)) {
+        const ro = _rolloverOf(configured[cat]);
+        if (ro && !monthsByStart.has(ro.start)) monthsByStart.set(ro.start, rolloverMonthsBefore(ro.start, year, month));
+    }
+    if (monthsByStart.size === 0) return out;
+    const perMonth = new Map();
+    const monthData = (y, m) => {
+        const key = `${y}-${m}`;
+        if (!perMonth.has(key)) {
+            const actual = new Map();
+            for (const { category, total } of computeSpendingByCategoryRange(app, y, m, 1)) actual.set(category, total);
+            perMonth.set(key, { derived: computeDerivedBudgetByCategory(app, y, m), actual });
+        }
+        return perMonth.get(key);
+    };
+    for (const cat of Object.keys(configured)) {
+        const entry = configured[cat];
+        const ro = _rolloverOf(entry);
+        if (!ro) continue;
+        const rows = monthsByStart.get(ro.start).map(({ year: y, month: m }) => {
+            const d = monthData(y, m);
+            return {
+                budget: _isFixed(entry) ? entry.amount : (d.derived.get(cat) || 0),
+                actual: d.actual.get(cat) || 0
+            };
+        });
+        out.set(cat, computeRolloverCarry(rows, ro.mode));
+    }
+    return out;
 }
 
 // The single derivation: Map<category, scheduled monthly amount>.
@@ -54,6 +102,7 @@ export function computeCategoryBudgets(app, year, month, rangeMonths = 1) {
     for (const { category, total } of computeSpendingByCategoryRange(app, year, month, rangeMonths)) {
         actuals.set(category, total);
     }
+    const carries = withProjectionCache(app, () => computeRolloverCarriesForApp(app, months[0].year, months[0].month));
     const names = new Set([...derivedTotals.keys(), ...actuals.keys(), ...Object.keys(configured)]);
     const rows = [];
     for (const category of names) {
@@ -62,18 +111,28 @@ export function computeCategoryBudgets(app, year, month, rangeMonths = 1) {
         const budget = fixed ? entry.amount * months.length : (derivedTotals.get(category) || 0);
         const actual = actuals.get(category) || 0;
         if (!entry && budget === 0 && actual === 0) continue;
+        const ro = _rolloverOf(entry);
+        const carried = ro ? (carries.get(category) || 0) : 0;
+        const available = budget + carried;
         rows.push({
             category,
             mode: fixed ? 'fixed' : 'derived',
+            rollover: ro ? ro.mode : null,
             budget,
+            carried,
+            available,
             actual,
-            difference: budget - actual,
-            pctUsed: budget > 0 ? actual / budget : null,
-            over: actual > budget + 0.005
+            difference: available - actual,
+            pctUsed: available > 0 ? actual / available : null,
+            over: actual > available + 0.005
         });
     }
     rows.sort((a, b) => (b.actual - a.actual) || a.category.localeCompare(b.category));
     return rows;
+}
+
+function _signedCurrency(n) {
+    return `${n < 0 ? '-' : ''}${formatCurrency(Math.abs(n))}`;
 }
 
 // Budget vs. Actual table markup for Reports -> Variance.
@@ -89,6 +148,9 @@ export function renderBudgetVsActualHtml(app, year, month, rangeMonths) {
         const shownName = escapeHtml(categoryLabel(r.category));
         const diffCls = r.over ? 'bva-neg' : 'bva-pos';
         const diffText = `${r.difference >= 0 ? '' : '-'}${formatCurrency(Math.abs(r.difference))}`;
+        const carryRow = r.rollover
+            ? `<span class="bva-cell bva-carry" data-label="${escapeHtml(t('reports.bvaCarried'))}">${escapeHtml(t('reports.bvaCarryNote', { carried: _signedCurrency(r.carried), available: _signedCurrency(r.available) }))}</span>`
+            : '';
         const pct = r.pctUsed === null ? '—' : `${Math.round(r.pctUsed * 100)}%`;
         return `<div class="bva-row${r.over ? ' bva-row--over' : ''}" data-category="${name}">
             <span class="bva-cell bva-cat" data-label="${escapeHtml(t('reports.colCategory'))}">${shownName} <span class="bva-mode bva-mode--${r.mode}">${escapeHtml(r.mode === 'fixed' ? t('catBudgets.fixed') : t('catBudgets.derived'))}</span></span>
@@ -96,6 +158,7 @@ export function renderBudgetVsActualHtml(app, year, month, rangeMonths) {
             <span class="bva-cell bva-actual" data-label="${escapeHtml(t('reports.bvaActual'))}">${formatCurrency(r.actual)}</span>
             <span class="bva-cell bva-diff ${diffCls}" data-label="${escapeHtml(t('reports.bvaDifference'))}">${r.over ? escapeHtml(t('reports.bvaOver', { amount: diffText })) : diffText}</span>
             <span class="bva-cell bva-pct" data-label="${escapeHtml(t('reports.bvaPctUsed'))}">${pct}</span>
+            ${carryRow}
         </div>`;
     }).join('');
     return `<div class="bva-section" id="budgetVsActual">${heading}
@@ -111,7 +174,7 @@ export function renderBudgetVsActualHtml(app, year, month, rangeMonths) {
 // ── Mutations ──────────────────────────────────────────────────────────────
 
 // Returns { ok: true } or { ok: false, error }.
-export function setCategoryBudget(app, rawName, mode, rawAmount) {
+export function setCategoryBudget(app, rawName, mode, rawAmount, rawRollover, rawRolloverStart) {
     const name = normalizeText(rawName, 40);
     if (!name) return { ok: false, error: t('catBudgets.errName') };
     if (FORBIDDEN_KEYS.includes(name)) return { ok: false, error: t('catBudgets.errForbidden') };
@@ -125,11 +188,18 @@ export function setCategoryBudget(app, rawName, mode, rawAmount) {
         if (n > BUDGET_CATEGORY_MAX_AMOUNT) return { ok: false, error: t('catBudgets.errTooLarge') };
         amount = n;
     }
+    // #687: rollover is optional; '', null, undefined and 'off' all mean off.
+    const rollover = rawRollover === undefined || rawRollover === null || rawRollover === '' || rawRollover === 'off' ? null : rawRollover;
+    if (rollover !== null) {
+        if (!isValidRolloverMode(rollover)) return { ok: false, error: t('catBudgets.errRollover') };
+        if (!isValidRolloverStart(rawRolloverStart)) return { ok: false, error: t('catBudgets.errRolloverStart') };
+    }
     const current = _configured(app);
     if (!Object.prototype.hasOwnProperty.call(current, name) && Object.keys(current).length >= BUDGET_CATEGORY_MAX_ENTRIES) {
         return { ok: false, error: t('catBudgets.errMax', { max: BUDGET_CATEGORY_MAX_ENTRIES }) };
     }
-    app.budgetCategories = { ...current, [name]: { mode, amount } };
+    const entry = rollover === null ? { mode, amount } : { mode, amount, rollover, rolloverStart: rawRolloverStart };
+    app.budgetCategories = { ...current, [name]: entry };
     app.saveToStorage(['budgetCategories']);
     return { ok: true, name };
 }
@@ -154,12 +224,22 @@ export function getKnownBudgetCategories(app, derived) {
 
 let _statusMessage = '';
 
-function _rowHtml(app, name, derived) {
+function _currentYearMonth() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function _rowHtml(app, name, derived, carryNow) {
     const entry = Object.prototype.hasOwnProperty.call(_configured(app), name) ? _configured(app)[name] : null;
     const fixed = _isFixed(entry);
     const n = escapeHtml(name);
     const label = categoryLabel(name);
     const derivedAmt = derived.get(name) || 0;
+    const ro = _rolloverOf(entry);
+    const roOption = (value, key) => `<option value="${value}"${(ro ? ro.mode : '') === value ? ' selected' : ''}>${escapeHtml(t(key))}</option>`;
+    const note = ro && carryNow
+        ? t('catBudgets.carriedNote', { carried: _signedCurrency(carryNow.carried), available: _signedCurrency(carryNow.available) })
+        : '';
     return `<div class="cb-row" data-category="${n}">
         <span class="cb-name">${escapeHtml(label)}</span>
         <select class="cb-mode select-styled" aria-label="${escapeHtml(t('catBudgets.modeAria', { name: label }))}">
@@ -172,6 +252,15 @@ function _rowHtml(app, name, derived) {
             <button type="button" class="btn btn-small btn-success cb-save" aria-label="${escapeHtml(t('catBudgets.saveAria', { name: label }))}">${escapeHtml(t('common.save'))}</button>
             <button type="button" class="btn btn-small btn-secondary cb-reset" aria-label="${escapeHtml(t('catBudgets.resetAria', { name: label }))}"${entry ? '' : ' disabled'}>${escapeHtml(t('catBudgets.reset'))}</button>
         </span>
+        <span class="cb-rollover">
+            <select class="cb-rollover-mode select-styled" aria-label="${escapeHtml(t('catBudgets.rolloverAria', { name: label }))}">
+                ${roOption('', 'catBudgets.rolloverOff')}
+                ${roOption('both', 'catBudgets.rolloverBoth')}
+                ${roOption('overspend', 'catBudgets.rolloverOverspend')}
+            </select>
+            <input type="month" class="cb-rollover-start" aria-label="${escapeHtml(t('catBudgets.rolloverStartAria', { name: label }))}" value="${ro ? escapeHtml(ro.start) : ''}"${ro ? '' : ' hidden'}>
+            <span class="cb-carried">${escapeHtml(note)}</span>
+        </span>
         <span class="cb-error" role="alert"></span>
     </div>`;
 }
@@ -182,8 +271,9 @@ export function renderCategoryBudgetsPanel(app) {
     const now = new Date();
     const derived = computeDerivedBudgetByCategory(app, now.getFullYear(), now.getMonth());
     const names = getKnownBudgetCategories(app, derived);
+    const carryNow = new Map(computeCategoryBudgets(app, now.getFullYear(), now.getMonth(), 1).map(r => [r.category, r]));
     const rows = names.length
-        ? names.map(n => _rowHtml(app, n, derived)).join('')
+        ? names.map(n => _rowHtml(app, n, derived, carryNow.get(n))).join('')
         : `<p class="cb-empty">${escapeHtml(t('catBudgets.empty'))}</p>`;
     container.innerHTML = `
         <h3 class="cb-title">${escapeHtml(t('catBudgets.title'))}</h3>
@@ -205,6 +295,14 @@ export function renderCategoryBudgetsPanel(app) {
     _statusMessage = '';
 
     container.onchange = (e) => {
+        const roSel = e.target.closest('.cb-rollover-mode');
+        if (roSel) {
+            const start = roSel.closest('.cb-row').querySelector('.cb-rollover-start');
+            start.hidden = roSel.value === '';
+            // Turning rollover on starts it this month; the user can edit it.
+            if (roSel.value !== '' && !start.value) start.value = _currentYearMonth();
+            return;
+        }
         const sel = e.target.closest('.cb-mode');
         if (!sel) return;
         const amount = sel.closest('.cb-row').querySelector('.cb-amount');
@@ -225,7 +323,8 @@ export function renderCategoryBudgetsPanel(app) {
         if (!row) return;
         const name = row.dataset.category;
         if (e.target.closest('.cb-save')) {
-            const res = setCategoryBudget(app, name, row.querySelector('.cb-mode').value, row.querySelector('.cb-amount').value);
+            const res = setCategoryBudget(app, name, row.querySelector('.cb-mode').value, row.querySelector('.cb-amount').value,
+                row.querySelector('.cb-rollover-mode').value, row.querySelector('.cb-rollover-start').value);
             if (!res.ok) { row.querySelector('.cb-error').textContent = res.error; return; }
             _statusMessage = t('catBudgets.saved', { name: categoryLabel(name) });
             renderCategoryBudgetsPanel(app);

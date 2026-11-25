@@ -6,6 +6,7 @@ import { sanitizeWeekendRule } from './weekendRule.js';
 import { sanitizeAmountChanges } from './amountSchedule.js';
 import { MANUAL_SPLIT_MIN, MANUAL_SPLIT_MAX, toCents } from './manualSplits.js';
 import { isValidIsoDate } from './sinkingFundSchedule.js';
+import { isValidRolloverMode, isValidRolloverStart } from './budgetRollover.js';
 
 const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Pension', 'Other'];
 
@@ -404,7 +405,18 @@ export function sanitizeBudgetCategories(raw, warnings) {
             }
             count++;
         }
-        out[name] = { mode, amount };
+        const clean = { mode, amount };
+        // #687: optional rollover. Both fields or neither; a bad pair drops the
+        // rollover (never coerced) and keeps the budget.
+        if (entry.rollover !== undefined || entry.rolloverStart !== undefined) {
+            if (isValidRolloverMode(entry.rollover) && isValidRolloverStart(entry.rolloverStart)) {
+                clean.rollover = entry.rollover;
+                clean.rolloverStart = entry.rolloverStart;
+            } else {
+                reject(name, 'Invalid rollover mode or start month — rollover was not imported (the budget was).');
+            }
+        }
+        out[name] = clean;
     }
     return out;
 }
