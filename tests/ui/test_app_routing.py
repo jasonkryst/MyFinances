@@ -26,5 +26,19 @@ def test_nested_path_boots_without_errors(app_page):
     wait_for_app_ready(page)
 
     assert page.evaluate("() => !!window.app")
+    assert page.evaluate("() => location.pathname") == "/liabilities/expenses", "boot must not rewrite the address"
+    css = page.evaluate("""() => Promise.all([...document.querySelectorAll('link[rel=stylesheet]')]
+        .map(l => fetch(l.href).then(r => r.headers.get('content-type'))))""")
+    assert css and all("text/css" in (c or "") for c in css), f"stylesheet content types: {css}"
     assert not bad_scripts, f"non-JavaScript src responses: {bad_scripts}"
     assert not errors, f"console errors on a nested path: {errors}"
+
+
+def test_skip_link_stays_on_nested_path(app_page):
+    page = app_page
+    page.goto(BASE + "liabilities/expenses", wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
+    page.focus(".skip-link")
+    page.keyboard.press("Enter")
+    assert page.evaluate("() => location.pathname") == "/liabilities/expenses"
+    assert page.evaluate("() => document.activeElement && document.activeElement.id") == "main"

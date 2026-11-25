@@ -38,6 +38,25 @@ export function applyTheme(theme) {
     return t;
 }
 
+// Delegated in-page anchor jump (#730). Bare href="#" links keep their own handlers.
+function handleInPageAnchorClick(e) {
+    if (e.defaultPrevented || e.button > 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const link = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!link) return;
+    const raw = link.getAttribute('href');
+    if (!raw || raw.length < 2 || raw[0] !== '#') return;
+    let id = raw.slice(1);
+    try { id = decodeURIComponent(id); } catch (err) { /* keep the raw id */ }
+    const target = document.getElementById(id);
+    if (!target) return;
+    e.preventDefault();
+    if (!target.hasAttribute('tabindex') && !/^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) {
+        target.setAttribute('tabindex', '-1');
+    }
+    target.focus();
+    target.scrollIntoView();
+}
+
 export function initializeEventListeners(app) {
     initCommandPalette(app);
     initSaveStatusChip();
@@ -55,6 +74,9 @@ export function initializeEventListeners(app) {
         const open = bodyEl ? bodyEl.classList.contains('is-open') : isCollapsibleOpen(bodyId);
         setCollapsibleOpen(bodyId, !open);
     });
+    // #730: with <base href="/"> an in-page link (#main) resolves to /#main, so on a
+    // path address (/liabilities/expenses) it would reload the app at /. Jump in page.
+    document.addEventListener('click', handleInPageAnchorClick);
     document.addEventListener('change', e => {
         if (e.target.closest && e.target.closest('.filters-disclosure-body')) refreshFilterDisclosureCounts();
     });
