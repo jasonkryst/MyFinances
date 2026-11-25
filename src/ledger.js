@@ -561,8 +561,7 @@ export function renderLedgerPage(app) {
             app._ledgerCategoryFilter = 'all';
             // switchPage() restores the pre-cross-nav account/date filters
             // and clears _ledgerCrossNavLabel — see ui.js.
-            app.switchPage('reports');
-            document.querySelector('.rpt-tab-btn[data-rptab="spending"]')?.click();
+            app.switchPage('reports', { subTab: 'spending' });
         };
     }
     const searchEl = container.querySelector('#ledgerSearchInput');

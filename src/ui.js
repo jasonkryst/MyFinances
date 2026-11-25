@@ -420,15 +420,9 @@ export function initializeEventListeners(app) {
     document.querySelectorAll('.rpt-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.getAttribute('data-rptab');
-            document.querySelectorAll('.rpt-tab-btn').forEach(b => {
-                const active = b === btn;
-                b.classList.toggle('rpt-tab-btn--active', active);
-                b.setAttribute('aria-selected', String(active));
-            });
-            document.querySelectorAll('.rpt-tab-panel').forEach(panel => {
-                panel.classList.toggle('rpt-tab-panel--active', panel.id === `rptPanel-${target}`);
-            });
+            selectReportsTab(target);
             app.renderReportsPage();
+            recordView(app, { page: 'reports', subTab: target }, 'push');
         });
     });
 
@@ -597,16 +591,20 @@ export function initializeEventListeners(app) {
     initAccountMenu(app);
 }
 
-export function navigateToReportsCalendar(app) {
+// Show one Reports tab (button state and panel); the caller renders.
+export function selectReportsTab(target) {
     document.querySelectorAll('.rpt-tab-btn').forEach(b => {
-        const active = b.getAttribute('data-rptab') === 'calendar';
+        const active = b.getAttribute('data-rptab') === target;
         b.classList.toggle('rpt-tab-btn--active', active);
         b.setAttribute('aria-selected', String(active));
     });
     document.querySelectorAll('.rpt-tab-panel').forEach(p => {
-        p.classList.toggle('rpt-tab-panel--active', p.id === 'rptPanel-calendar');
+        p.classList.toggle('rpt-tab-panel--active', p.id === `rptPanel-${target}`);
     });
-    app.switchPage('reports');
+}
+
+export function navigateToReportsCalendar(app) {
+    app.switchPage('reports', { subTab: 'calendar' });
 }
 
 export function updateAccountMenuEmail(app) {
@@ -802,10 +800,15 @@ export function attachLiabilitiesEventListeners(app) {
     const section = document.getElementById('liabilitiesSection');
     if (!section) return;
 
-    // Subtab switching
+    // Subtab switching. The buttons are static markup and this runs on every
+    // render, so each button is wired once.
     section.querySelectorAll('.liabilities-subtab-btn').forEach(btn => {
+        if (btn.dataset.subtabWired) return;
+        btn.dataset.subtabWired = 'true';
         btn.addEventListener('click', () => {
-            app.switchLiabilitiesSubTab(btn.dataset.liabilitiesSubtab);
+            const subTab = btn.dataset.liabilitiesSubtab;
+            app.switchLiabilitiesSubTab(subTab);
+            recordView(app, { page: 'liabilities', subTab }, 'push');
         });
     });
 }
@@ -866,7 +869,7 @@ export function switchPage(app, pageName, { subTab = null } = {}) {
     }
 
     app._currentPage = pageName;
-    renderPageData(app, pageName);
+    renderPageData(app, pageName, { subTab });
     // #730: the address follows the page (a no-op when it is already there
     // or while Back/Forward or boot is applying an address).
     recordView(app, { page: pageName, subTab: currentSubTab(app, pageName, subTab) });
@@ -885,23 +888,25 @@ export function switchPage(app, pageName, { subTab = null } = {}) {
  */
 // Render-scoped projection cache (#518): every balance this render reads
 // shares one projection build instead of one per account.
-export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
+// `subTab` (#730) opens that sub-tab of Liabilities, Savings or Reports,
+// including on the deferred render that waits for appFeatures.js.
+export function renderPageData(app, pageName, { resetToDefaults = true, subTab = null } = {}) {
     // #713: only Health renders before appFeatures.js has loaded. Any other
     // page waits for it (usually already there) and renders if the user is
     // still on that page.
     if (pageName !== 'health' && !getResolvedModule('appFeatures')) {
         return loadAppFeatures().then(
-            () => { if (app._currentPage === pageName) return renderPageData(app, pageName, { resetToDefaults }); },
+            () => { if (app._currentPage === pageName) return renderPageData(app, pageName, { resetToDefaults, subTab }); },
             (err) => {
                 console.error('Failed to load the app features', err);
                 renderLazyLoadError(PAGE_SECTION_IDS[pageName], 'this page');
             }
         );
     }
-    return withProjectionCache(app, () => renderPageDataUncached(app, pageName, { resetToDefaults }));
+    return withProjectionCache(app, () => renderPageDataUncached(app, pageName, { resetToDefaults, subTab }));
 }
 
-function renderPageDataUncached(app, pageName, { resetToDefaults }) {
+function renderPageDataUncached(app, pageName, { resetToDefaults, subTab }) {
     if (pageName === 'health') app.renderHealthDashboard();
     if (pageName === 'accounts') {
         app.renderAccountsList();
@@ -918,11 +923,12 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
         refreshPersonSelectors(app);
         // Attach liabilities subtab listeners
         attachLiabilitiesEventListeners(app);
-        // Default to debts subtab
-        if (resetToDefaults) app.switchLiabilitiesSubTab('debts');
+        // The requested subtab, else Debts on each visit
+        if (subTab || resetToDefaults) app.switchLiabilitiesSubTab(subTab || 'debts');
     }
     if (pageName === 'income') { app.renderIncomeList(); app.renderBonusList(); refreshAccountSelectors(app); refreshPersonSelectors(app); refreshCategoryDatalist(app); }
     if (pageName === 'savings') {
+        if (subTab) app.savingsSubTab = subTab;
         app.renderSavingsPage();
         app.attachSavingsEventListeners();
     }
@@ -947,6 +953,7 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
     }
     if (pageName === 'reports') {
         if (resetToDefaults) { app._reportMonthOffset = 0; app._reportRangeMonths = 1; }
+        if (subTab) selectReportsTab(subTab);
         app.renderReportsPage();
     }
     if (pageName === 'ledger') {

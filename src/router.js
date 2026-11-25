@@ -86,10 +86,11 @@ export function parseLocation(pathname, search) {
 let applying = false;
 let listening = false;
 
-// Sub-tab the address should show for `page`.
+// Sub-tab `page` is showing now (or `requested`). switchPage records after
+// rendering, so a nav click into Liabilities reads the Debts it reset to.
 export function currentSubTab(app, page, requested = null) {
     if (requested) return requested;
-    if (page === 'liabilities') return DEFAULT_SUB_TAB.liabilities;
+    if (page === 'liabilities') return app.liabilitiesSubTab || DEFAULT_SUB_TAB.liabilities;
     if (page === 'savings') return app.savingsSubTab || DEFAULT_SUB_TAB.savings;
     if (page === 'reports') {
         const active = document.querySelector('.rpt-tab-btn--active');

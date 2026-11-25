@@ -195,3 +195,179 @@ def test_command_palette_navigation_pushes(app_page):
     page.go_back()
     page.wait_for_selector("#ledgerSection.active", timeout=5000)
     assert _path(page) == "/ledger"
+
+
+# ── Task 4: sub-tab addresses ───────────────────────────────────────────────
+
+
+def _goto(page, path):
+    page.goto(BASE + path, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
+
+
+def _liab_tab(page, name):
+    page.click(f'#liabilitiesSection .liabilities-subtab-btn[data-liabilities-subtab="{name}"]')
+    page.wait_for_selector(f'#liabilitiesSection [data-subtab="{name}"].visible', timeout=5000)
+
+
+def _savings_tab(page, name):
+    page.click(f'#savingsSection .savings-subtab-btn[data-savings-subtab="{name}"]')
+    page.wait_for_selector(f'#savingsSection .savings-subtab-btn.active[data-savings-subtab="{name}"]', timeout=5000)
+
+
+def _reports_tab(page, name):
+    page.click(f'#reportsSection .rpt-tab-btn[data-rptab="{name}"]')
+    page.wait_for_selector(f'#rptPanel-{name}.rpt-tab-panel--active', timeout=5000)
+
+
+def test_sub_tab_click_sets_address(app_page):
+    page = app_page
+    _nav(page, "liabilities", "liabilitiesSection")
+    _liab_tab(page, "expenses")
+    assert _path(page) == "/liabilities/expenses"
+    _nav(page, "savings", "savingsSection")
+    _savings_tab(page, "sinking")
+    assert _path(page) == "/savings/sinking"
+    _nav(page, "reports", "reportsSection")
+    _reports_tab(page, "networth")
+    assert _path(page) == "/reports/networth"
+
+
+def test_deep_link_opens_sub_tab(app_page):
+    page = app_page
+    _goto(page, "liabilities/expenses")
+    page.wait_for_selector("#expensesPanel.visible", timeout=5000)
+    assert page.is_hidden("#debtsPanel")
+    assert _path(page) == "/liabilities/expenses"
+
+    _goto(page, "savings/home")
+    page.wait_for_selector('#savingsSection .savings-subtab-btn.active[data-savings-subtab="home"]', timeout=5000)
+    assert _path(page) == "/savings/home"
+
+    _goto(page, "reports/variance")
+    page.wait_for_selector("#rptPanel-variance.rpt-tab-panel--active", timeout=5000)
+    assert page.get_attribute('.rpt-tab-btn[data-rptab="variance"]', "aria-selected") == "true"
+    assert _path(page) == "/reports/variance"
+
+
+def test_deep_link_sub_tab_survives_lazy_render(app_page_no_sw):
+    # Review Focus 2: the page renders only once appFeatures.js arrives; that
+    # deferred render must keep the sub-tab the address names. The request is
+    # held (not slept on) until the Liabilities section is already showing.
+    page = app_page_no_sw
+    held = []
+    page.route("**/src/appFeatures.js*", lambda route: held.append(route))
+    with page.expect_request("**/src/appFeatures.js*", timeout=30000):
+        page.goto(BASE + "liabilities/expenses", wait_until="commit", timeout=60000)
+    page.wait_for_selector("#liabilitiesSection.active", timeout=30000)
+    for _ in range(100):  # the route handler runs on the next dispatch
+        if held:
+            break
+        page.evaluate("() => 0")
+    assert held, "appFeatures.js should be requested and held"
+    assert page.evaluate("() => !document.querySelector('#expensesPanel.visible')"), \
+        "nothing renders before appFeatures.js arrives"
+    for route in held:
+        route.continue_()
+    page.unroute("**/src/appFeatures.js*")
+    wait_for_app_ready(page)
+    page.wait_for_selector("#expensesPanel.visible", timeout=10000)
+    assert page.is_hidden("#debtsPanel")
+    assert _path(page) == "/liabilities/expenses"
+
+
+def test_back_between_sub_tabs(app_page):
+    page = app_page
+    _nav(page, "reports", "reportsSection")
+    assert _path(page) == "/reports/calendar"
+    _reports_tab(page, "spending")
+    assert _path(page) == "/reports/spending"
+    page.go_back()
+    page.wait_for_selector("#rptPanel-calendar.rpt-tab-panel--active", timeout=5000)
+    assert _path(page) == "/reports/calendar"
+    assert page.get_attribute('.rpt-tab-btn[data-rptab="calendar"]', "aria-selected") == "true"
+
+    # Liabilities: Back to Debts, then Forward to Expenses re-applies it.
+    _nav(page, "liabilities", "liabilitiesSection")
+    _liab_tab(page, "expenses")
+    page.go_back()
+    page.wait_for_selector("#debtsPanel.visible", timeout=5000)
+    assert _path(page) == "/liabilities/debts"
+    page.go_forward()
+    page.wait_for_selector("#expensesPanel.visible", timeout=5000)
+    assert _path(page) == "/liabilities/expenses"
+
+
+def test_popstate_to_current_sub_tab_does_not_rerender(app_page):
+    # Carried from Task 3 review: applying /liabilities/expenses while it is
+    # already showing must compare against the real sub-tab, not Debts.
+    page = app_page
+    _goto(page, "liabilities/expenses")
+    page.wait_for_selector("#expensesPanel.visible", timeout=5000)
+    page.evaluate("""() => {
+        window.__switches = 0;
+        const orig = app.switchPage.bind(app);
+        app.switchPage = (...a) => { window.__switches++; return orig(...a); };
+        window.dispatchEvent(new PopStateEvent('popstate'));
+    }""")
+    assert page.evaluate("() => window.__switches") == 0
+    assert _path(page) == "/liabilities/expenses"
+
+
+def test_nav_button_keeps_remembered_sub_tab(app_page):
+    page = app_page
+    _nav(page, "reports", "reportsSection")
+    _reports_tab(page, "spending")
+    _nav(page, "ledger", "ledgerSection")
+    _nav(page, "reports", "reportsSection")
+    assert _path(page) == "/reports/spending"
+    page.wait_for_selector("#rptPanel-spending.rpt-tab-panel--active", timeout=5000)
+
+    _nav(page, "liabilities", "liabilitiesSection")
+    _liab_tab(page, "expenses")
+    _nav(page, "ledger", "ledgerSection")
+    _nav(page, "liabilities", "liabilitiesSection")
+    page.wait_for_selector("#debtsPanel.visible", timeout=5000)
+    assert _path(page) == "/liabilities/debts"
+
+
+def test_reclick_active_sub_tab_adds_no_history(app_page):
+    page = app_page
+    _nav(page, "liabilities", "liabilitiesSection")
+    _liab_tab(page, "expenses")
+    before = _history_length(page)
+    _liab_tab(page, "expenses")
+    assert _history_length(page) == before
+
+    _nav(page, "savings", "savingsSection")
+    _savings_tab(page, "sinking")
+    before = _history_length(page)
+    _savings_tab(page, "sinking")
+    assert _history_length(page) == before
+
+    _nav(page, "reports", "reportsSection")
+    _reports_tab(page, "networth")
+    before = _history_length(page)
+    _reports_tab(page, "networth")
+    assert _history_length(page) == before
+    assert _path(page) == "/reports/networth"
+
+
+def test_back_to_spending_sets_address(app_page):
+    from tests.ui.test_spending_ui import _seed_linked_and_navigate
+
+    page = app_page
+    _seed_linked_and_navigate(page)
+    page.click('[data-spending-cat="Food"]')
+    page.wait_for_selector("#spendingDrilldownModal:not(.hidden)", timeout=5000)
+    page.click("#spendingDrilldownViewLedgerBtn")
+    page.wait_for_selector("#ledgerSection.active", timeout=5000)
+    # Another Reports tab is remembered by the time Back to Spending is used.
+    page.evaluate("""() => document.querySelectorAll('.rpt-tab-btn').forEach(b => {
+        b.classList.toggle('rpt-tab-btn--active', b.dataset.rptab === 'networth');
+    })""")
+    before = _history_length(page)
+    page.click("#ledgerCrossNavBackBtn")
+    page.wait_for_selector("#rptPanel-spending.rpt-tab-panel--active", timeout=5000)
+    assert _path(page) == "/reports/spending"
+    assert _history_length(page) == before + 1
