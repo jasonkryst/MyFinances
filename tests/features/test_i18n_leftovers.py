@@ -190,3 +190,64 @@ def test_es_has_no_second_name_for_sinking_funds():
 def test_es_download_label_says_backup():
     assert 'copia de seguridad' in _es_value('pgMigration.download')
     assert 'copia JSON' not in ES
+
+
+# ── #720: the Calendar Feed dialog ─────────────────────────────────────────
+
+CAL_JS = """() => ({
+    title: document.getElementById('calendarFeedModalTitle').textContent,
+    desc: document.getElementById('calendarFeedModalDesc').textContent,
+    close: document.getElementById('calendarFeedModalCloseBtn').getAttribute('aria-label'),
+    download: document.getElementById('calendarDownloadBtn').textContent,
+    generate: document.getElementById('calendarGenerateTokenBtn').textContent,
+    live: document.querySelector('#calendarSubscriptionSection h4').textContent,
+    copy: document.getElementById('calendarCopyUrlBtn').textContent,
+    regenerate: document.getElementById('calendarRegenerateTokenBtn').textContent,
+    warning: document.querySelector('.cal-token-warning').textContent,
+})"""
+
+
+def _open_calendar(page):
+    page.evaluate("() => document.getElementById('calendarFeedBtn').click()")
+    page.wait_for_selector('#calendarFeedModal:not(.hidden)', timeout=5000)
+
+
+@pytest.mark.feature
+@pytest.mark.parametrize('locale,title,download,generate,close,desc_start', [
+    ('es', 'Suscripción de calendario', 'Descargar archivo .ics', 'Generar enlace de suscripción',
+     'Cerrar', 'Exporta tus facturas'),
+    ('pl', 'Subskrypcja kalendarza', 'Pobierz plik .ics', 'Wygeneruj link subskrypcji',
+     'Zamknij', 'Eksportuj rachunki'),
+])
+def test_calendar_feed_modal_is_translated(app_page, locale, title, download, generate, close, desc_start):
+    page = app_page
+    page.evaluate(f"() => window.app.setLocale('{locale}')")
+    page.wait_for_function(
+        "(a) => document.getElementById('calendarDownloadBtn').textContent === a", arg=download)
+    _open_calendar(page)
+    got = page.evaluate(CAL_JS)
+    assert got['title'] == title
+    assert got['desc'].startswith(desc_start)
+    assert got['download'] == download
+    assert got['close'] == close
+    assert got['generate'] == generate
+    # No English leftovers anywhere in the dialog.
+    for key, english in (('desc', 'Export your bills'), ('live', 'Live Subscription'),
+                         ('warning', 'Treat this URL'), ('copy', 'Copy'), ('regenerate', 'Regenerate')):
+        assert english not in got[key] and got[key].strip(), (key, got[key])
+
+
+@pytest.mark.feature
+def test_calendar_feed_modal_stays_english_in_en(app_page):
+    """Negative: the default locale keeps the English copy, and the Generate
+    button's runtime label follows the locale after a switch."""
+    page = app_page
+    _open_calendar(page)
+    got = page.evaluate(CAL_JS)
+    assert got['title'] == 'Calendar Feed'
+    assert got['download'] == 'Download .ics file'
+    assert got['close'] == 'Close'
+    page.evaluate("() => window.app.setLocale('es')")
+    assert page.evaluate(CAL_JS)['title'] == 'Suscripción de calendario'
+    page.evaluate("() => window.app.setLocale('en')")
+    assert page.evaluate(CAL_JS)['title'] == 'Calendar Feed'
