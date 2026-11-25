@@ -101,7 +101,7 @@ test('unrelated query params are ignored and kept canonical', () => {
 
 - [ ] **Step 4: Run to verify it passes.** Expected: PASS, and `tests/unit/firstPaintModules.test.js` still passes (router.js is not yet imported).
 
-- [ ] **Step 5: Commit** `feat: pure route table for path addresses (#<issue>)`.
+- [ ] **Step 5: Commit** `feat: pure route table for path addresses (#730)`.
 
 ---
 
@@ -119,7 +119,7 @@ test('unrelated query params are ignored and kept canonical', () => {
 - [ ] **Step 2: Run them** against a rebuilt stack. Expected: the first FAILS (module MIME / console errors), the second FAILS (offline error page).
 - [ ] **Step 3: Implement.** Add `<base href="/">` to `index.html`. In `sw.js`, when a `request.mode === 'navigate'` fetch fails and there is no exact cache match, return the cached `/index.html`. Grep `src/` for relative URLs built at runtime (`import(`, `fetch(`, `href=`, `src=`, `new URL(`) and confirm each still resolves from `/` (a relative URL now resolves against the base; record the list checked in the commit message). Bump nothing yet (Task 6 does the version).
 - [ ] **Step 4: Run both tests** plus `tests/features/test_pwa.py`, `tests/integration/test_pwa_offline.py`, `tests/ui/test_pwa_update_banner.py` and the `tests/security` CSP tests. Expected: PASS.
-- [ ] **Step 5: Commit** `feat: deep links load from any path (#<issue>)`.
+- [ ] **Step 5: Commit** `feat: deep links load from any path (#730)`.
 
 ---
 
@@ -152,7 +152,7 @@ test('unrelated query params are ignored and kept canonical', () => {
 - [ ] **Step 2: Run.** Expected: FAIL (URL never changes).
 - [ ] **Step 3: Implement** per the Interfaces block. Boot: replace `this.switchPage('health')` (`app.js:330`) with `initRouter(this); applyLocation(this);` and delete the `?page=` block at `app.js:1363-1364` (`parseLocation` handles it). Move the six `manifest.json` shortcut URLs to path addresses (`/`, `/plan`, `/reports/calendar`, `/ledger`, `/reconcile`, `/retirement`). Add `'/src/router.js'` to `PRECACHE_URLS`.
 - [ ] **Step 4: Run** the new tests plus `tests/ui/test_main_nav.py`, `tests/ui/test_reports_nav.py`, `tests/unit` (incl. `firstPaintModules.test.js`). Expected: PASS.
-- [ ] **Step 5: Commit** `feat: page addresses with Back, Forward and refresh (#<issue>)`.
+- [ ] **Step 5: Commit** `feat: page addresses with Back, Forward and refresh (#730)`.
 
 ---
 
@@ -175,7 +175,7 @@ test('unrelated query params are ignored and kept canonical', () => {
 - [ ] **Step 2: Run.** Expected: FAIL.
 - [ ] **Step 3: Implement.** Thread `subTab` from `switchPage` into `renderPageData` (including the deferred `loadAppFeatures().then` path) and apply it inside the render: Liabilities `switchLiabilitiesSubTab(subTab || 'debts')` where it now resets; Savings sets `app.savingsSubTab = subTab` before `renderSavingsPage`; Reports `selectReportsTab(subTab)` before `renderReportsPage`. Each sub-tab click handler calls `recordView(app, { page, subTab }, 'push')` after switching.
 - [ ] **Step 4: Run** the new tests, `tests/ui/test_reports_nav.py`, and the Liabilities/Savings/Reports feature files in `tests/features`. Expected: PASS.
-- [ ] **Step 5: Commit** `feat: sub-tab addresses (#<issue>)`.
+- [ ] **Step 5: Commit** `feat: sub-tab addresses (#730)`.
 
 ---
 
@@ -204,7 +204,7 @@ test('unrelated query params are ignored and kept canonical', () => {
 - [ ] **Step 2: Run.** Expected: FAIL.
 - [ ] **Step 3: Implement.** In `open(page)`, call `recordSettings(page || '', 'push')` before showing a page; `showSettingsPage` calls `recordSettings(activePage, 'replace')`, the list functions `recordSettings('', 'replace')`. Keep Escape's existing narrow-list behaviour.
 - [ ] **Step 4: Run** the new tests, `tests/features/test_settings*.py` and `tests/ui/test_settings_redesign.py`. Expected: PASS.
-- [ ] **Step 5: Commit** `feat: Settings address, Back closes Settings (#<issue>)`.
+- [ ] **Step 5: Commit** `feat: Settings address, Back closes Settings (#730)`.
 
 ---
 
@@ -216,4 +216,4 @@ test('unrelated query params are ignored and kept canonical', () => {
 - [ ] **Step 1: Bump** to 8.7.0 in `APP_VERSION` and `CACHE_NAME`; add `## [8.7.0] — <merge date>` at the top of `CHANGELOG.md` (addresses, Back/Forward, refresh, Settings address, legacy `?page=` redirect, offline deep links); add a What's New entry with real es/pl translations.
 - [ ] **Step 2: Docs.** `features.md`: an "App routing (path addresses)" entry describing the route table, record/apply flow, Settings replace rule and remembered sub-tabs. `CLAUDE.md` Page navigation: "a new page or sub-tab joins the route table in `src/router.js`; view changes go through `switchPage`/the sub-tab functions, which record the address; never call `history.pushState` elsewhere."
 - [ ] **Step 3: Run** `tests/features/test_versioning.py`, `tests/features/test_pwa.py`, `tests/features/test_whats_new.py`, `tests/features/test_community_files.py`, `tests/features/test_ci_shard_coverage.py`, and `tests/unit`. Expected: PASS.
-- [ ] **Step 4: Commit** `chore: release 8.7.0 app routing (#<issue>)`.
+- [ ] **Step 4: Commit** `chore: release 8.7.0 app routing (#730)`.
