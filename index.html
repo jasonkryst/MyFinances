@@ -2421,22 +2421,22 @@
     <!-- Calendar Feed Modal -->
     <div id="calendarFeedModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="calendarFeedModalTitle" aria-describedby="calendarFeedModalDesc" tabindex="-1">
         <div class="modal-content">
-            <button id="calendarFeedModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="calendarFeedModalTitle">Calendar Feed</h3>
-            <p id="calendarFeedModalDesc" class="modal-description">Export your bills, debts, recurring items, expenses, and paydays to a calendar application. Archived debts are included only when Settings → Show archived debts is on.</p>
-            <button id="calendarDownloadBtn" class="btn btn-primary">Download .ics file</button>
+            <button id="calendarFeedModalCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
+            <h3 id="calendarFeedModalTitle" data-i18n="calendarFeed.title">Calendar Feed</h3>
+            <p id="calendarFeedModalDesc" class="modal-description" data-i18n="calendarFeed.description">Export your bills, debts, recurring items, expenses, and paydays to a calendar application. Archived debts are included only when Settings → Show archived debts is on.</p>
+            <button id="calendarDownloadBtn" class="btn btn-primary" data-i18n="calendarFeed.download">Download .ics file</button>
             <div id="calendarSubscriptionSection" class="hidden">
                 <hr class="modal-divider">
-                <h4>Live Subscription</h4>
-                <p class="modal-description">Subscribe in Google Calendar or another app — your feed updates automatically each time it is polled.</p>
-                <button id="calendarGenerateTokenBtn" class="btn">Generate subscription link</button>
+                <h4 data-i18n="calendarFeed.liveTitle">Live Subscription</h4>
+                <p class="modal-description" data-i18n="calendarFeed.liveDescription">Subscribe in Google Calendar or another app — your feed updates automatically each time it is polled.</p>
+                <button id="calendarGenerateTokenBtn" class="btn" data-i18n="calendarFeed.generate">Generate subscription link</button>
                 <div id="calendarTokenUrlRow" class="hidden">
                     <code id="calendarTokenUrl" class="cal-token-url"></code>
                     <div class="cal-token-actions">
-                        <button id="calendarCopyUrlBtn" class="btn">Copy</button>
-                        <button id="calendarRegenerateTokenBtn" class="btn btn-outline-danger">Regenerate</button>
+                        <button id="calendarCopyUrlBtn" class="btn" data-i18n="calendarFeed.copy">Copy</button>
+                        <button id="calendarRegenerateTokenBtn" class="btn btn-outline-danger" data-i18n="calendarFeed.regenerate">Regenerate</button>
                     </div>
-                    <p class="cal-token-warning">Treat this URL like a password — anyone with it can read your calendar feed. Regenerating the link immediately revokes the old one.</p>
+                    <p class="cal-token-warning" data-i18n="calendarFeed.tokenWarning">Treat this URL like a password — anyone with it can read your calendar feed. Regenerating the link immediately revokes the old one.</p>
                 </div>
             </div>
         </div>
