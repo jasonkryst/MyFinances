@@ -188,13 +188,13 @@ def test_lighthouserc_tests_both_app_pages(lighthouserc):
 
 @pytest.mark.feature
 def test_gate_accepts_a_good_config():
-    assert gate_problems(_config([['error', {'minScore': 0.7}], ['error', {'minScore': 0.8}]])) == []
+    assert gate_problems(_config([['error', {'minScore': 0.8}], ['error', {'minScore': 0.8}]])) == []
 
 
 @pytest.mark.feature
 def test_gate_rejects_low_app_performance():
-    problems = gate_problems(_config([['error', {'minScore': 0.6}], ['error', {'minScore': 0.8}]]))
-    assert any('below 0.7' in p for p in problems)
+    problems = gate_problems(_config([['error', {'minScore': 0.7}], ['error', {'minScore': 0.8}]]))
+    assert any('below 0.8' in p for p in problems)
 
 
 @pytest.mark.feature
