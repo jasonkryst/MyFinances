@@ -1099,6 +1099,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '8.6.0 — 2026-11-24',
+        items: [
+            '<strong>More room on a big monitor.</strong> On a large screen the app now uses about 80% of the window instead of stopping at a fixed width, and dialogs with lists or longer text (Add Transaction, the Spending breakdowns, Keyboard Shortcuts, Balance History, Settings) are wider too. Laptops and phones look the same as before.'
+        ]
+    },
+    {
         version: '8.5.0 — 2026-11-24',
         items: [
             '<strong>Roll a category budget over to next month.</strong> In <em>Liabilities → Expenses → Category Budgets</em>, choose a rollover for any category: <em>both ways</em> carries unspent money forward and subtracts overspending, <em>overspending only</em> carries just the overspend. The row shows what was carried and what is available this month, and Budget vs. Actual on the Variance report uses the available amount. Leave it off and nothing changes.'

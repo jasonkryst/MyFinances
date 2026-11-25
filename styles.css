@@ -180,6 +180,18 @@
     overflow-y: auto;
 }
 
+/* Wider dialogs (#363): confirms and short forms keep the 460px column above;
+   dialogs holding lists, split rows or long prose get room on a desktop.
+   width: 92% still governs below the cap, so phones are unchanged. */
+#manualTxModal .modal-content,
+#spendingDrilldownModal .modal-content,
+#acctBreakdownModal .modal-content,
+#calendarDayModal .modal-content,
+#keyboardShortcutsModal .modal-content,
+#whatsNewModal .modal-content {
+    max-width: 680px;
+}
+
 #ledgerOverrideModal .modal-content {
     max-width: 440px;
     padding: 26px 22px;
@@ -1281,8 +1293,11 @@ body {
     color: var(--text-primary);
 }
 
+/* Desktop width (#363): 80% of the window on large monitors, never narrower
+   than the old 1200px cap (so laptops look as before) and never wider than
+   2200px (ultra-wide rows stay readable). 1920px → 1536px, 2560px → 2048px. */
 .container {
-    max-width: 1200px;
+    max-width: clamp(1200px, 80vw, 2200px);
     margin: 0 auto;
     background: white;
     border-radius: 12px;
@@ -8461,7 +8476,7 @@ body.dark-mode .login-gate-form .form-control:focus {
 }
 
 /* ── Balance History modal ──────────────────────────────────────────────── */
-.modal-content--history { max-width: 720px; width: 100%; }
+.modal-content--history { max-width: 960px; width: 92%; }
 .bh-chart-wrap { position: relative; height: 260px; margin: 12px 0; }
 .bh-table-wrap { max-height: 320px; overflow-y: auto; }
 .bh-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -9751,7 +9766,7 @@ body.dark-mode .notifications-filter-text {
 
 /* Settings redesign (7.20.0) */
 .settings-shell .modal-content.settings-modal-content {
-    max-width: 900px;
+    max-width: 1080px; /* was 900px; wider for the 80vw desktop layout (#363) */
     width: 92%;
     height: 640px;
     max-height: 90vh;
