@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.4.1] — 2026-11-24
+
+### Fixed
+- **The Calendar Feed dialog is translated (#720).** Its title, description, "Download .ics file", the live-subscription section, the Generate / Copy / Regenerate buttons (and their "Generating…", "Copied!" and "Regenerating…" states), the URL warning and the Close button's accessible name were English in Spanish and Polish. They now come from `calendarFeed.*` locale keys, and the render guard scans `#calendarFeedModal` (`calendar-feed-modal`, also with a subscription link shown).
+
 ## [8.4.0] — 2026-11-24
 
 ### Changed
