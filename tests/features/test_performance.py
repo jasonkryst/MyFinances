@@ -93,10 +93,10 @@ def test_lighthouserc_is_valid_json():
 # audited signed in, so it has its own performance floor. Every other
 # category, and guide.html's performance, must stay at DEFAULT_MIN_SCORE.
 DEFAULT_MIN_SCORE = 0.8
-# The signed-in app measured 0.75 in CI (LCP 6.5 s under simulated throttling:
-# about 100 module downloads gate the first Health paint, #703). Raise this
-# back to 0.8 once fewer modules load before first paint (#713). Never lower it to make CI pass.
-APP_PERFORMANCE_FLOOR = 0.7
+# The signed-in app was 0.75 in CI with about 100 module downloads gating the
+# first Health paint (#703); #713 split the page modules out of that path and
+# CI measured 0.84. Never lower it to make CI pass.
+APP_PERFORMANCE_FLOOR = 0.8
 APP_URL_PATTERN = '^http://localhost:32900/$'
 
 
@@ -166,7 +166,7 @@ def test_lighthouserc_gate_is_strong_enough(lighthouserc):
 @pytest.mark.feature
 def test_app_performance_floor_is_not_lowered(lighthouserc):
     """The app floor is a re-baseline, not a free-for-all."""
-    assert APP_PERFORMANCE_FLOOR >= 0.7
+    assert APP_PERFORMANCE_FLOOR >= 0.8
 
 
 @pytest.mark.feature
