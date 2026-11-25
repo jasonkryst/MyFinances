@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.6.0] — 2026-11-24
+
+### Changed
+- **The app uses more of a large monitor (#363).** The page card was capped at 1200px wide; it is now 80% of the window on large screens (`max-width: clamp(1200px, 80vw, 2200px)`): a 1920px window gets 1536px, 2560px gets 2048px, and ultra-wide monitors stop at 2200px so rows stay readable. Laptops (windows under about 1500px) and phones look exactly as before.
+- **Dialogs that hold lists or long text are wider on a desktop.** Add Transaction (with split rows), the Spending and account breakdown drill-downs, the calendar day list, Keyboard Shortcuts and What's New go from 460px to 680px; Balance History from 720px to 960px; Settings from 900px to 1080px. Confirmations, alerts and short forms keep their narrow column, and every dialog still fits a phone.
+
 ## [8.5.1] — 2026-11-24
 
 ### Changed
