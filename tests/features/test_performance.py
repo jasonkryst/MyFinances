@@ -32,16 +32,12 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 # an eager fetch+compile that defeats the point of lazy-loading them.
 EXPECTED_PRELOADED_MODULES = [
     'src/locales/en.js',
-    'src/ledger.js',
-    'src/commandPalette.js',
-    'src/breakEven.js',
-    'src/forecast.js',
-    'src/spending.js',
     'src/postgresSync.js',
-    'src/postgresImport.js',
+    'src/commandPalette.js',
+    'src/undo.js',
+    'src/debtOwnership.js',
+    'src/settingsSchema.js',
     'src/sanitizers.js',
-    'src/ledgerOverrides.js',
-    'src/ledgerCleared.js',
 ]
 
 LIGHTHOUSE_CATEGORIES = [
@@ -361,7 +357,7 @@ def test_modulepreload_coverage_check_rejects_partial_list():
         if f'rel="modulepreload" href="{mod}"' not in partial_html
     ]
     assert len(missing) > 0, "Expected coverage check to find missing hints"
-    assert 'src/ledger.js' in missing
+    assert 'src/postgresSync.js' in missing
 
 
 @pytest.mark.feature

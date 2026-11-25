@@ -61,6 +61,31 @@ export function getResolvedModule(key) {
     return _resolved.get(key) || null;
 }
 
+// First-paint split (#713). Health, the landing page, needs about 40 modules;
+// everything else app.js and ui.js call (page renderers, forms, modals, the
+// notifications bell, live refresh) lives behind appFeatures.js, one dynamic
+// import that boot starts right after the landing page paints. Until it
+// resolves, getAppFeatures() returns a stand-in whose functions wait for the
+// load and then run (their results arrive as a promise), so a click in that
+// short window still works instead of throwing.
+export function loadAppFeatures() {
+    return loadOnce('appFeatures', () => import('./appFeatures.js'));
+}
+
+const _pendingFeatures = new Proxy({}, {
+    get: (_target, name) => (...args) => loadAppFeatures().then((mod) => mod[name](...args))
+});
+
+/** The appFeatures.js namespace once loaded, else the waiting stand-in. */
+export function getAppFeatures() {
+    return getResolvedModule('appFeatures') || _pendingFeatures;
+}
+
+/** A function export of appFeatures.js, callable before and after it loads. */
+export function lazyFeature(name) {
+    return (...args) => getAppFeatures()[name](...args);
+}
+
 export function loadRetirementModule() {
     return loadOnce('retirement', () => import('./retirement.js'));
 }

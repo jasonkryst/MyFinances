@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.5.1] — 2026-11-24
+
+### Changed
+- **The landing page paints with 46 modules instead of 102 (#713).** Health, the page every session opens on, needs about 40 of the app's modules. The page renderers, forms, modals, live refresh and the notifications bell now sit behind one dynamic import (`src/appFeatures.js`) that boot starts right after Health paints, so they no longer queue ahead of it. A click in the short window before that import lands waits for it and then runs. Behaviour is otherwise unchanged; `computeRecurringCashFlowForMonth` moved to `src/recurringCashFlow.js` so Health no longer imports the Recurring page.
+
 ## [8.4.0] — 2026-11-24
 
 ### Changed
