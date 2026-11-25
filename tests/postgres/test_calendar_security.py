@@ -12,7 +12,7 @@ from tests.postgres.conftest import BASE_URL as BASE, sign_in
 
 async def _wait_for_app_ready(page):
     await page.wait_for_function(
-        "() => window.app && window.app._currentPage === 'health'",
+        "() => document.documentElement.dataset.appReady === 'true' && window.app && window.app._currentPage === 'health'",
         timeout=15000
     )
 

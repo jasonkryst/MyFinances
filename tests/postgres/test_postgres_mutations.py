@@ -19,7 +19,7 @@ async def _wait_for_app_ready(page):
     """Wait until app.init() completes -- _currentPage is set by switchPage('health'),
     the last synchronous step of init(), after all loadFromPostgres GETs resolve."""
     await page.wait_for_function(
-        "() => window.app && window.app._currentPage === 'health'",
+        "() => document.documentElement.dataset.appReady === 'true' && window.app && window.app._currentPage === 'health'",
         timeout=15000
     )
 
