@@ -10,6 +10,7 @@ import { initUndoToast } from './undo.js';
 import { installOwnershipListeners } from './debtOwnership.js';
 import { t } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
+import { recordView, currentSubTab } from './router.js';
 
 // #713: page renderers and forms live in appFeatures.js, loaded after the
 // landing page paints. These keep their old call shape.
@@ -825,7 +826,7 @@ const PAGE_SECTION_IDS = {
     notifications: 'notificationsPage'
 };
 
-export function switchPage(app, pageName) {
+export function switchPage(app, pageName, { subTab = null } = {}) {
     // #315: the Spending-to-Ledger cross-nav breadcrumb only makes sense
     // while still looking at the Ledger page it dropped you into — clear it
     // the moment you navigate anywhere else, so a later plain nav back into
@@ -866,6 +867,9 @@ export function switchPage(app, pageName) {
 
     app._currentPage = pageName;
     renderPageData(app, pageName);
+    // #730: the address follows the page (a no-op when it is already there
+    // or while Back/Forward or boot is applying an address).
+    recordView(app, { page: pageName, subTab: currentSubTab(app, pageName, subTab) });
 }
 
 /**

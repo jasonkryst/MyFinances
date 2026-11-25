@@ -78,3 +78,59 @@ export function parseLocation(pathname, search) {
 
     return { page, subTab, settings, canonical };
 }
+
+// ── Glue (#730): the address follows the view, Back/Forward move the view ────
+// DOM/history access happens only inside these functions. No imports: pages
+// are switched through app.switchPage, never a direct ui.js call.
+
+let applying = false;
+let listening = false;
+
+// Sub-tab the address should show for `page`.
+export function currentSubTab(app, page, requested = null) {
+    if (requested) return requested;
+    if (page === 'liabilities') return DEFAULT_SUB_TAB.liabilities;
+    if (page === 'savings') return app.savingsSubTab || DEFAULT_SUB_TAB.savings;
+    if (page === 'reports') {
+        const active = document.querySelector('.rpt-tab-btn--active');
+        return (active && active.getAttribute('data-rptab')) || DEFAULT_SUB_TAB.reports;
+    }
+    return null;
+}
+
+// Write the view into the address bar. A no-op while an address is being
+// applied (Back/Forward, boot) and when the address is already current, so
+// re-clicking the page you are on adds no history entry.
+export function recordView(app, view, mode = 'push') {
+    if (applying) return;
+    const path = buildPath({ page: view.page, subTab: view.subTab || null });
+    if (path === location.pathname + location.search) return;
+    if (mode === 'replace') history.replaceState(null, '', path);
+    else history.pushState(null, '', path);
+}
+
+// Show the view the address names (boot and popstate). Never pushes; a
+// non-canonical address (legacy ?page=, unknown path) is rewritten in place.
+export function applyLocation(app) {
+    const parsed = parseLocation(location.pathname, location.search);
+    const current = app._currentPage;
+    const differs = parsed.page !== current
+        || (parsed.subTab !== null && parsed.subTab !== currentSubTab(app, current));
+    if (differs) {
+        applying = true;
+        try {
+            app.switchPage(parsed.page, { subTab: parsed.subTab });
+        } finally {
+            applying = false;
+        }
+    }
+    if (!parsed.canonical) {
+        history.replaceState(null, '', buildPath({ page: parsed.page, subTab: parsed.subTab }));
+    }
+}
+
+export function initRouter(app) {
+    if (listening) return;
+    listening = true;
+    window.addEventListener('popstate', () => applyLocation(app));
+}

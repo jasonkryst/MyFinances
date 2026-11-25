@@ -44,3 +44,110 @@ test('legacy ?page= maps to the path address', () => {
 test('unrelated query params are ignored and kept canonical', () => {
     expect(parseLocation('/', '?reset_token=abc')).toMatchObject({ page: 'health', canonical: true });
 });
+
+// ── Task 3 glue: recordView / currentSubTab / applyLocation / initRouter ─────
+
+const fs = require('fs');
+const path = require('path');
+const { recordView, currentSubTab, applyLocation, initRouter } = require('../../src/router.js');
+
+test('PAGE_SECTION_IDS in ui.js has exactly the ROUTE_PAGES keys', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, '../../src/ui.js'), 'utf8');
+    const block = source.match(/const PAGE_SECTION_IDS = \{([^}]*)\}/);
+    expect(block).not.toBeNull();
+    const keys = [...block[1].matchAll(/^\s*([a-z]+)\s*:/gm)].map(m => m[1]);
+    expect(keys.sort()).toEqual([...ROUTE_PAGES].sort());
+});
+
+function fakeBrowser(pathname, search = '') {
+    const calls = [];
+    const listeners = {};
+    globalThis.location = { pathname, search };
+    const move = (url) => {
+        const u = new URL(url, 'http://x');
+        globalThis.location.pathname = u.pathname;
+        globalThis.location.search = u.search;
+    };
+    globalThis.history = {
+        pushState: (s, t, url) => { calls.push(['push', url]); move(url); },
+        replaceState: (s, t, url) => { calls.push(['replace', url]); move(url); }
+    };
+    globalThis.window = { addEventListener: (type, fn) => { (listeners[type] ||= []).push(fn); } };
+    globalThis.document = { querySelector: () => null };
+    return { calls, listeners };
+}
+
+function fakeApp(startPage) {
+    const app = {
+        _currentPage: startPage,
+        switched: [],
+        switchPage(page, opts) {
+            app.switched.push([page, opts]);
+            app._currentPage = page;
+            recordView(app, { page, subTab: currentSubTab(app, page, opts?.subTab) });
+        }
+    };
+    return app;
+}
+
+afterEach(() => {
+    delete globalThis.location; delete globalThis.history; delete globalThis.window; delete globalThis.document;
+});
+
+test('recordView pushes a new address and skips the current one', () => {
+    const { calls } = fakeBrowser('/');
+    const app = fakeApp('health');
+    recordView(app, { page: 'ledger' });
+    recordView(app, { page: 'ledger' });
+    expect(calls).toEqual([['push', '/ledger']]);
+    recordView(app, { page: 'strategy' }, 'replace');
+    expect(calls[1]).toEqual(['replace', '/plan']);
+});
+
+test('recordView drops the settings field', () => {
+    const { calls } = fakeBrowser('/');
+    recordView(fakeApp('health'), { page: 'ledger', settings: 'security' });
+    expect(calls).toEqual([['push', '/ledger']]);
+});
+
+test('currentSubTab defaults per page', () => {
+    fakeBrowser('/');
+    const app = fakeApp('health');
+    expect(currentSubTab(app, 'liabilities')).toBe('debts');
+    expect(currentSubTab(app, 'savings')).toBe('emergency');
+    app.savingsSubTab = 'home';
+    expect(currentSubTab(app, 'savings')).toBe('home');
+    expect(currentSubTab(app, 'reports')).toBe('calendar');
+    globalThis.document = { querySelector: () => ({ getAttribute: () => 'spending' }) };
+    expect(currentSubTab(app, 'reports')).toBe('spending');
+    expect(currentSubTab(app, 'ledger')).toBeNull();
+    expect(currentSubTab(app, 'liabilities', 'expenses')).toBe('expenses');
+});
+
+test('applyLocation switches without pushing and canonicalises with replace', () => {
+    const { calls } = fakeBrowser('/', '?page=strategy');
+    const app = fakeApp(undefined);
+    applyLocation(app);
+    expect(app.switched).toEqual([['strategy', { subTab: null }]]);
+    expect(calls).toEqual([['replace', '/plan']]);
+});
+
+test('applyLocation leaves a canonical address alone and skips the current view', () => {
+    const { calls } = fakeBrowser('/ledger');
+    const app = fakeApp('ledger');
+    applyLocation(app);
+    expect(app.switched).toEqual([]);
+    expect(calls).toEqual([]);
+});
+
+test('initRouter registers one popstate listener that applies the address', () => {
+    const { calls, listeners } = fakeBrowser('/');
+    const app = fakeApp('health');
+    initRouter(app);
+    initRouter(app);
+    expect(listeners.popstate).toHaveLength(1);
+    globalThis.location.pathname = '/ledger';
+    listeners.popstate[0]();
+    expect(app.switched).toEqual([['ledger', { subTab: null }]]);
+    expect(calls).toEqual([]);
+});

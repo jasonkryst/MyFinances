@@ -98,16 +98,19 @@ def test_manifest_shortcuts_structure(manifest_json):
 
 @pytest.mark.feature
 def test_manifest_shortcut_urls_use_known_page_names(manifest_json):
-    """Each shortcut's ?page= value must match a page name the app actually handles."""
-    from urllib.parse import urlparse, parse_qs
+    """Each shortcut is a path address (#730) naming a page the app handles:
+    Health is `/`, Plan is `/plan`, every other page is `/<page>[/<sub-tab>]`."""
+    from urllib.parse import urlparse
+    segment_to_page = {'': 'health', 'plan': 'strategy'}
+    segment_to_page.update({p: p for p in KNOWN_PAGE_NAMES if p not in ('health', 'strategy')})
     for shortcut in manifest_json.get('shortcuts', []):
         url = shortcut.get('url', '')
-        params = parse_qs(urlparse(url).query)
-        page_values = params.get('page', [])
-        assert page_values, f"shortcut '{shortcut.get('name')}' url has no ?page= param: {url!r}"
-        assert page_values[0] in KNOWN_PAGE_NAMES, (
-            f"shortcut '{shortcut.get('name')}' uses unknown page '{page_values[0]}'; "
-            f"valid pages: {sorted(KNOWN_PAGE_NAMES)}"
+        parsed = urlparse(url)
+        assert not parsed.query, f"shortcut '{shortcut.get('name')}' uses a query, not a path address: {url!r}"
+        first = parsed.path.lstrip('/').split('/')[0]
+        assert first in segment_to_page, (
+            f"shortcut '{shortcut.get('name')}' uses unknown path {url!r}; "
+            f"valid first segments: {sorted(segment_to_page)}"
         )
 
 

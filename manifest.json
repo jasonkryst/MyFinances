@@ -19,42 +19,42 @@
       "name": "Health Dashboard",
       "short_name": "Health",
       "description": "View your financial health score and metrics",
-      "url": "/?page=health",
+      "url": "/",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Planning Dashboard",
       "short_name": "Plan",
       "description": "View your financial planning tools and resources",
-      "url": "/?page=strategy",
+      "url": "/plan",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Reports",
       "short_name": "Reports",
       "description": "View your financial reports and insights",
-      "url": "/?page=reports",
+      "url": "/reports/calendar",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Ledger",
       "short_name": "Ledger",
       "description": "View your transaction ledger",
-      "url": "/?page=ledger",
+      "url": "/ledger",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Reconcile",
       "short_name": "Reconcile",
       "description": "Reconcile your accounts and transactions",
-      "url": "/?page=reconcile",
+      "url": "/reconcile",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Retirement Dashboard",
       "short_name": "Retirement",
       "description": "View your retirement planning tools and resources",
-      "url": "/?page=retirement",
+      "url": "/retirement",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
