@@ -371,3 +371,123 @@ def test_back_to_spending_sets_address(app_page):
     page.wait_for_selector("#rptPanel-spending.rpt-tab-panel--active", timeout=5000)
     assert _path(page) == "/reports/spending"
     assert _history_length(page) == before + 1
+
+
+# ── Task 5: Settings address ────────────────────────────────────────────────
+
+NARROW = {"width": 390, "height": 844}
+
+
+def _settings_open(page):
+    return page.evaluate("() => !document.getElementById('settingsModal').classList.contains('hidden')")
+
+
+def _shown_settings_page(page):
+    return page.evaluate("""() => {
+        const el = document.querySelector('#settingsModal .settings-page--active');
+        return el ? el.id.replace('settingsPage-', '') : null;
+    }""")
+
+
+def _open_settings_from_menu(page):
+    page.click("#accountMenuBtn")
+    page.click("#accountMenuSettingsBtn")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
+
+
+def _wait_path(page, expected):
+    page.wait_for_function("(p) => location.pathname + location.search === p", arg=expected, timeout=5000)
+
+
+def _wait_settings_closed(page):
+    page.wait_for_selector("#settingsModal", state="hidden", timeout=5000)
+
+
+def test_open_settings_pushes_and_back_closes(app_page):
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    before = _history_length(page)
+    _open_settings_from_menu(page)
+    shown = _shown_settings_page(page)
+    assert shown
+    assert _path(page) == f"/ledger?settings={shown}"
+    assert _history_length(page) == before + 1, "opening Settings pushes one entry"
+    page.go_back()
+    _wait_settings_closed(page)
+    _wait_path(page, "/ledger")
+    assert _active(page, "ledgerSection")
+
+
+def test_settings_row_replaces(app_page):
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    _open_settings_from_menu(page)
+    opened = _history_length(page)
+    page.click('#settingsModal .settings-row[data-settings-page="security"]')
+    page.wait_for_selector("#settingsPage-security", state="visible", timeout=5000)
+    assert _path(page) == "/ledger?settings=security"
+    assert _history_length(page) == opened, "moving inside Settings replaces"
+    page.go_back()
+    _wait_settings_closed(page)
+    _wait_path(page, "/ledger")
+
+
+def test_close_button_restores_address(app_page):
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    _open_settings_from_menu(page)
+    page.click("#settingsModalCloseBtn")
+    _wait_settings_closed(page)
+    _wait_path(page, "/ledger")
+    origin = page.evaluate("() => location.origin")
+    page.go_back()
+    page.wait_for_load_state()
+    assert page.evaluate("() => location.origin") == origin
+    assert not _settings_open(page)
+
+
+def test_settings_deep_link_opens_modal(app_page):
+    page = app_page
+    _goto(page, "reports/spending?settings=backup")
+    page.wait_for_selector("#settingsPage-backup", state="visible", timeout=10000)
+    assert _active(page, "reportsSection")
+    assert page.evaluate("() => document.getElementById('rptPanel-spending').classList.contains('rpt-tab-panel--active')")
+    assert _path(page) == "/reports/spending?settings=backup"
+
+
+def test_close_bookmarked_settings_stays_in_app(app_page):
+    # Review Focus 3: Settings opened from the address (refresh, bookmark) has
+    # no pushed entry of its own, so closing it must not go back in history.
+    page = app_page
+    _goto(page, "ledger?settings=security")
+    page.wait_for_selector("#settingsPage-security", state="visible", timeout=10000)
+    origin = page.evaluate("() => location.origin")
+    page.evaluate("""() => {
+        window.__backCalls = 0;
+        const orig = history.back.bind(history);
+        history.back = () => { window.__backCalls++; return orig(); };
+    }""")
+    page.keyboard.press("Escape")
+    _wait_settings_closed(page)
+    _wait_path(page, "/ledger")
+    assert page.evaluate("() => window.__backCalls") == 0
+    assert page.evaluate("() => location.origin") == origin
+    assert _active(page, "ledgerSection")
+
+
+def test_narrow_settings_list_address(app_page):
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    page.set_viewport_size(NARROW)
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
+    assert _path(page) == "/ledger?settings"
+    page.click('#settingsModal .settings-row[data-settings-page="notifications"]')
+    page.wait_for_selector("#settingsPage-notifications", state="visible", timeout=5000)
+    assert _path(page) == "/ledger?settings=notifications"
+    page.click("#settingsBackBtn")
+    page.wait_for_selector("#settingsNav", state="visible", timeout=5000)
+    assert _path(page) == "/ledger?settings"
+    page.go_back()
+    _wait_settings_closed(page)
+    _wait_path(page, "/ledger")

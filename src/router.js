@@ -85,6 +85,14 @@ export function parseLocation(pathname, search) {
 
 let applying = false;
 let listening = false;
+// True while the open Settings has an entry of its own that this session
+// pushed, so closing it can step back over that entry. False when Settings
+// came from the address (refresh, bookmark, Back/Forward): stepping back then
+// could leave the app (Review Focus 3).
+let settingsPushed = false;
+// The settings half of applyLocation waits for the (lazy) Settings modal,
+// initialised in _finishBoot; applySettingsFromLocation turns it on.
+let settingsReady = false;
 
 // Sub-tab `page` is showing now (or `requested`). switchPage records after
 // rendering, so a nav click into Liabilities reads the Debts it reset to.
@@ -106,8 +114,65 @@ export function recordView(app, view, mode = 'push') {
     if (applying) return;
     const path = buildPath({ page: view.page, subTab: view.subTab || null });
     if (path === location.pathname + location.search) return;
+    // The new address carries no ?settings, so there is no pushed Settings
+    // entry for closing to step back over.
+    settingsPushed = false;
     if (mode === 'replace') history.replaceState(null, '', path);
     else history.pushState(null, '', path);
+}
+
+// Settings in the address: keeps the path and sets ?settings=<page> (bare
+// ?settings for the narrow list). Opening pushes; moving inside replaces.
+export function recordSettings(settingsPage, mode = 'replace') {
+    if (applying) return;
+    const path = location.pathname + (settingsPage ? '?settings=' + settingsPage : '?settings');
+    if (mode === 'push') {
+        history.pushState(null, '', path);
+        settingsPushed = true;
+        return;
+    }
+    if (path !== location.pathname + location.search) history.replaceState(null, '', path);
+}
+
+// Settings closed by its button or Escape: step back over the entry opening
+// pushed, else drop ?settings in place (never back out of the app).
+export function leaveSettings() {
+    if (applying) return;
+    const carriesSettings = parseLocation(location.pathname, location.search).settings !== null;
+    const pushed = settingsPushed;
+    settingsPushed = false;
+    if (!carriesSettings) return;
+    if (pushed) history.back();
+    else history.replaceState(null, '', location.pathname);
+}
+
+function isSettingsOpen() {
+    const modal = document.getElementById('settingsModal');
+    return Boolean(modal && !modal.classList.contains('hidden'));
+}
+
+// The settings half of applyLocation: open or close Settings to match the address.
+function applySettings(app, settings) {
+    const open = isSettingsOpen();
+    if (settings !== null && !open) {
+        app.openSettings({ page: settings || undefined });
+    } else if (settings === null && open) {
+        settingsPushed = false;
+        app.closeSettings({ fromHistory: true });
+    }
+}
+
+// Called once after _finishBoot: Settings is lazy, so a ?settings address
+// opens it only once its modal is initialised.
+export function applySettingsFromLocation(app) {
+    settingsReady = true;
+    const { settings } = parseLocation(location.pathname, location.search);
+    applying = true;
+    try {
+        applySettings(app, settings);
+    } finally {
+        applying = false;
+    }
 }
 
 // Show the view the address names (boot and popstate). Never pushes; a
@@ -117,16 +182,15 @@ export function applyLocation(app) {
     const current = app._currentPage;
     const differs = parsed.page !== current
         || (parsed.subTab !== null && parsed.subTab !== currentSubTab(app, current));
-    if (differs) {
-        applying = true;
-        try {
-            app.switchPage(parsed.page, { subTab: parsed.subTab });
-        } finally {
-            applying = false;
-        }
+    applying = true;
+    try {
+        if (differs) app.switchPage(parsed.page, { subTab: parsed.subTab });
+        if (settingsReady) applySettings(app, parsed.settings);
+    } finally {
+        applying = false;
     }
     if (!parsed.canonical) {
-        history.replaceState(null, '', buildPath({ page: parsed.page, subTab: parsed.subTab }));
+        history.replaceState(null, '', buildPath(parsed));
     }
 }
 

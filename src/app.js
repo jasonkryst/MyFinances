@@ -8,7 +8,7 @@ import {
 } from './strategyPlanCalculation.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, renderPageData as renderPageDataFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature, checkWhatsNew as checkWhatsNewFeature, openWhatsNewModal as openWhatsNewModalFeature, showAlertModal } from './ui.js';
 import { registerServiceWorker } from './serviceWorker.js';
-import { initRouter, applyLocation } from './router.js';
+import { initRouter, applyLocation, applySettingsFromLocation } from './router.js';
 import { APP_VERSION, renderLazyLoadError } from './utils.js';
 import {
     loadRetirementModule,
@@ -139,6 +139,7 @@ const openKeyboardShortcutsModalFeature = lazyFeature('openKeyboardShortcutsModa
 const maybeShowSetupWizardFeature = lazyFeature('maybeShowSetupWizard');
 const initSettingsModalFeature = lazyFeature('initSettingsModal');
 const openSettingsFeature = lazyFeature('openSettings');
+const closeSettingsFeature = lazyFeature('closeSettings');
 const initDataTransferModal = lazyFeature('initDataTransferModal');
 const showImportResult = lazyFeature('showImportResult');
 const requestImportModeChoice = lazyFeature('requestImportModeChoice');
@@ -363,6 +364,8 @@ export class DebtTrackerApp {
         initSettingsModalFeature(this);
         initDataTransferModal(this);
         initCalendarFeedModal(this);
+        // #730: a ?settings address opens Settings now that it is initialised.
+        applySettingsFromLocation(this);
         // These two used to run before the landing page rendered; redraw it only
         // when they changed something it shows.
         if ((reconciled || seeded > 0) && this._currentPage === 'health') this.renderHealthDashboard();
@@ -1339,6 +1342,7 @@ export class DebtTrackerApp {
     refreshPersonSelectors() { return refreshPersonSelectorsFeature(this); }
 
     openSettings(opts) { return openSettingsFeature(this, opts); }
+    closeSettings(opts) { return closeSettingsFeature(this, opts); }
     openKeyboardShortcuts() { return openKeyboardShortcutsModalFeature(this); }
 
     getSetting(key, defaultValue) { return getSettingFeature(this, key, defaultValue); }

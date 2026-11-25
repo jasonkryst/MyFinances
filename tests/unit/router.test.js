@@ -151,3 +151,64 @@ test('initRouter registers one popstate listener that applies the address', () =
     expect(app.switched).toEqual([['ledger', { subTab: null }]]);
     expect(calls).toEqual([]);
 });
+
+// ── Task 5 glue: recordSettings / leaveSettings / applySettingsFromLocation ──
+
+const { recordSettings, leaveSettings, applySettingsFromLocation } = require('../../src/router.js');
+
+function settingsBrowser(pathname, search = '', modalOpen = false) {
+    const env = fakeBrowser(pathname, search);
+    globalThis.history.back = () => env.calls.push(['back']);
+    const modal = { classList: { contains: (c) => c === 'hidden' && !env.modalOpen } };
+    env.modalOpen = modalOpen;
+    globalThis.document = { querySelector: () => null, getElementById: (id) => (id === 'settingsModal' ? modal : null) };
+    return env;
+}
+
+function settingsApp(env, page) {
+    const app = fakeApp(page);
+    app.settingsCalls = [];
+    app.openSettings = (opts) => {
+        app.settingsCalls.push(['open', opts]);
+        env.modalOpen = true;
+        recordSettings(opts.page || '', 'push'); // a no-op while applying
+    };
+    app.closeSettings = (opts) => { app.settingsCalls.push(['close', opts]); env.modalOpen = false; };
+    return app;
+}
+
+test('recordSettings pushes on open, replaces inside, leaveSettings steps back', () => {
+    const env = settingsBrowser('/ledger');
+    recordSettings('', 'push');
+    recordSettings('security', 'replace');
+    recordSettings('security', 'replace');
+    leaveSettings();
+    expect(env.calls).toEqual([['push', '/ledger?settings'], ['replace', '/ledger?settings=security'], ['back']]);
+});
+
+test('leaveSettings replaces when the open was not pushed (bookmark)', () => {
+    const env = settingsBrowser('/ledger', '?settings=security');
+    leaveSettings();
+    expect(env.calls).toEqual([['replace', '/ledger']]);
+});
+
+test('leaveSettings does nothing once a page change dropped ?settings', () => {
+    const env = settingsBrowser('/ledger');
+    recordSettings('backup', 'push');
+    recordView(fakeApp('ledger'), { page: 'reports', subTab: 'calendar' });
+    leaveSettings();
+    expect(env.calls).toEqual([['push', '/ledger?settings=backup'], ['push', '/reports/calendar']]);
+});
+
+test('applySettingsFromLocation opens Settings without recording; popstate closes it', () => {
+    const env = settingsBrowser('/reports/spending', '?settings=backup');
+    const app = settingsApp(env, 'reports');
+    applySettingsFromLocation(app);
+    expect(app.settingsCalls).toEqual([['open', { page: 'backup' }]]);
+    expect(env.calls).toEqual([]);
+    globalThis.location.search = '';
+    globalThis.document.querySelector = () => ({ getAttribute: () => 'spending' });
+    applyLocation(app);
+    expect(app.settingsCalls[1]).toEqual(['close', { fromHistory: true }]);
+    expect(env.calls).toEqual([]);
+});
