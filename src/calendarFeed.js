@@ -5,6 +5,7 @@
 import { getCsrfCookie } from './storage.js';
 import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
 import { discardBody } from './utils.js';
+import { t, applyStaticTranslations } from './i18n.js';
 import { buildIcs } from './calendarCore.js';
 
 // Generate a full ICS string from the current app state. `now` is injectable.
@@ -96,6 +97,7 @@ export function initCalendarFeedModal(app) {
         lastFocused = document.activeElement;
         modal.classList.add('flex-visible');
         modal.classList.remove('hidden');
+        applyStaticTranslations(modal);
         document.addEventListener('keydown', onKeydown);
 
         const section = document.getElementById('calendarSubscriptionSection');
@@ -104,7 +106,7 @@ export function initCalendarFeedModal(app) {
             const urlRow = document.getElementById('calendarTokenUrlRow');
             const genBtn = document.getElementById('calendarGenerateTokenBtn');
             if (urlRow) urlRow.classList.add('hidden');
-            if (genBtn) { genBtn.classList.remove('hidden'); genBtn.disabled = false; genBtn.textContent = 'Generate subscription link'; }
+            if (genBtn) { genBtn.classList.remove('hidden'); genBtn.disabled = false; genBtn.textContent = t('calendarFeed.generate'); }
             const token = await fetchToken();
             if (token) setTokenUrl(token);
         }
@@ -122,10 +124,10 @@ export function initCalendarFeedModal(app) {
     document.getElementById('calendarGenerateTokenBtn')?.addEventListener('click', async () => {
         const btn = document.getElementById('calendarGenerateTokenBtn');
         btn.disabled = true;
-        btn.textContent = 'Generating…';
+        btn.textContent = t('calendarFeed.generating');
         const token = await postToken();
         if (token) setTokenUrl(token);
-        else { btn.disabled = false; btn.textContent = 'Generate subscription link'; }
+        else { btn.disabled = false; btn.textContent = t('calendarFeed.generate'); }
     });
 
     document.getElementById('calendarCopyUrlBtn')?.addEventListener('click', async () => {
@@ -133,18 +135,17 @@ export function initCalendarFeedModal(app) {
         if (!urlEl?.textContent) return;
         await navigator.clipboard.writeText(urlEl.textContent);
         const btn = document.getElementById('calendarCopyUrlBtn');
-        const orig = btn.textContent;
-        btn.textContent = 'Copied!';
-        setTimeout(() => { btn.textContent = orig; }, 2000);
+        btn.textContent = t('calendarFeed.copied');
+        setTimeout(() => { btn.textContent = t('calendarFeed.copy'); }, 2000);
     });
 
     document.getElementById('calendarRegenerateTokenBtn')?.addEventListener('click', async () => {
         const btn = document.getElementById('calendarRegenerateTokenBtn');
         btn.disabled = true;
-        btn.textContent = 'Regenerating…';
+        btn.textContent = t('calendarFeed.regenerating');
         const token = await postToken();
         btn.disabled = false;
-        btn.textContent = 'Regenerate';
+        btn.textContent = t('calendarFeed.regenerate');
         if (token) setTokenUrl(token);
     });
 }

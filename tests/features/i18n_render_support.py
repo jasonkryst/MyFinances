@@ -655,6 +655,16 @@ TRANSLATED_PAGES = {
             document.getElementById('accountMenuLogoutBtn').classList.remove('hidden');
         }""",
     ),
+    # #720: the Calendar Feed dialog, open (the subscription section is shown
+    # and its link row is revealed so the Copy/Regenerate buttons are scanned).
+    'calendar-feed-modal': (
+        ['#calendarFeedModal'],
+        """async () => {
+            document.getElementById('calendarFeedBtn').click();
+            await new Promise(r => setTimeout(r, 200));
+            document.getElementById('calendarTokenUrlRow').classList.remove('hidden');
+        }""",
+    ),
     # #686: the command palette with a query that matches commands and
     # seeded records (names are bracketed, type hints and group headings not).
     'command-palette': (

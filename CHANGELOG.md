@@ -9,6 +9,16 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Changed
 - **The landing page paints with 46 modules instead of 102 (#713).** Health, the page every session opens on, needs about 40 of the app's modules. The page renderers, forms, modals, live refresh and the notifications bell now sit behind one dynamic import (`src/appFeatures.js`) that boot starts right after Health paints, so they no longer queue ahead of it. A click in the short window before that import lands waits for it and then runs. Behaviour is otherwise unchanged; `computeRecurringCashFlowForMonth` moved to `src/recurringCashFlow.js` so Health no longer imports the Recurring page.
 
+## [8.5.0] — 2026-11-24
+
+### Added
+- **Category budgets can roll over from month to month (#687).** Each category budget (fixed or derived) has an optional rollover on Liabilities → Expenses → Category Budgets: **Roll over both ways** adds what you did not spend to next month and subtracts what you overspent, **Roll over overspending only** carries only the overspend (unspent money does not build up). Turning it on starts it this month (the start month is editable); the carry begins at zero in the start month and looks back at most 120 months. The row shows "Carried: X · Available: Y" for the current month, and Reports → Variance → Budget vs. Actual shows the carried amount under rollover rows and compares actual with budget plus carried (difference, % used and the over flag use the available amount). With rollover off, nothing changes. The carry rule is the pure `src/budgetRollover.js` (shared with the server's sanitizer); `app.budgetCategories` entries gain optional `rollover` and `rolloverStart` (stored in the existing plan-settings JSON, no migration). A backup with an invalid rollover mode or start month imports the budget without the rollover and reports a warning.
+
+## [8.4.1] — 2026-11-24
+
+### Fixed
+- **The Calendar Feed dialog is translated (#720).** Its title, description, "Download .ics file", the live-subscription section, the Generate / Copy / Regenerate buttons (and their "Generating…", "Copied!" and "Regenerating…" states), the URL warning and the Close button's accessible name were English in Spanish and Polish. They now come from `calendarFeed.*` locale keys, and the render guard scans `#calendarFeedModal` (`calendar-feed-modal`, also with a subscription link shown).
+
 ## [8.4.0] — 2026-11-24
 
 ### Changed

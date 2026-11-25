@@ -127,8 +127,10 @@ export const MUTATE_SCOPE = {
     'src/netWorthCore.js': true,
     // #547: ownership share math (the form-control half is DOM and stays out).
     'src/debtOwnership.js': ['getDebtShare', 'hasCustomSplit', 'removePersonFromDebt', 'equalPercents', 'autoBalancePercents', 'round2'],
+    // #687: category budget rollover carry rule (pure; shared with the server sanitizer).
+    'src/budgetRollover.js': true,
     // #547: category budget derivation and mutations (render/panel code stays out).
-    'src/categoryBudgets.js': ['_configured', '_isFixed', 'computeDerivedBudgetByCategory', 'computeCategoryBudgets',
+    'src/categoryBudgets.js': ['_configured', '_isFixed', '_rolloverOf', 'computeRolloverCarriesForApp', 'computeDerivedBudgetByCategory', 'computeCategoryBudgets',
         'setCategoryBudget', 'resetCategoryBudget', 'getKnownBudgetCategories'],
     'src/projectionCore.js': ['makeLedgerTransactionId', 'getLedgerTransactionsForMonth', 'computeAccountBalance', 'buildProjectedAccountTransactions'],
 };

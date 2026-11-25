@@ -311,3 +311,130 @@ def test_variance_empty_state_without_categories(app_page):
     }""")
     _open_variance(page)
     assert page.locator('#budgetVsActual .bva-empty').count() == 1
+
+
+# ── Rollover (#687) ────────────────────────────────────────────────────────
+# Clock pinned to 2026-06-15. SEED_JS gives Food a $200 expense in June; one more
+# $120 Food expense in May makes May's carry-out: fixed $300 - $120 = $180.
+
+def _seed_rollover(page):
+    from tests.conftest import pin_clock
+    pin_clock(page, '2026-06-15')
+    _seed(page)
+    page.evaluate("""() => {
+        window.app.expenses.push({ id: 11, name: 'May food', budgetAmount: 120, date: '2026-05-06', category: 'Food', accountId: 9301 });
+    }""")
+
+
+def _set_rollover(page, category, amount, mode, start=None):
+    row = _row(page, category)
+    row.locator('.cb-mode').select_option('fixed')
+    row.locator('.cb-amount').fill(str(amount))
+    row.locator('.cb-rollover-mode').select_option(mode)
+    if start is not None:
+        row.locator('.cb-rollover-start').fill(start)
+    row.locator('.cb-save').click()
+
+
+@pytest.mark.feature
+def test_rollover_on_defaults_start_to_current_month_and_shows_carried(app_page):
+    page = app_page
+    _seed_rollover(page)
+    _open_panel(page)
+    row = _row(page, 'Food')
+    assert row.locator('.cb-rollover-start').is_hidden()
+    row.locator('.cb-rollover-mode').select_option('both')
+    assert row.locator('.cb-rollover-start').is_visible()
+    assert row.locator('.cb-rollover-start').input_value() == '2026-06'
+    assert row.locator('.cb-rollover-mode').get_attribute('aria-label') == 'Rollover for Food'
+    _set_rollover(page, 'Food', 300, 'both', '2026-05')
+    page.wait_for_function("() => (window.app.budgetCategories.Food || {}).rollover === 'both'", timeout=5000)
+    assert page.evaluate("() => window.app.budgetCategories.Food") == {
+        'mode': 'fixed', 'amount': 300, 'rollover': 'both', 'rolloverStart': '2026-05'}
+    note = _row(page, 'Food').locator('.cb-carried')
+    assert note.inner_text() == 'Carried: $180.00 · Available: $480.00'
+
+
+@pytest.mark.feature
+def test_rollover_persists_after_reload(app_page):
+    page = app_page
+    _seed_rollover(page)
+    _open_panel(page)
+    _set_rollover(page, 'Food', 300, 'overspend', '2026-05')
+    expected = {'mode': 'fixed', 'amount': 300, 'rollover': 'overspend', 'rolloverStart': '2026-05'}
+    wait_for_api(page, '/api/plan-settings', lambda d: d.get('budgetCategories', {}).get('Food') == expected)
+    page.reload(wait_until='networkidle')
+    assert page.evaluate("() => window.app.budgetCategories.Food") == expected
+    _open_panel(page)
+    row = _row(page, 'Food')
+    assert row.locator('.cb-rollover-mode').input_value() == 'overspend'
+    assert row.locator('.cb-rollover-start').input_value() == '2026-05'
+    # Overspend-only: May's unspent $180 does not carry, so nothing is carried.
+    assert row.locator('.cb-carried').inner_text() == 'Carried: $0.00 · Available: $300.00'
+
+
+@pytest.mark.feature
+def test_rollover_off_restores_the_plain_display(app_page):
+    page = app_page
+    _seed_rollover(page)
+    _open_panel(page)
+    _set_rollover(page, 'Food', 300, 'both', '2026-05')
+    page.wait_for_function("() => (window.app.budgetCategories.Food || {}).rollover === 'both'", timeout=5000)
+    _row(page, 'Food').locator('.cb-rollover-mode').select_option('')
+    assert _row(page, 'Food').locator('.cb-rollover-start').is_hidden()
+    _row(page, 'Food').locator('.cb-save').click()
+    page.wait_for_function("() => !('rollover' in window.app.budgetCategories.Food)", timeout=5000)
+    assert page.evaluate("() => window.app.budgetCategories.Food") == {'mode': 'fixed', 'amount': 300}
+    assert _row(page, 'Food').locator('.cb-carried').inner_text() == ''
+    _open_variance(page)
+    row = _bva(page, 'Food')
+    assert row.locator('.bva-carry').count() == 0
+    assert row.locator('.bva-budget').inner_text() == '$300.00'
+    assert row.locator('.bva-diff').inner_text() == '$100.00'
+    assert row.locator('.bva-pct').inner_text() == '67%'
+
+
+@pytest.mark.feature
+def test_rollover_invalid_start_month_is_rejected_inline(app_page):
+    page = app_page
+    _seed_rollover(page)
+    _open_panel(page)
+    _set_rollover(page, 'Food', 300, 'both', '')
+    row = _row(page, 'Food')
+    assert 'start month' in row.locator('.cb-error').inner_text().lower()
+    assert page.evaluate("() => window.app.budgetCategories") == {}
+
+
+@pytest.mark.feature
+def test_variance_shows_carried_and_uses_available(app_page):
+    page = app_page
+    _seed_rollover(page)
+    page.evaluate("""() => { window.app.budgetCategories = {
+        Food: { mode: 'fixed', amount: 300, rollover: 'both', rolloverStart: '2026-05' },
+        Housing: { mode: 'fixed', amount: 1000 } }; }""")
+    _open_variance(page)
+    food = _bva(page, 'Food')
+    assert food.locator('.bva-budget').inner_text() == '$300.00'
+    assert food.locator('.bva-actual').inner_text() == '$200.00'
+    assert food.locator('.bva-carry').inner_text() == 'Carried in: $180.00 · Available: $480.00'
+    assert food.locator('.bva-carry').get_attribute('data-label') == 'Carried'
+    assert food.locator('.bva-diff').inner_text() == '$280.00'
+    assert food.locator('.bva-pct').inner_text() == '42%'
+    # A category without rollover keeps the plain row.
+    housing = _bva(page, 'Housing')
+    assert housing.locator('.bva-carry').count() == 0
+    assert housing.locator('.bva-diff').inner_text().startswith('-$500.00')
+
+
+@pytest.mark.feature
+def test_variance_overspend_carry_reduces_available_and_flags_over(app_page):
+    page = app_page
+    _seed_rollover(page)
+    # May budget $100 vs $120 spent: -$20 carries into June, so $80 is available vs $200 spent.
+    page.evaluate("""() => { window.app.budgetCategories = {
+        Food: { mode: 'fixed', amount: 100, rollover: 'overspend', rolloverStart: '2026-05' } }; }""")
+    _open_variance(page)
+    food = _bva(page, 'Food')
+    assert 'bva-row--over' in food.get_attribute('class')
+    assert food.locator('.bva-carry').inner_text() == 'Carried in: -$20.00 · Available: $80.00'
+    assert food.locator('.bva-diff').inner_text().startswith('-$120.00')
