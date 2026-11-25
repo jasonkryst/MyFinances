@@ -1132,6 +1132,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '8.7.0 — 2026-11-25',
+        items: [
+            '<strong>Every page has its own address.</strong> The Back and Forward buttons now move between the pages you visited, refreshing keeps you where you were, and you can bookmark or share a link to any page, tab or open Settings page, such as <em>Liabilities → Expenses</em> or <em>Reports → Net Worth</em>. Links you already saved keep working, and the app opens on any page even offline.'
+        ]
+    },
+    {
         version: '8.6.0 — 2026-11-24',
         items: [
             '<strong>More room on a big monitor.</strong> On a large screen the app now uses about 80% of the window instead of stopping at a fixed width, and dialogs with lists or longer text (Add Transaction, the Spending breakdowns, Keyboard Shortcuts, Balance History, Settings) are wider too. Laptops and phones look the same as before.'

@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.7.0] — 2026-11-25
+
+### Added
+- **Every page has its own address, so Back, Forward, refresh and bookmarks work (#730).** Health is `/`, Plan is `/plan`, and the rest are `/accounts`, `/liabilities`, `/income`, `/savings`, `/reports`, `/ledger`, `/recurring`, `/reconcile`, `/retirement`, `/people` and `/notifications`. Liabilities, Savings and Reports add their sub-tab (`/liabilities/expenses`, `/savings/home`, `/reports/networth`). Clicking a page or sub-tab adds a history entry (clicking the one you are already on adds none); Back and Forward move between them, a refresh stays on the page, and a deep link opens straight to it, including after signing in. The route table is the pure `src/router.js`, which `ui.js` calls from `switchPage` and the sub-tab functions.
+- **Settings has an address too.** Opening Settings adds `?settings=<page>` (for example `/ledger?settings=notifications`); moving between Settings pages replaces it, and closing Settings steps back over the entry that opening added. A refreshed or bookmarked `?settings=` address opens Settings and closing it never leaves the app. Back closes Settings.
+- **Offline deep links.** The service worker answers an offline navigation to any page address with the cached app shell, so `/reports/spending` opens offline as `/` does.
+
+### Changed
+- **`index.html` has `<base href="/">`** so relative asset paths keep working under `/liabilities/expenses`. A delegated handler in `src/ui.js` keeps in-page `#id` anchors (skip links and similar) on the current path.
+- **Old `/?page=<name>` links still work.** They are rewritten in place to the new address; the PWA manifest shortcuts use the path addresses. The Ledger search term and filters never go into the address.
+
 ## [8.6.0] — 2026-11-24
 
 ### Changed
