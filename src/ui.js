@@ -1,10 +1,7 @@
 ﻿﻿﻿// UI helpers, event listeners, theming
-import { renderLedgerPage } from './ledger.js';
 import { installAmountChangeListeners } from './amountChangeUi.js';
-import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from './accounts.js';
-import { refreshPersonSelectors } from './people.js';
-import { refreshCategoryDatalist } from './recurring.js';
-import { APP_VERSION, escapeHtml, isCollapsibleOpen, withBusy, setCollapsibleOpen, refreshFilterDisclosureCounts, discardBody } from './utils.js';
+import { lazyFeature, getResolvedModule, loadAppFeatures } from './lazyModules.js';
+import { APP_VERSION, renderLazyLoadError, escapeHtml, isCollapsibleOpen, withBusy, setCollapsibleOpen, refreshFilterDisclosureCounts, discardBody } from './utils.js';
 import { getZeroAmountPolicy, THEMES } from './settings.js';
 export { THEMES };
 import { initCommandPalette } from './commandPalette.js';
@@ -13,6 +10,14 @@ import { initUndoToast } from './undo.js';
 import { installOwnershipListeners } from './debtOwnership.js';
 import { t } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
+
+// #713: page renderers and forms live in appFeatures.js, loaded after the
+// landing page paints. These keep their old call shape.
+const renderLedgerPage = lazyFeature('renderLedgerPage');
+const refreshAccountSelectors = lazyFeature('refreshAccountSelectors');
+const updateAccountFormRetirementVisibility = lazyFeature('updateAccountFormRetirementVisibility');
+const refreshPersonSelectors = lazyFeature('refreshPersonSelectors');
+const refreshCategoryDatalist = lazyFeature('refreshCategoryDatalist');
 
 const LAST_SEEN_VERSION_KEY = 'debtTrackerLastSeenVersion';
 
@@ -782,6 +787,22 @@ export function attachLiabilitiesEventListeners(app) {
     });
 }
 
+const PAGE_SECTION_IDS = {
+    health: 'healthSection',
+    accounts: 'accountsSection',
+    liabilities: 'liabilitiesSection',
+    income: 'incomeSection',
+    savings: 'savingsSection',
+    strategy: 'strategySection',
+    reports: 'reportsSection',
+    ledger: 'ledgerSection',
+    recurring: 'recurringSection',
+    reconcile: 'reconcileSection',
+    retirement: 'retirementSection',
+    people: 'peopleSection',
+    notifications: 'notificationsPage'
+};
+
 export function switchPage(app, pageName) {
     // #315: the Spending-to-Ledger cross-nav breadcrumb only makes sense
     // while still looking at the Ledger page it dropped you into — clear it
@@ -811,21 +832,7 @@ export function switchPage(app, pageName) {
         btn.setAttribute('aria-current', 'page');
     }
 
-    const mapping = {
-        health: 'healthSection',
-        accounts: 'accountsSection',
-        liabilities: 'liabilitiesSection',
-        income: 'incomeSection',
-        savings: 'savingsSection',
-        strategy: 'strategySection',
-        reports: 'reportsSection',
-        ledger: 'ledgerSection',
-        recurring: 'recurringSection',
-        reconcile: 'reconcileSection',
-        retirement: 'retirementSection',
-        people: 'peopleSection',
-        notifications: 'notificationsPage'
-    };
+    const mapping = PAGE_SECTION_IDS;
 
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
 
@@ -853,6 +860,18 @@ export function switchPage(app, pageName) {
 // Render-scoped projection cache (#518): every balance this render reads
 // shares one projection build instead of one per account.
 export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
+    // #713: only Health renders before appFeatures.js has loaded. Any other
+    // page waits for it (usually already there) and renders if the user is
+    // still on that page.
+    if (pageName !== 'health' && !getResolvedModule('appFeatures')) {
+        return loadAppFeatures().then(
+            () => { if (app._currentPage === pageName) return renderPageData(app, pageName, { resetToDefaults }); },
+            (err) => {
+                console.error('Failed to load the app features', err);
+                renderLazyLoadError(PAGE_SECTION_IDS[pageName], 'this page');
+            }
+        );
+    }
     return withProjectionCache(app, () => renderPageDataUncached(app, pageName, { resetToDefaults }));
 }
 

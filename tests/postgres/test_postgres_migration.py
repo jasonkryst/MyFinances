@@ -17,7 +17,7 @@ async def test_migration_not_shown_when_no_local_data(pg_page, base_url):
     """No migration modal when localStorage has no debtTrackerData."""
     await sign_in(pg_page, base_url, wipe=True)
     await pg_page.wait_for_function(
-        "() => window.app && window.app._currentPage === 'health'", timeout=15000
+        "() => document.documentElement.dataset.appReady === 'true' && window.app && window.app._currentPage === 'health'", timeout=15000
     )
     assert not await pg_page.locator("#pgMigrationModal").is_visible(), \
         "Migration modal shown unexpectedly when no local data present"

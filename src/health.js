@@ -3,7 +3,7 @@ import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, form
 import { getCurrentAmount } from './amountSchedule.js';
 import { t, getIntlLocale } from './i18n.js';
 import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
-import { computeRecurringCashFlowForMonth } from './recurring.js';
+import { computeRecurringCashFlowForMonth } from './recurringCashFlow.js';
 import {
     getSetting, setSetting, SURPLUS_ACCOUNT_ID, SURPLUS_WINDOW_DAYS, SURPLUS_CUSHION_PCT,
     HOUSING_COST_OVERRIDE, budgetThresholdKey, getFireMultiplier, computeFireNumber, FIRE_MULTIPLIER, FIRE_MULTIPLIER_MAX

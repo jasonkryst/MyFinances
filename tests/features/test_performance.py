@@ -32,16 +32,12 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 # an eager fetch+compile that defeats the point of lazy-loading them.
 EXPECTED_PRELOADED_MODULES = [
     'src/locales/en.js',
-    'src/ledger.js',
-    'src/commandPalette.js',
-    'src/breakEven.js',
-    'src/forecast.js',
-    'src/spending.js',
     'src/postgresSync.js',
-    'src/postgresImport.js',
+    'src/commandPalette.js',
+    'src/undo.js',
+    'src/debtOwnership.js',
+    'src/settingsSchema.js',
     'src/sanitizers.js',
-    'src/ledgerOverrides.js',
-    'src/ledgerCleared.js',
 ]
 
 LIGHTHOUSE_CATEGORIES = [
@@ -97,10 +93,10 @@ def test_lighthouserc_is_valid_json():
 # audited signed in, so it has its own performance floor. Every other
 # category, and guide.html's performance, must stay at DEFAULT_MIN_SCORE.
 DEFAULT_MIN_SCORE = 0.8
-# The signed-in app measured 0.75 in CI (LCP 6.5 s under simulated throttling:
-# about 100 module downloads gate the first Health paint, #703). Raise this
-# back to 0.8 once fewer modules load before first paint (#713). Never lower it to make CI pass.
-APP_PERFORMANCE_FLOOR = 0.7
+# The signed-in app was 0.75 in CI with about 100 module downloads gating the
+# first Health paint (#703); #713 split the page modules out of that path and
+# CI measured 0.84. Never lower it to make CI pass.
+APP_PERFORMANCE_FLOOR = 0.8
 APP_URL_PATTERN = '^http://localhost:32900/$'
 
 
@@ -170,7 +166,7 @@ def test_lighthouserc_gate_is_strong_enough(lighthouserc):
 @pytest.mark.feature
 def test_app_performance_floor_is_not_lowered(lighthouserc):
     """The app floor is a re-baseline, not a free-for-all."""
-    assert APP_PERFORMANCE_FLOOR >= 0.7
+    assert APP_PERFORMANCE_FLOOR >= 0.8
 
 
 @pytest.mark.feature
@@ -192,13 +188,13 @@ def test_lighthouserc_tests_both_app_pages(lighthouserc):
 
 @pytest.mark.feature
 def test_gate_accepts_a_good_config():
-    assert gate_problems(_config([['error', {'minScore': 0.7}], ['error', {'minScore': 0.8}]])) == []
+    assert gate_problems(_config([['error', {'minScore': 0.8}], ['error', {'minScore': 0.8}]])) == []
 
 
 @pytest.mark.feature
 def test_gate_rejects_low_app_performance():
-    problems = gate_problems(_config([['error', {'minScore': 0.6}], ['error', {'minScore': 0.8}]]))
-    assert any('below 0.7' in p for p in problems)
+    problems = gate_problems(_config([['error', {'minScore': 0.7}], ['error', {'minScore': 0.8}]]))
+    assert any('below 0.8' in p for p in problems)
 
 
 @pytest.mark.feature
@@ -361,7 +357,7 @@ def test_modulepreload_coverage_check_rejects_partial_list():
         if f'rel="modulepreload" href="{mod}"' not in partial_html
     ]
     assert len(missing) > 0, "Expected coverage check to find missing hints"
-    assert 'src/ledger.js' in missing
+    assert 'src/postgresSync.js' in missing
 
 
 @pytest.mark.feature

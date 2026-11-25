@@ -28,20 +28,18 @@
          at all (loaded on demand via src/lazyModules.js), and a modulepreload hint would
          force the browser to eagerly fetch+compile them on every load regardless, which
          is exactly what lazy-loading them is meant to avoid. Issue #703: es.js and pl.js are
-         not hinted either; i18n.js loads the stored locale on demand. -->
+         not hinted either; i18n.js loads the stored locale on demand.
+         Issue #713: the page renderers, forms and modals sit behind src/appFeatures.js, which
+         boot imports after the landing page paints, so none of them is hinted here either. This
+         list is only the deepest, largest modules of the landing page's own graph; hinting all of
+         them delayed first paint (they queue ahead of styles.css). -->
     <link rel="modulepreload" href="src/locales/en.js">
-    <link rel="modulepreload" href="src/ledger.js">
-    <link rel="modulepreload" href="src/commandPalette.js">
-    <link rel="modulepreload" href="src/breakEven.js">
-    <link rel="modulepreload" href="src/forecast.js">
-    <link rel="modulepreload" href="src/spending.js">
     <link rel="modulepreload" href="src/postgresSync.js">
-    <link rel="modulepreload" href="src/postgresImport.js">
+    <link rel="modulepreload" href="src/commandPalette.js">
+    <link rel="modulepreload" href="src/undo.js">
+    <link rel="modulepreload" href="src/debtOwnership.js">
+    <link rel="modulepreload" href="src/settingsSchema.js">
     <link rel="modulepreload" href="src/sanitizers.js">
-    <link rel="modulepreload" href="src/ledgerOverrides.js">
-    <link rel="modulepreload" href="src/ledgerCleared.js">
-    <link rel="modulepreload" href="src/people.js">
-    <link rel="modulepreload" href="src/calendarFeed.js">
  </head>
 <body>
     <a href="#main" class="skip-link" data-i18n="app.skipLink">Skip to main content</a>

@@ -28,10 +28,7 @@ import { getAmountOn, getCurrentAmount } from './amountSchedule.js';
 import { amountInputAttrs, renderAppliesFromRow, renderAmountChangeSummary, resolveAmountEdit } from './amountChangeUi.js';
 import { transactionCategories } from './manualSplits.js';
 
-// #678: each occurrence at the amount in effect on its own date.
-function sumOccurrenceAmounts(tmpl, occurrences) {
-    return occurrences.reduce((s, d) => s + (Number(getAmountOn(tmpl, dateToISO(d))) || 0), 0);
-}
+import { sumOccurrenceAmounts } from './recurringCashFlow.js';
 
 const TYPES = ['subscription', 'income', 'reimbursement', 'transfer'];
 // Stored values stay English ('subscription', 'monthly', ...); labels are looked up at render time.
@@ -874,23 +871,5 @@ export function refreshRecurringAccountSelectors(app) {
     }
 }
 
-/**
- * Month-normalized recurring cash flow (issue #252) for Health's cash-flow
- * card: every occurrence from getRecurringOccurrencesInMonth (so frequency,
- * pause, archive, skipped months and start/end dates are all honored).
- * Inflows (income + reimbursement) and outflows (subscription) are summed
- * separately; transfers are zero-sum between own accounts and excluded.
- */
-export function computeRecurringCashFlowForMonth(app, year, month) {
-    let inflow = 0;
-    let outflow = 0;
-    for (const tmpl of (app?.recurringTemplates || [])) {
-        if (tmpl.type === 'transfer') continue;
-        const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month);
-        if (!occurrences.length) continue;
-        const amt = Math.abs(sumOccurrenceAmounts(tmpl, occurrences));
-        if (isRecurringInflow(tmpl)) inflow += amt;
-        else outflow += amt;
-    }
-    return { inflow, outflow };
-}
+// Lives in recurringCashFlow.js (#713); re-exported so existing imports keep working.
+export { computeRecurringCashFlowForMonth } from './recurringCashFlow.js';

@@ -1,102 +1,11 @@
-﻿import {
-    addDebt as addDebtFeature,
-    deleteDebt as deleteDebtFeature,
-    archiveDebt as archiveDebtFeature,
-    unarchiveDebt as unarchiveDebtFeature,
-    showUpdateBalanceModal as showUpdateBalanceModalFeature,
-    updateDebtBalance as updateDebtBalanceFeature,
-    saveEdit as saveEditFeature,
-    cancelEdit as cancelEditFeature,
-    renderDebtsList as renderDebtsListFeature,
-    startEdit as startEditDebtFeature,
-    cancelInlineEdit as cancelInlineEditDebtFeature,
-    saveInlineEdit as saveInlineEditDebtFeature
-} from './debts.js';
-import { showAccelerateModal as showAccelerateModalFeature } from './debtBreakEven.js';
-import { renderAccountsList, addAccount as addAccountFeature, deleteAccount as deleteAccountFeature, startEditAccount as startEditAccountFeature, cancelEditAccount as cancelEditAccountFeature, saveEditAccount as saveEditAccountFeature, computeAccountBalance as computeAccountBalanceFeature, archiveAccount as archiveAccountFeature, unarchiveAccount as unarchiveAccountFeature, renderAccountBalanceBreakdown as renderAccountBalanceBreakdownFeature } from './accounts.js';
-import {
-    renderBudgetPage,
-    addBill,
-    deleteBill,
-    startEditBill,
-    saveEditBill,
-    cancelEditBill,
-    addExpense,
-    deleteExpense,
-    startEditExpense,
-    saveEditExpense,
-    cancelEditExpense
-} from './bills.js';
-import {
-    renderBalanceChart as renderBalanceChartFeature,
-    renderPieChart as renderPieChartFeature,
-    renderProgressChart as renderProgressChartFeature,
-    renderDebtDistributionChart as renderDebtDistributionChartFeature,
-    renderDebtToIncomeChart as renderDebtToIncomeChartFeature,
-    renderPayoffGanttChart as renderPayoffGanttChartFeature
-} from './charts.js';
-import { saveToStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, probeServer, loadFromPostgres, SessionExpiredError } from './storage.js';
-import { initLiveRefresh, refreshFromServer as refreshFromServerFeature } from './liveRefresh.js';
-import { initNotificationsCenter, refreshNotifications } from './notificationsCenter.js';
+﻿import { saveToStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, probeServer, loadFromPostgres, SessionExpiredError } from './storage.js';
 import { showServerUnreachable } from './serverUnreachableGate.js';
 import { requestLogin } from './loginGate.js';
-import { showPgMigrationModal, showLegacyDataCleanupModal } from './pgMigrationModal.js';
-import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, exportPaymentScheduleCSV as exportPaymentScheduleCSVFeature, exportChartsAsPng as exportChartsAsPngFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
-import {
-    recordBalanceHistory as recordBalanceHistoryFeature,
-    getBalanceHistory as getBalanceHistoryFeature,
-    deleteBalanceHistoryEntry as deleteBalanceHistoryEntryFeature,
-    seedMissingBalanceHistory as seedMissingBalanceHistoryFeature
-} from './balanceHistory.js';
-import { showBalanceHistoryModal as showBalanceHistoryModalFeature } from './balanceHistoryModal.js';
-import {
-    renderIncomeList,
-    addIncome,
-    deleteIncome,
-    startEditIncome,
-    cancelEditIncome,
-    saveEditIncome,
-    addBonus,
-    deleteBonus,
-    startEditBonus,
-    cancelEditBonus,
-    saveEditBonus,
-    renderBonusList,
-    renderIncomeTrendChart
-} from './income.js';
-import { showBonusAdvice } from './bonusAdvisor.js';
 import {
     calculatePaymentPlanFromInputs as calculatePaymentPlanFromInputsFeature,
     calculateRequiredPayment as calculateRequiredPaymentFeature,
     restoreLastPlan as restoreLastPlanFeature
 } from './strategyPlanCalculation.js';
-import {
-    displayPaymentPlan as displayPaymentPlanFeature,
-    renderStrategyIncomeWidget as renderStrategyIncomeWidgetFeature,
-    renderPlanHistory as renderPlanHistoryFeature,
-    suggestMonthlyPayment as suggestMonthlyPaymentFeature
-} from './strategy.js';
-import {
-    displayPaymentSchedule as displayPaymentScheduleFeature
-} from './strategyScheduleTable.js';
-import {
-    displayDebtSummary as displayDebtSummaryFeature,
-    showAmortizationModal as showAmortizationModalFeature
-} from './strategySummaryTable.js';
-import {
-    displayInterestComparison as displayInterestComparisonFeature,
-    displayWhatIfSimulator as displayWhatIfSimulatorFeature,
-    resetRefinanceScenario as resetRefinanceScenarioFeature
-} from './strategyComparison.js';
-import {
-    prevReportMonth as prevReportMonthFeature,
-    nextReportMonth as nextReportMonthFeature,
-    renderReportsPage as renderReportsPageFeature
-} from './reports.js';
-import {
-    captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
-    renderNetWorthWidget as renderNetWorthWidgetFeature
-} from './reportsNetWorth.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, renderPageData as renderPageDataFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature, checkWhatsNew as checkWhatsNewFeature, openWhatsNewModal as openWhatsNewModalFeature, showAlertModal } from './ui.js';
 import { registerServiceWorker } from './serviceWorker.js';
 import { APP_VERSION, renderLazyLoadError } from './utils.js';
@@ -107,51 +16,139 @@ import {
     loadManualTransactionsModule,
     loadStrategyCalendarModule,
     loadNotificationsPageModule,
-    loadReportsSubModules
+    loadReportsSubModules,
+    loadAppFeatures,
+    getAppFeatures,
+    lazyFeature
 } from './lazyModules.js';
-import {
-    renderRecurringPage as renderRecurringPageFeature,
-    addRecurringTemplate as addRecurringTemplateFeature,
-    deleteRecurringTemplate as deleteRecurringTemplateFeature,
-    pauseRecurringTemplate as pauseRecurringTemplateFeature,
-    archiveRecurringTemplate as archiveRecurringTemplateFeature,
-    unarchiveRecurringTemplate as unarchiveRecurringTemplateFeature,
-    skipRecurringOccurrence as skipRecurringOccurrenceFeature,
-    openRecurringPauseModal as openRecurringPauseModalFeature,
-    startEditRecurring as startEditRecurringFeature,
-    cancelEditRecurring as cancelEditRecurringFeature,
-    saveEditRecurring as saveEditRecurringFeature,
-    refreshRecurringAccountSelectors as refreshRecurringAccountSelectorsFeature
-} from './recurring.js';
-import {
-    markRecurringPaid as markRecurringPaidFeature,
-    openRecurringMarkPaidModal as openRecurringMarkPaidModalFeature,
-    syncRecurringPaidFromLedger as syncRecurringPaidFromLedgerFeature,
-    reconcileRecurringPaidState as reconcileRecurringPaidStateFeature
-} from './recurringPaid.js';
-import {
-    renderSavingsPage as renderSavingsPageFeature,
-    switchSavingsSubTab as switchSavingsSubTabFeature,
-    attachSavingsEventListeners as attachSavingsEventListenersFeature
-} from './savings.js';
 import { renderHealthDashboard as renderHealthDashboardFeature } from './health.js';
-import { openKeyboardShortcutsModal as openKeyboardShortcutsModalFeature } from './keyboardShortcuts.js';
 import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature, AUTO_NW_SNAPSHOT, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { hasSnapshotInMonth } from './netWorthCore.js';
-import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature, openSettings as openSettingsFeature } from './setupWizard.js';
-import { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
-import { initCalendarFeedModal } from './calendarFeed.js';
 import { applyStaticTranslations, setLocale as setLocaleFeature, t, ensureLocaleLoaded, preloadAllLocales, getCurrentLocale } from './i18n.js';
-import {
-    addPerson as addPersonFeature,
-    deletePerson as deletePersonFeature,
-    startEditPerson as startEditPersonFeature,
-    cancelEditPerson as cancelEditPersonFeature,
-    saveEditPerson as saveEditPersonFeature,
-    renderPeopleList as renderPeopleListFeature,
-    refreshPersonSelectors as refreshPersonSelectorsFeature
-} from './people.js';
+
+import { computeAccountBalance as computeAccountBalanceFeature } from './projectionCore.js';
+
+// #713: feature modules load after the landing page paints (see lazyModules.js).
+const addDebtFeature = lazyFeature('addDebt');
+const deleteDebtFeature = lazyFeature('deleteDebt');
+const archiveDebtFeature = lazyFeature('archiveDebt');
+const unarchiveDebtFeature = lazyFeature('unarchiveDebt');
+const showUpdateBalanceModalFeature = lazyFeature('showUpdateBalanceModal');
+const updateDebtBalanceFeature = lazyFeature('updateDebtBalance');
+const saveEditFeature = lazyFeature('saveEdit');
+const cancelEditFeature = lazyFeature('cancelEdit');
+const renderDebtsListFeature = lazyFeature('renderDebtsList');
+const startEditDebtFeature = lazyFeature('startEdit');
+const cancelInlineEditDebtFeature = lazyFeature('cancelInlineEdit');
+const saveInlineEditDebtFeature = lazyFeature('saveInlineEdit');
+const showAccelerateModalFeature = lazyFeature('showAccelerateModal');
+const renderAccountsList = lazyFeature('renderAccountsList');
+const addAccountFeature = lazyFeature('addAccount');
+const deleteAccountFeature = lazyFeature('deleteAccount');
+const startEditAccountFeature = lazyFeature('startEditAccount');
+const cancelEditAccountFeature = lazyFeature('cancelEditAccount');
+const saveEditAccountFeature = lazyFeature('saveEditAccount');
+const archiveAccountFeature = lazyFeature('archiveAccount');
+const unarchiveAccountFeature = lazyFeature('unarchiveAccount');
+const renderAccountBalanceBreakdownFeature = lazyFeature('renderAccountBalanceBreakdown');
+const renderBudgetPage = lazyFeature('renderBudgetPage');
+const addBill = lazyFeature('addBill');
+const deleteBill = lazyFeature('deleteBill');
+const startEditBill = lazyFeature('startEditBill');
+const saveEditBill = lazyFeature('saveEditBill');
+const cancelEditBill = lazyFeature('cancelEditBill');
+const addExpense = lazyFeature('addExpense');
+const deleteExpense = lazyFeature('deleteExpense');
+const startEditExpense = lazyFeature('startEditExpense');
+const saveEditExpense = lazyFeature('saveEditExpense');
+const cancelEditExpense = lazyFeature('cancelEditExpense');
+const renderBalanceChartFeature = lazyFeature('renderBalanceChart');
+const renderPieChartFeature = lazyFeature('renderPieChart');
+const renderProgressChartFeature = lazyFeature('renderProgressChart');
+const renderDebtDistributionChartFeature = lazyFeature('renderDebtDistributionChart');
+const renderDebtToIncomeChartFeature = lazyFeature('renderDebtToIncomeChart');
+const renderPayoffGanttChartFeature = lazyFeature('renderPayoffGanttChart');
+const initLiveRefresh = lazyFeature('initLiveRefresh');
+const refreshFromServerFeature = lazyFeature('refreshFromServer');
+const initNotificationsCenter = lazyFeature('initNotificationsCenter');
+const refreshNotifications = lazyFeature('refreshNotifications');
+const showPgMigrationModal = lazyFeature('showPgMigrationModal');
+const showLegacyDataCleanupModal = lazyFeature('showLegacyDataCleanupModal');
+const exportAllJSONFeature = lazyFeature('exportAllJSON');
+const exportToCSVFeature = lazyFeature('exportToCSV');
+const exportLedgerToCSVFeature = lazyFeature('exportLedgerToCSV');
+const exportPaymentScheduleCSVFeature = lazyFeature('exportPaymentScheduleCSV');
+const exportChartsAsPngFeature = lazyFeature('exportChartsAsPng');
+const importAllJSONFeature = lazyFeature('importAllJSON');
+const recordBalanceHistoryFeature = lazyFeature('recordBalanceHistory');
+const getBalanceHistoryFeature = lazyFeature('getBalanceHistory');
+const deleteBalanceHistoryEntryFeature = lazyFeature('deleteBalanceHistoryEntry');
+const seedMissingBalanceHistoryFeature = lazyFeature('seedMissingBalanceHistory');
+const showBalanceHistoryModalFeature = lazyFeature('showBalanceHistoryModal');
+const renderIncomeList = lazyFeature('renderIncomeList');
+const addIncome = lazyFeature('addIncome');
+const deleteIncome = lazyFeature('deleteIncome');
+const startEditIncome = lazyFeature('startEditIncome');
+const cancelEditIncome = lazyFeature('cancelEditIncome');
+const saveEditIncome = lazyFeature('saveEditIncome');
+const addBonus = lazyFeature('addBonus');
+const deleteBonus = lazyFeature('deleteBonus');
+const startEditBonus = lazyFeature('startEditBonus');
+const cancelEditBonus = lazyFeature('cancelEditBonus');
+const saveEditBonus = lazyFeature('saveEditBonus');
+const renderBonusList = lazyFeature('renderBonusList');
+const renderIncomeTrendChart = lazyFeature('renderIncomeTrendChart');
+const showBonusAdvice = lazyFeature('showBonusAdvice');
+const displayPaymentPlanFeature = lazyFeature('displayPaymentPlan');
+const renderStrategyIncomeWidgetFeature = lazyFeature('renderStrategyIncomeWidget');
+const renderPlanHistoryFeature = lazyFeature('renderPlanHistory');
+const suggestMonthlyPaymentFeature = lazyFeature('suggestMonthlyPayment');
+const displayPaymentScheduleFeature = lazyFeature('displayPaymentSchedule');
+const displayDebtSummaryFeature = lazyFeature('displayDebtSummary');
+const showAmortizationModalFeature = lazyFeature('showAmortizationModal');
+const displayInterestComparisonFeature = lazyFeature('displayInterestComparison');
+const displayWhatIfSimulatorFeature = lazyFeature('displayWhatIfSimulator');
+const resetRefinanceScenarioFeature = lazyFeature('resetRefinanceScenario');
+const prevReportMonthFeature = lazyFeature('prevReportMonth');
+const nextReportMonthFeature = lazyFeature('nextReportMonth');
+const renderReportsPageFeature = lazyFeature('renderReportsPage');
+const captureNetWorthSnapshotFeature = lazyFeature('captureNetWorthSnapshot');
+const renderNetWorthWidgetFeature = lazyFeature('renderNetWorthWidget');
+const renderRecurringPageFeature = lazyFeature('renderRecurringPage');
+const addRecurringTemplateFeature = lazyFeature('addRecurringTemplate');
+const deleteRecurringTemplateFeature = lazyFeature('deleteRecurringTemplate');
+const pauseRecurringTemplateFeature = lazyFeature('pauseRecurringTemplate');
+const archiveRecurringTemplateFeature = lazyFeature('archiveRecurringTemplate');
+const unarchiveRecurringTemplateFeature = lazyFeature('unarchiveRecurringTemplate');
+const skipRecurringOccurrenceFeature = lazyFeature('skipRecurringOccurrence');
+const openRecurringPauseModalFeature = lazyFeature('openRecurringPauseModal');
+const startEditRecurringFeature = lazyFeature('startEditRecurring');
+const cancelEditRecurringFeature = lazyFeature('cancelEditRecurring');
+const saveEditRecurringFeature = lazyFeature('saveEditRecurring');
+const refreshRecurringAccountSelectorsFeature = lazyFeature('refreshRecurringAccountSelectors');
+const markRecurringPaidFeature = lazyFeature('markRecurringPaid');
+const openRecurringMarkPaidModalFeature = lazyFeature('openRecurringMarkPaidModal');
+const syncRecurringPaidFromLedgerFeature = lazyFeature('syncRecurringPaidFromLedger');
+const reconcileRecurringPaidStateFeature = lazyFeature('reconcileRecurringPaidState');
+const renderSavingsPageFeature = lazyFeature('renderSavingsPage');
+const switchSavingsSubTabFeature = lazyFeature('switchSavingsSubTab');
+const attachSavingsEventListenersFeature = lazyFeature('attachSavingsEventListeners');
+const openKeyboardShortcutsModalFeature = lazyFeature('openKeyboardShortcutsModal');
+const maybeShowSetupWizardFeature = lazyFeature('maybeShowSetupWizard');
+const initSettingsModalFeature = lazyFeature('initSettingsModal');
+const openSettingsFeature = lazyFeature('openSettings');
+const initDataTransferModal = lazyFeature('initDataTransferModal');
+const showImportResult = lazyFeature('showImportResult');
+const requestImportModeChoice = lazyFeature('requestImportModeChoice');
+const initCalendarFeedModal = lazyFeature('initCalendarFeedModal');
+const addPersonFeature = lazyFeature('addPerson');
+const deletePersonFeature = lazyFeature('deletePerson');
+const startEditPersonFeature = lazyFeature('startEditPerson');
+const cancelEditPersonFeature = lazyFeature('cancelEditPerson');
+const saveEditPersonFeature = lazyFeature('saveEditPerson');
+const renderPeopleListFeature = lazyFeature('renderPeopleList');
+const refreshPersonSelectorsFeature = lazyFeature('refreshPersonSelectors');
 
 /**
  * app.js — Debt Tracker Application (ES module)
@@ -312,6 +309,8 @@ export class DebtTrackerApp {
             if (!(this.settings || []).some(s => s?.key === AUTO_NW_SNAPSHOT)) {
                 setSettingFeature(this, AUTO_NW_SNAPSHOT, true);
             }
+            // #713: the wizard is a feature module; it opens before the landing page.
+            await loadAppFeatures();
             maybeShowSetupWizardFeature(this, true);
         }
 
@@ -320,6 +319,29 @@ export class DebtTrackerApp {
 
         checkWhatsNewFeature(isFirstRun);
 
+        backfillIncomeAccountIds(this);
+        // #525: split boot into short tasks (data load, then shared state,
+        // then the landing page) and render only the landing page. Hidden
+        // pages render on their first visit (switchPage -> renderPageData).
+        await nextFrame();
+        this.updateUI({ deferHiddenPages: true });
+        this.updateFormVisibility();
+        await nextFrame();
+        this.switchPage('health');
+        // #713: everything else loads once the landing page is up.
+        await this._finishBoot();
+    }
+
+    // The second half of boot (#713), run once the landing page has painted
+    // and the feature modules (appFeatures.js) are in.
+    async _finishBoot() {
+        try {
+            await loadAppFeatures();
+        } catch (err) {
+            console.error('Failed to load the app features', err);
+            renderLazyLoadError('healthSection', 'the rest of the app');
+            return;
+        }
         // Auto-capture monthly net worth snapshot if enabled
         // Skipped while there is nothing to measure: a $0 snapshot would hide
         // the live point the Net Worth report shows for an empty history (#574).
@@ -330,23 +352,16 @@ export class DebtTrackerApp {
                 this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
             }
         }
-
-        backfillIncomeAccountIds(this);
-        // #434: migrate legacy recurring paidMonths/paidAmounts into the Ledger.
-        // It persists the templates it changes itself.
-        this.reconcileRecurringPaidState();
-        await this.seedMissingBalanceHistory();
+        // #434: migrate legacy recurring paid state into the Ledger. It
+        // persists the templates it changes itself.
+        const reconciled = this.reconcileRecurringPaidState();
+        const seeded = await this.seedMissingBalanceHistory();
         initSettingsModalFeature(this);
         initDataTransferModal(this);
         initCalendarFeedModal(this);
-        // #525: split boot into short tasks (data load, then shared state,
-        // then the landing page) and render only the landing page. Hidden
-        // pages render on their first visit (switchPage -> renderPageData).
-        await nextFrame();
-        this.updateUI({ deferHiddenPages: true });
-        this.updateFormVisibility();
-        await nextFrame();
-        this.switchPage('health');
+        // These two used to run before the landing page rendered; redraw it only
+        // when they changed something it shows.
+        if ((reconciled || seeded > 0) && this._currentPage === 'health') this.renderHealthDashboard();
         // #575: from here on, other tabs' writes and returning to this tab
         // re-read the server.
         initLiveRefresh(this);
