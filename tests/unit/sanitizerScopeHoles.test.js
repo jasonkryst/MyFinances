@@ -171,3 +171,45 @@ describe('sanitizeBudgetCategories', () => {
         expect(() => sanitizeBudgetCategories({ A: { mode: 'bad' } })).not.toThrow();
     });
 });
+
+describe('sanitizeBudgetCategories rollover (#687)', () => {
+    test('keeps a valid rollover pair on fixed and derived entries', () => {
+        expect(sanitizeBudgetCategories({
+            A: { mode: 'fixed', amount: 100, rollover: 'both', rolloverStart: '2026-11' },
+            B: { mode: 'derived', rollover: 'overspend', rolloverStart: '2025-01' },
+        })).toEqual({
+            A: { mode: 'fixed', amount: 100, rollover: 'both', rolloverStart: '2026-11' },
+            B: { mode: 'derived', amount: 0, rollover: 'overspend', rolloverStart: '2025-01' },
+        });
+    });
+
+    test('an entry without rollover is unchanged and warns about nothing', () => {
+        const warnings = [];
+        expect(sanitizeBudgetCategories({ A: { mode: 'fixed', amount: 5 } }, warnings)).toEqual({ A: { mode: 'fixed', amount: 5 } });
+        expect(warnings).toEqual([]);
+    });
+
+    test('an invalid or incomplete rollover is dropped with a warning and the budget is kept', () => {
+        const bad = [
+            { rollover: 'sideways', rolloverStart: '2026-11' },
+            { rollover: 'both' },
+            { rolloverStart: '2026-11' },
+            { rollover: 'both', rolloverStart: '2026-13' },
+            { rollover: 'both', rolloverStart: '2026-1' },
+            { rollover: 'both', rolloverStart: 202611 },
+            { rollover: null, rolloverStart: '2026-11' },
+            { rollover: '', rolloverStart: '' },
+        ];
+        for (const extra of bad) {
+            const warnings = [];
+            const out = sanitizeBudgetCategories({ A: { mode: 'fixed', amount: 7, ...extra } }, warnings);
+            expect(out).toEqual({ A: { mode: 'fixed', amount: 7 } });
+            expect(warnings).toHaveLength(1);
+            expect(warnings[0]).toMatchObject({ recordType: 'Category Budget', recordName: 'A', kind: 'rejected' });
+        }
+    });
+
+    test('rollover on an invalid budget is not resurrected', () => {
+        expect(sanitizeBudgetCategories({ A: { mode: 'fixed', amount: -1, rollover: 'both', rolloverStart: '2026-11' } })).toEqual({});
+    });
+});

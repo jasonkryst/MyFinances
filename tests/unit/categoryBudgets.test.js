@@ -77,8 +77,8 @@ describe('computeCategoryBudgets', () => {
         stubActuals({ Rent: 400 });
         const [row] = computeCategoryBudgets({}, 2026, 4, 1);
         expect(row).toEqual({
-            category: 'Rent', mode: 'derived', budget: 1000, actual: 400,
-            difference: 600, pctUsed: 0.4, over: false,
+            category: 'Rent', mode: 'derived', rollover: null, budget: 1000, carried: 0, available: 1000,
+            actual: 400, difference: 600, pctUsed: 0.4, over: false,
         });
     });
 
@@ -273,5 +273,136 @@ describe('getKnownBudgetCategories', () => {
 
     test('works with no expenses, bills or budgets', () => {
         expect(getKnownBudgetCategories({}, new Map())).toEqual([]);
+    });
+});
+
+// ── #687 rollover ─────────────────────────────────────────────────────────
+
+// actualsByMonth['2026-3'] = { Food: 80 } for single-month queries (month is 0-based).
+function stubActualsByMonth(actualsByMonth) {
+    computeSpendingByCategoryRange.mockImplementation((app, y, m) =>
+        Object.entries(actualsByMonth[`${y}-${m}`] || {}).map(([category, total]) => ({ category, total })));
+}
+
+describe('computeCategoryBudgets with rollover', () => {
+    const fixedApp = (rollover, start, amount = 100) => ({
+        budgetCategories: { Food: { mode: 'fixed', amount, rollover, rolloverStart: start } },
+    });
+
+    test('both: unspent money from earlier months is carried and available', () => {
+        stubActualsByMonth({ '2026-2': { Food: 60 }, '2026-3': { Food: 130 }, '2026-4': { Food: 50 } });
+        const [row] = computeCategoryBudgets(fixedApp('both', '2026-03'), 2026, 4, 1);
+        // Mar (index 2): +40; Apr (index 3): 40 + 100 - 130 = 10; carried into May = 10
+        expect(row).toMatchObject({
+            category: 'Food', rollover: 'both', budget: 100, carried: 10, available: 110,
+            actual: 50, difference: 60, over: false,
+        });
+        expect(row.pctUsed).toBeCloseTo(50 / 110, 10);
+    });
+
+    test('overspend: unspent money is not carried but overspending is', () => {
+        stubActualsByMonth({ '2026-2': { Food: 60 }, '2026-3': { Food: 130 }, '2026-4': { Food: 90 } });
+        const [row] = computeCategoryBudgets(fixedApp('overspend', '2026-03'), 2026, 4, 1);
+        expect(row).toMatchObject({ rollover: 'overspend', carried: -30, available: 70, actual: 90, difference: -20, over: true });
+    });
+
+    test('over is judged against the available amount, not the plain budget', () => {
+        stubActualsByMonth({ '2026-3': { Food: 0 }, '2026-4': { Food: 150 } });
+        const [row] = computeCategoryBudgets(fixedApp('both', '2026-04'), 2026, 4, 1);
+        expect(row).toMatchObject({ carried: 100, available: 200, over: false, difference: 50 });
+    });
+
+    test('a negative available amount gives pctUsed null and a negative difference', () => {
+        stubActualsByMonth({ '2026-3': { Food: 400 }, '2026-4': { Food: 10 } });
+        const [row] = computeCategoryBudgets(fixedApp('both', '2026-04'), 2026, 4, 1);
+        expect(row).toMatchObject({ carried: -300, available: -200, pctUsed: null, over: true });
+    });
+
+    test('the carry starts at zero in the start month and ignores earlier months', () => {
+        stubActualsByMonth({ '2026-0': { Food: 0 }, '2026-1': { Food: 0 }, '2026-4': { Food: 10 } });
+        expect(computeCategoryBudgets(fixedApp('both', '2026-05'), 2026, 4, 1)[0]).toMatchObject({ carried: 0, available: 100 });
+        // a start after the viewed month also carries nothing
+        expect(computeCategoryBudgets(fixedApp('both', '2027-01'), 2026, 4, 1)[0]).toMatchObject({ carried: 0, available: 100 });
+    });
+
+    test('derived categories roll over their scheduled amount month by month', () => {
+        stubLedger({
+            '2026-2': [{ type: 'bill', category: 'Rent', originalAmount: -100 }],
+            '2026-3': [{ type: 'bill', category: 'Rent', originalAmount: -100 }],
+            '2026-4': [{ type: 'bill', category: 'Rent', originalAmount: -100 }],
+        });
+        stubActualsByMonth({ '2026-2': { Rent: 90 }, '2026-3': { Rent: 90 }, '2026-4': { Rent: 100 } });
+        const app = { budgetCategories: { Rent: { mode: 'derived', amount: 0, rollover: 'both', rolloverStart: '2026-03' } } };
+        const [row] = computeCategoryBudgets(app, 2026, 4, 1);
+        expect(row).toMatchObject({ mode: 'derived', budget: 100, carried: 20, available: 120, difference: 20 });
+    });
+
+    test('for a range the carry is into its first month and the budget is multiplied', () => {
+        computeSpendingByCategoryRange.mockImplementation((app, y, m, n) => n === 1
+            ? (y === 2026 && m === 2 ? [{ category: 'Food', total: 50 }] : [])
+            : [{ category: 'Food', total: 120 }]);
+        const [row] = computeCategoryBudgets(fixedApp('both', '2026-03'), 2026, 4, 2);
+        expect(row).toMatchObject({ budget: 200, carried: 50, available: 250, actual: 120, difference: 130 });
+    });
+
+    test('only rollover categories pay for the monthly passes', () => {
+        stubActuals({ Food: 10 });
+        computeCategoryBudgets({ budgetCategories: { Food: { mode: 'fixed', amount: 100 } } }, 2026, 4, 1);
+        expect(computeSpendingByCategoryRange).toHaveBeenCalledTimes(1);
+    });
+
+    test('rollover off: values are exactly the pre-rollover ones', () => {
+        stubLedger({ '2026-4': [{ type: 'bill', category: 'Rent', originalAmount: -1000 }] });
+        stubActuals({ Rent: 1200, Fun: 5 });
+        const app = { budgetCategories: { Food: { mode: 'fixed', amount: 50 } } };
+        for (const row of computeCategoryBudgets(app, 2026, 4, 1)) {
+            expect(row.rollover).toBeNull();
+            expect(row.carried).toBe(0);
+            expect(row.available).toBe(row.budget);
+            expect(row.difference).toBe(row.budget - row.actual);
+        }
+    });
+
+    test('an invalid rollover pair on an in-memory entry is treated as off', () => {
+        stubActualsByMonth({ '2026-3': { Food: 0 } });
+        for (const entry of [{ rollover: 'both' }, { rolloverStart: '2026-03' }, { rollover: 'x', rolloverStart: '2026-03' },
+            { rollover: 'both', rolloverStart: '2026-13' }]) {
+            const app = { budgetCategories: { Food: { mode: 'fixed', amount: 100, ...entry } } };
+            expect(computeCategoryBudgets(app, 2026, 4, 1)[0]).toMatchObject({ rollover: null, carried: 0, available: 100 });
+        }
+    });
+});
+
+describe('setCategoryBudget rollover', () => {
+    const makeApp = budgetCategories => ({ budgetCategories, saveToStorage: jest.fn() });
+
+    test('stores the mode and start month', () => {
+        const app = makeApp({});
+        expect(setCategoryBudget(app, 'Food', 'fixed', 100, 'both', '2026-11').ok).toBe(true);
+        expect(app.budgetCategories.Food).toEqual({ mode: 'fixed', amount: 100, rollover: 'both', rolloverStart: '2026-11' });
+        expect(setCategoryBudget(app, 'Rent', 'derived', '', 'overspend', '2026-01').ok).toBe(true);
+        expect(app.budgetCategories.Rent).toEqual({ mode: 'derived', amount: 0, rollover: 'overspend', rolloverStart: '2026-01' });
+    });
+
+    test('off (blank, null, undefined or "off") removes both fields', () => {
+        for (const off of ['', null, undefined, 'off']) {
+            const app = makeApp({ Food: { mode: 'fixed', amount: 100, rollover: 'both', rolloverStart: '2026-11' } });
+            expect(setCategoryBudget(app, 'Food', 'fixed', 100, off, '2026-11').ok).toBe(true);
+            expect(app.budgetCategories.Food).toEqual({ mode: 'fixed', amount: 100 });
+        }
+    });
+
+    test('rejects an unknown rollover mode and a missing or invalid start without saving', () => {
+        const errors = new Set();
+        for (const [mode, start] of [['sideways', '2026-11'], ['both', ''], ['both', undefined], ['both', '2026-13'], ['both', '11/2026'], ['overspend', null]]) {
+            const app = makeApp({});
+            const res = setCategoryBudget(app, 'Food', 'fixed', 100, mode, start);
+            expect(res.ok).toBe(false);
+            expect(res.error.length).toBeGreaterThan(0);
+            errors.add(res.error);
+            expect(app.budgetCategories).toEqual({});
+            expect(app.saveToStorage).not.toHaveBeenCalled();
+        }
+        expect(errors.size).toBe(2);
     });
 });
