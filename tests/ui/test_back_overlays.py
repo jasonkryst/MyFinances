@@ -240,10 +240,13 @@ OVERLAYS = [
     ("spendingDrilldownModal", None),
     # skip-ok: private opener behind a Health budget card; Escape handled in health.js
     ("budgetThresholdsModal", None),
-    # skip-ok: needs a legacy local-data migration prompt; Escape handled in pgMigrationModal.js
-    ("pgMigrationModal", None),
-    # skip-ok: needs a seeded recurring occurrence with a paid month; Escape handled in recurringPaid.js
-    ("recurringMarkPaidModal", None),
+    # skip-ok: the debt paid-off celebration (debts.js) opens on a balance state change; its opener is private
+    ("debtPaidOffModal", None),
+    # skip-ok: the sinking-fund completion modal (savings.js) opens on a state change; its opener is private
+    ("sinkingFundCompleteModal", None),
+    ("pgMigrationModal", "(await import('/src/pgMigrationModal.js')).showLegacyDataCleanupModal('{}')"),
+    ("recurringMarkPaidModal",
+     f"(await import('/src/recurringPaid.js')).openRecurringMarkPaidModal(app, {_RECURRING_ID}, '2026-01')"),
 ]
 
 
