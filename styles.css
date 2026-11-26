@@ -8682,7 +8682,11 @@ body.dark-mode .settings-danger-title { color: #f87171; }
         right: 0;
         height: 56px;
         padding: 0 8px;
-        z-index: 20;
+        /* 30, not 20: the sticky Reports tab strip (.rpt-tab-bar) is z-index 20 and comes
+           later in the page, so at 20 it painted over the account menu and the bell panel,
+           whose own z-index is trapped inside this stacking context. Stays below the phone
+           tab bar (900) and every dialog. */
+        z-index: 30;
     }
     .header-hero {
         height: 56px;
@@ -8703,7 +8707,7 @@ body.dark-mode .settings-danger-title { color: #f87171; }
         top: 0;
         right: 0;
         padding: 8px 14px 0;
-        z-index: 20;
+        z-index: 30; /* above the sticky Reports tab strip (20); see the phone rule above */
     }
     .header-hero { padding: 10px 20px 0; }
     header h1 { font-size: 1.9rem; margin-bottom: 0; }
