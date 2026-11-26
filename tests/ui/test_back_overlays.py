@@ -166,3 +166,24 @@ def test_back_cancels_inline_edit(app_page, case, nav, section, address, collect
     rows = page.evaluate("async (p) => (await fetch(p)).json()", endpoint)
     assert [r["name"] for r in rows if r["id"] == record_id] == [original]
     assert page.evaluate("(c) => window.app[c][0].name", collection) == original
+
+
+def test_hidden_edit_on_other_sub_tab_does_not_swallow_back(app_page):
+    # The sub-tabs leave editingDebtId set: a debt edit hidden behind the
+    # Expenses panel must not eat Back, which returns to Debts.
+    page = app_page
+    seed_state(page, SEED)
+    wait_for_app_ready(page)
+    _nav(page, "liabilities", "liabilitiesSection")
+    _wait_path(page, "/liabilities/debts")
+    debt_id = page.evaluate("() => window.app.debts[0].id")
+    page.click(f'[data-debt-action="edit"][data-debt-id="{debt_id}"]')
+    expect(page.locator(f"#inline-name-{debt_id}")).to_be_visible(timeout=5000)
+    page.click('#liabilitiesSection .liabilities-subtab-btn[data-liabilities-subtab="expenses"]')
+    page.wait_for_selector('#liabilitiesSection [data-subtab="expenses"].visible', timeout=5000)
+    _wait_path(page, "/liabilities/expenses")
+
+    page.go_back()
+    _wait_path(page, "/liabilities/debts")
+    page.wait_for_selector('#liabilitiesSection [data-subtab="debts"].visible', timeout=5000)
+    expect(page.locator(f"#inline-name-{debt_id}")).to_be_visible()

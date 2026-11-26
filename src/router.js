@@ -96,7 +96,7 @@ let settingsReady = false;
 // Path + search of the view on screen, kept after every write or apply, so a
 // Back that only closes an overlay can put the address back (#731).
 let lastPath = null;
-// The pathname leaveSettings' history.back() lands on: that pop is ours, not
+// The address leaveSettings' history.back() lands on: that pop is ours, not
 // a user Back, so it must not close a dialog or cancel an edit.
 let expectedPop = null;
 
@@ -158,7 +158,7 @@ export function leaveSettings() {
     if (pushed) {
         // Lands on the entry before ?settings (recordView never writes a search).
         expectedPop = location.pathname;
-        lastPath = location.pathname;
+        lastPath = expectedPop;
         history.back();
     } else {
         history.replaceState(null, '', location.pathname);
@@ -236,23 +236,30 @@ export const EDIT_CANCELLERS = {
     editingRecurringId: 'cancelEditRecurring'
 };
 
-// The page each inline edit is shown on. switchPage leaves an edit open, so
-// an edit on a page that is not showing must not swallow Back.
-const EDIT_PAGES = {
-    editingAccountId: 'accounts',
-    editingBillId: 'liabilities',
-    editingBonusId: 'income',
-    editingDebtId: 'liabilities',
-    editingExpenseId: 'liabilities',
-    editingIncomeId: 'income',
-    editingPersonId: 'people',
-    editingRecurringId: 'recurring'
+// Each inline edit's name input is rendered with this id prefix + the record
+// id. An edit counts only while that input is shown: switchPage and the
+// sub-tabs leave editing*Id set, and a hidden edit must not swallow Back.
+// Bills have no edit UI any more, so editingBillId never counts.
+const EDIT_INPUT_PREFIX = {
+    editingAccountId: 'ac-name-',
+    editingBonusId: 'be-name-',
+    editingDebtId: 'inline-name-',
+    editingExpenseId: 'ee-name-',
+    editingIncomeId: 'ie-name-',
+    editingPersonId: 'pe-name-',
+    editingRecurringId: 're-name-'
 };
 
 const OVERLAY_SELECTOR = '[role="dialog"], [role="alertdialog"], .modal, [data-overlay]';
 
 function isShown(el) {
     return !el.classList.contains('hidden') && el.getClientRects().length > 0;
+}
+
+function isEditShown(app, field) {
+    const el = app[field] != null && EDIT_INPUT_PREFIX[field]
+        ? document.getElementById(EDIT_INPUT_PREFIX[field] + app[field]) : null;
+    return Boolean(el && isShown(el));
 }
 
 function isGateUp() {
@@ -288,24 +295,23 @@ export function closeInnermost(app) {
     }
     // Settings itself closes through its address (applyLocation).
     if (isSettingsOpen()) return false;
-    const page = app._currentPage;
     for (const [field, method] of Object.entries(EDIT_CANCELLERS)) {
-        if (app[field] != null && EDIT_PAGES[field] === page && typeof app[method] === 'function') {
+        if (isEditShown(app, field) && typeof app[method] === 'function') {
             app[method]();
             return true;
         }
     }
-    if (app.editingDebtId != null && EDIT_PAGES.editingDebtId === page) {
+    if (app.editingDebtId != null) {
+        // The Add Debt form in edit mode shows its Cancel button.
         const btn = document.getElementById('cancelEditBtn');
-        if (btn && !btn.classList.contains('hidden')) app.cancelEdit();
-        else app.cancelInlineEdit();
-        return true;
+        if (btn && isShown(btn)) { app.cancelEdit(); return true; }
+        if (isEditShown(app, 'editingDebtId')) { app.cancelInlineEdit(); return true; }
     }
     return false;
 }
 
 export function onPopState(app) {
-    const ours = expectedPop !== null && location.pathname === expectedPop;
+    const ours = expectedPop !== null && location.pathname + location.search === expectedPop;
     expectedPop = null;
     if (!ours && lastPath !== null && closeInnermost(app)) {
         history.pushState(null, '', lastPath);

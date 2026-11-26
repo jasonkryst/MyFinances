@@ -225,10 +225,10 @@ test('applySettingsFromLocation opens Settings without recording; popstate close
 
 const { closeInnermost, topOverlay, onPopState, EDIT_CANCELLERS, GATE_IDS } = require('../../src/router.js');
 
-const EDIT_PAGES = {
-    editingAccountId: 'accounts', editingBillId: 'liabilities', editingBonusId: 'income',
-    editingExpenseId: 'liabilities', editingIncomeId: 'income', editingPersonId: 'people',
-    editingRecurringId: 'recurring'
+// Each module renders its inline edit's name input as <prefix><record id>.
+const EDIT_INPUTS = {
+    editingAccountId: 'ac-name-', editingBonusId: 'be-name-', editingExpenseId: 'ee-name-',
+    editingIncomeId: 'ie-name-', editingPersonId: 'pe-name-', editingRecurringId: 're-name-'
 };
 
 // A minimal element: shown unless `hidden`; contains() walks `children`.
@@ -281,20 +281,23 @@ test('closeInnermost returns false with nothing open', () => {
     expect(app.cancelled).toEqual([]);
 });
 
-test.each(Object.entries(EDIT_CANCELLERS))('closeInnermost cancels %s with %s', (field, method) => {
+test.each(Object.entries(EDIT_INPUTS))('closeInnermost cancels a shown %s edit', (field, prefix) => {
     fakeBrowser('/');
-    overlayDocument();
-    const app = editApp(EDIT_PAGES[field]);
+    overlayDocument({ byId: { [prefix + 7]: fakeEl(prefix + 7) } });
+    const app = editApp('health');
     app[field] = 7;
     expect(closeInnermost(app)).toBe(true);
-    expect(app.cancelled).toEqual([method]);
+    expect(app.cancelled).toEqual([EDIT_CANCELLERS[field]]);
 });
 
-test('an edit left open on another page does not swallow Back', () => {
-    fakeBrowser('/ledger');
-    overlayDocument();
-    const app = editApp('ledger');
-    app.editingAccountId = 7;
+test('an editing field whose edit UI is not shown does not swallow Back', () => {
+    fakeBrowser('/liabilities/expenses');
+    const hiddenRow = fakeEl('inline-name-3', { hidden: true });
+    overlayDocument({ byId: { 'inline-name-3': hiddenRow, 'cancelEditBtn': fakeEl('cancelEditBtn', { hidden: true }) } });
+    const app = editApp('liabilities');
+    app.editingDebtId = 3;        // rendered on the hidden Debts panel
+    app.editingAccountId = 7;     // not rendered at all (another page)
+    app.editingBillId = 2;        // bills have no edit UI
     expect(closeInnermost(app)).toBe(false);
     expect(app.cancelled).toEqual([]);
 });
@@ -302,7 +305,7 @@ test('an edit left open on another page does not swallow Back', () => {
 test('a debt edit uses the form canceller while #cancelEditBtn is shown, else the inline one', () => {
     fakeBrowser('/liabilities/debts');
     const btn = fakeEl('cancelEditBtn');
-    overlayDocument({ byId: { cancelEditBtn: btn } });
+    overlayDocument({ byId: { cancelEditBtn: btn, 'inline-name-3': fakeEl('inline-name-3') } });
     const app = editApp('liabilities');
     app.editingDebtId = 3;
     expect(closeInnermost(app)).toBe(true);
@@ -343,7 +346,7 @@ test('topOverlay skips gates, Settings and hidden overlays, and prefers the one 
 test('with a gate up closeInnermost does nothing, so Back applies the address', () => {
     fakeBrowser('/accounts');
     const gate = fakeEl('loginGate');
-    overlayDocument({ overlays: [gate, fakeEl('x')], byId: { loginGate: gate } });
+    overlayDocument({ overlays: [gate, fakeEl('x')], byId: { loginGate: gate, 'ac-name-7': fakeEl('ac-name-7') } });
     const app = editApp('accounts');
     app.editingAccountId = 7;
     expect(closeInnermost(app)).toBe(false);
@@ -351,7 +354,7 @@ test('with a gate up closeInnermost does nothing, so Back applies the address', 
 
 test('popstate over an open edit restores the address and keeps the page', () => {
     const { calls } = fakeBrowser('/accounts');
-    overlayDocument();
+    overlayDocument({ byId: { 'ac-name-7': fakeEl('ac-name-7') } });
     const app = editApp('accounts');
     applyLocation(app); // the view on screen: /accounts
     app.editingAccountId = 7;
@@ -378,6 +381,8 @@ test('the pop from leaveSettings stepping back is not treated as a user Back', (
     const app = settingsApp(env, 'accounts');
     for (const name of Object.values(EDIT_CANCELLERS)) app[name] = () => { throw new Error('cancelled ' + name); };
     globalThis.document.querySelectorAll = () => [];
+    const input = fakeEl('ac-name-7');
+    globalThis.document.getElementById = (id) => (id === 'ac-name-7' ? input : null);
     globalThis.history.back = () => { env.calls.push(['back']); globalThis.location.search = ''; };
     app.editingAccountId = 7;
     recordSettings('', 'push');
