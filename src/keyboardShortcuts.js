@@ -151,5 +151,7 @@ export function openKeyboardShortcutsModal(_app) {
     document.addEventListener('keydown', onKeydown);
 
     modal.classList.add('flex-visible'); modal.classList.remove('hidden');
-    setTimeout(() => doneBtn.focus(), 30);
+    // preventScroll: Done is at the bottom of a dialog that scrolls on a phone; plain focus() scrolled the
+    // dialog to its end and carried the close button out of view.
+    setTimeout(() => doneBtn.focus({ preventScroll: true }), 30);
 }

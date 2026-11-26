@@ -1290,6 +1290,9 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     padding: 20px;
+    /* #743: with viewport-fit=cover a landscape phone's notch sits at the sides. */
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
     color: var(--text-primary);
 }
 
@@ -1311,7 +1314,8 @@ body {
 @media (display-mode: standalone) {
     body {
         background: white;
-        padding: 0;
+        /* Top and bottom insets are handled by the header and the phone tab bar (#743). */
+        padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
     }
 
     body.dark-mode {
@@ -1333,6 +1337,8 @@ header {
     color: white;
     display: flex;
     flex-direction: column;
+    /* #743: the blue header runs under a translucent status bar when the page is edge to edge. */
+    padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* ── Top bar: toolbar pinned to the right ──────────────────────────── */
@@ -8704,7 +8710,7 @@ body.dark-mode .settings-danger-title { color: #f87171; }
     header { position: relative; }
     .header-top {
         position: absolute;
-        top: 0;
+        top: env(safe-area-inset-top, 0px);
         right: 0;
         padding: 8px 14px 0;
         z-index: 30; /* above the sticky Reports tab strip (20); see the phone rule above */
@@ -10260,7 +10266,8 @@ body.dark-mode .sinking-status--pastDue { background: #7f1d1d; color: #fca5a5; }
     /* The last content of every page (Ledger lives in the header, the
        footer follows <main>) clears the bar: one padding on the container. */
     .container {
-        padding-bottom: calc(var(--phone-tab-bar-height) + env(safe-area-inset-bottom));
+        /* + 12px so the footer does not sit flush against the bar (#743). */
+        padding-bottom: calc(var(--phone-tab-bar-height) + env(safe-area-inset-bottom) + 12px);
     }
 
     /* Fixed bottom UI (undo toast, banners, toasts) sits above the bar,
@@ -10476,4 +10483,118 @@ body.dark-mode #phoneMoreSheet .page-button[aria-current="page"] {
     .phone-more-sheet {
         display: none !important;
     }
+}
+
+/* ── Phone polish (#738-#743) ─────────────────────────────────────────── */
+
+/* #738: a flex item's automatic minimum width is its content's, and a chart canvas that has not been
+   sized yet is the browser default 300px wide, so the card (with its 38px of padding and border) was
+   338px and stuck out of any container narrower than that; the page card then clipped its right edge.
+   min-width: 0 lets the card shrink to its row, and the canvas rule below keeps the canvas inside it. */
+.rpt-chart-card { min-width: 0; }
+/* A chart with no data yet leaves its canvas at the browser default of 300px, wider than a phone's panel. */
+.rpt-chart-canvas-wrap canvas { max-width: 100%; }
+
+/* #739 / #740 / #741: touch targets. The glyphs keep their size and position; only the hit area
+   grows. 44px is the usual phone guideline; WCAG 2.2 (2.5.8) needs 24px at the very least. */
+@media (max-width: 768px), (pointer: coarse) {
+    .modal-close,
+    .amortization-close-btn,
+    .accelerate-modal-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0;
+        line-height: 1;
+    }
+    .modal-close,
+    .amortization-close-btn { top: 10px; right: 1px; }
+    .accelerate-modal-close { top: 10px; right: 0; }
+
+    .health-link,
+    .health-bonus-cta-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    .health-link { justify-content: flex-start; }
+    .health-bonus-cta-link { justify-content: center; }
+    .health-budget-thresholds-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .income-trend-yoy-toggle,
+    .retire-limit-toggle { min-height: 44px; }
+    .income-trend-yoy-toggle input[type="checkbox"],
+    .retire-limit-toggle input[type="checkbox"],
+    .debt-select-label input[type="checkbox"] { width: 22px; height: 22px; }
+    .debt-select-label {
+        top: 0;
+        right: 0;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .debt-card .debt-name { padding-right: 44px; }
+}
+
+/* #743: Settings is full screen at phone width, so with viewport-fit=cover its top and bottom must
+   clear the status bar and the gesture area (its close button is positioned from the top edge). */
+@media (max-width: 767px) {
+    .settings-shell .modal-content.settings-modal-content {
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    #settingsModal .modal-close { top: calc(10px + env(safe-area-inset-top, 0px)); }
+}
+
+/* #742: the toolbar used to be absolutely positioned over the right of the header row, so the
+   title ran underneath it. On phones the header is a two-column grid instead: the title takes
+   what is left (and ellipsizes), the toolbar takes what it needs, and everything else in the
+   header (page sections that live inside it) spans the full row. */
+@media (max-width: 768px) {
+    header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+    }
+    header > * { grid-column: 1 / -1; }
+    header > .header-hero { grid-column: 1; grid-row: 1; min-width: 0; }
+    header > .header-top {
+        grid-column: 2;
+        grid-row: 1;
+        position: relative;
+        top: auto;
+        right: auto;
+    }
+    header h1 {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+/* The toolbar's five 44px buttons leave a 390px header only ~94px for the title, which needs ~140px.
+   Up to 768px the buttons are 44px; at 480px and narrower they are 36px wide (44px tall; 36px is
+   still above WCAG's 24px) with tighter padding; below 380px the logo mark steps aside. */
+@media (max-width: 768px) {
+    .header-icon-btn { width: 44px; height: 44px; }
+}
+@media (max-width: 480px) {
+    header > .header-top { padding: 0 4px; }
+    header > .header-hero { padding-right: 0; }
+    header h1 { font-size: 1.05rem; }
+    header h1 .logo-icon { margin-right: 0.2em; }
+    .header-toolbar { gap: 2px; }
+    .header-icon-btn { width: 36px; }
+    /* The Saving dot appears in this row during every save; keep it from squeezing the title. */
+    .save-status-chip { margin-right: 0; gap: 0; padding: 2px; }
+}
+@media (max-width: 380px) {
+    header h1 .logo-icon { display: none; }
 }

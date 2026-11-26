@@ -205,23 +205,51 @@ def test_bar_hides_while_typing(app_page):
 # every focusout before the app's document listener sees it, so only the
 # pointerdown / switchPage re-check can bring the bar back.
 _FOCUS_DOOMED_FIELD = """() => {
-    window.addEventListener('focusout', e => e.stopImmediatePropagation(), true);
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.id = 'doomedField';
-    // Not inside the active page section: Health re-renders its section's innerHTML shortly
-    // after boot (_finishBoot), which on a slow runner removed this field and re-showed the bar.
-    document.querySelector('.container').prepend(input);
+    if (!window.__swallowFocusout) {
+        window.__swallowFocusout = true;
+        window.addEventListener('focusout', e => e.stopImmediatePropagation(), true);
+    }
+    let input = document.getElementById('doomedField');
+    if (!input) {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'doomedField';
+        // Not inside the active page section: Health re-renders its section's innerHTML shortly
+        // after boot (_finishBoot), which on a slow runner removed this field and re-showed the bar.
+        document.querySelector('.container').prepend(input);
+    }
     input.focus();
 }"""
 
+# Check and removal happen in ONE browser task. A late app action (boot finishing, an overlay,
+# live refresh) can take focus away from the field on a slow runner; between a Playwright
+# "wait until hidden" and a separate remove() call that showed up as a flaky failure.
+_REMOVE_DOOMED_FIELD = """() => {
+    const input = document.getElementById('doomedField');
+    if (!input || document.activeElement !== input) return { lost: true };
+    input.remove();
+    const bar = document.getElementById('phoneTabBar');
+    return {
+        lost: false,
+        onBody: document.activeElement === document.body,
+        stillHidden: bar.classList.contains('phone-tab-bar--hidden'),
+    };
+}"""
 
-def _remove_doomed_field(page):
-    page.locator(BAR).wait_for(state="hidden", timeout=5000)
-    page.evaluate("() => document.getElementById('doomedField').remove()")
-    assert page.evaluate("() => document.activeElement === document.body")
+
+def _focus_and_remove_doomed_field(page):
+    result = None
+    for _ in range(5):
+        page.evaluate(_FOCUS_DOOMED_FIELD)
+        page.locator(BAR).wait_for(state="hidden", timeout=5000)
+        result = page.evaluate(_REMOVE_DOOMED_FIELD)
+        if not result["lost"]:
+            break
+    else:
+        pytest.fail("something kept taking focus away from the injected field")
+    assert result["onBody"], "removing the focused field should leave focus on <body>"
     # Proof that focusout was suppressed: nothing has re-shown the bar yet.
-    assert "phone-tab-bar--hidden" in (page.locator(BAR).get_attribute("class") or "")
+    assert result["stillHidden"], "the bar was re-shown without a focusout"
 
 
 @pytest.mark.ui
@@ -229,8 +257,7 @@ def test_bar_returns_on_tap_after_focused_field_is_removed(app_page):
     page = app_page
     page.set_viewport_size(PHONE)
     page.locator(BAR).wait_for(state="visible", timeout=5000)
-    page.evaluate(_FOCUS_DOOMED_FIELD)
-    _remove_doomed_field(page)
+    _focus_and_remove_doomed_field(page)
     # Tap plain, non-focusable content (the footer), so no focusin fires.
     page.locator("#appVersion").click()
     page.locator(BAR).wait_for(state="visible", timeout=5000)
@@ -242,8 +269,7 @@ def test_bar_returns_on_switch_page_after_focused_field_is_removed(app_page):
     page = app_page
     page.set_viewport_size(PHONE)
     page.locator(BAR).wait_for(state="visible", timeout=5000)
-    page.evaluate(_FOCUS_DOOMED_FIELD)
-    _remove_doomed_field(page)
+    _focus_and_remove_doomed_field(page)
     page.evaluate("() => window.app.switchPage('ledger')")
     page.locator(BAR).wait_for(state="visible", timeout=5000)
 

@@ -4,6 +4,19 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.8.2] — 2026-11-26
+
+### Fixed
+- **Charts on Reports and Retirement stay inside their card (#738).** At phone width a chart card was 338 px wide in a 310 px panel, so its right edge was cut off; a chart with no data yet also kept the browser's default 300 px canvas. Both now fit.
+- **Dialog close buttons are easy to hit (#739).** The × in dialogs was 12–14 px wide; the tappable area is now 44 × 44 px on phones and touch screens (the glyph looks the same).
+- **Health links and the budget gear are 44 px tall (#740)**, up from 16 px for the "Manage debts →" style links and 23 px wide for the gear.
+- **Checkboxes have real tap targets (#741).** The Income YoY toggle, the debt row selector and the Retirement catch-up toggle were 13–16 px; each now has a 44 px tap area around a 22 px box.
+- **The Keyboard Shortcuts dialog no longer opens scrolled to the bottom on phones.** Focus went to its Done button, which scrolled the dialog and carried the close button out of view; focus now lands without scrolling.
+- **The header title no longer runs under the toolbar (#742).** On phones the header is a two-column grid: the toolbar takes what it needs (buttons 36 px wide at 480 px and narrower, still 44 px tall; the Saving dot is smaller) and the title takes the rest, reading in full at 390 px and above; below 380 px the logo mark steps aside so the name still fits.
+
+### Changed
+- **The page now extends under the system bars (#743).** `viewport-fit=cover` lets the tab bar reach the bottom edge instead of floating above the gesture area, with padding for the home indicator and gesture bar. Where the browser draws under the status bar the blue header runs under it, the full-screen Settings panel clears both bars, and a landscape phone's notch gets side padding; the footer also has a little more room above the tab bar. Browsers that report no insets look the same as before.
+
 ## [8.8.1] — 2026-11-26
 
 ### Fixed
