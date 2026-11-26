@@ -267,7 +267,7 @@ OVERLAYS = [
 @pytest.mark.parametrize("overlay,opener", OVERLAYS, ids=[o[0] for o in OVERLAYS])
 def test_every_overlay_closes_on_escape(app_page, overlay, opener):
     if opener is None:
-        pytest.skip("skip-ok: no test-drivable opener (see the comment in OVERLAYS)")
+        pytest.skip("no test-drivable opener (see the comment in OVERLAYS)")  # skip-ok: listed overlays have private, state-triggered openers
     page = app_page
     seed_state(page, OVERLAY_SEED)
     wait_for_app_ready(page)
