@@ -581,6 +581,7 @@ jobs:
             tests/ui/test_reduced_motion.py \
             tests/ui/test_guide_theme.py \
             tests/ui/test_design_consistency.py \
+            tests/ui/test_phone_polish.py \
             --maxfail=15 \
             -v
 

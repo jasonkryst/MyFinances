@@ -134,6 +134,7 @@ One line per rule; the feature reference (`docs/architecture/features.md`) has t
 - **Every Chart.js canvas gets a `renderChartDataTable(...)`** right after construction. [Chart accessibility]
 - Every control needs an accessible name that starts with its visible text; per-item actions name the item (`escapeHtml` the name); toggles carry `aria-pressed`; sort headers need `tabindex`, keys and `aria-sort`. [Control labelling]
 - **A new overlay must close on Escape and must not add history entries**: Back closes the innermost overlay by sending it an Escape keydown (`closeInnermost` in `src/router.js`). [App routing (path addresses), Phone tab bar]
+- Every tappable control is at least 44px in both directions on phones (`@media (max-width: 768px), (pointer: coarse)`; WCAG 2.2 2.5.8 needs 24px at the very least): grow the hit area with `min-width`/`min-height` or a padded label, not the glyph. `tests/ui/test_phone_polish.py` measures the dialog close buttons, Health links and checkboxes. [Phone tab bar]
 - Blocking overlays call `makeBackgroundInert`; field errors use `markFieldInvalid`; never pair `role="alert"` with `aria-live="polite"`. [Overlays, focus and field errors]
 - **A new `keydown` shortcut needs a `KEYBOARD_SHORTCUTS` entry.** New pages join the command palette; a new record type in its search needs a `RECORD_TARGETS` entry. [Keyboard shortcuts panel, Command palette]
 - Error text uses `var(--danger-text)`, never `var(--danger-color)`; don't dim text with `opacity`; measure new text colours with `tests/ui/contrast_utils.py`. [Text contrast]
