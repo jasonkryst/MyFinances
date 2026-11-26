@@ -118,6 +118,10 @@ export async function showLoginGate(app, options = {}) {
         clearFieldInvalid(field, err);
     }
 
+    // #731: other overlays (the phone More sheet) close first. Before
+    // makeBackgroundInert: an open sheet has made the gate inert, and only its
+    // own release removes that.
+    document.dispatchEvent(new CustomEvent('mf:gate-shown'));
     gate.classList.add('flex-visible');
     gate.classList.remove('hidden');
     // #464: nothing behind the gate is reachable by Tab or screen readers.

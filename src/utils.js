@@ -3,7 +3,7 @@ import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 import { getAmountOn } from './amountSchedule.js';
 import { getEffectiveMonthlyAllocation } from './sinkingFundSchedule.js';
 
-export const APP_VERSION = '8.7.0';
+export const APP_VERSION = '8.8.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -807,6 +807,18 @@ export function clearFieldInvalid(field, errorEl) {
         field.removeEventListener('input', field._a11yInvalidListener);
         field._a11yInvalidListener = null;
     }
+}
+
+const NON_TEXT_INPUTS = new Set(['button', 'submit', 'reset', 'checkbox', 'radio', 'range', 'color', 'file', 'image']);
+
+// True for a control that takes typed text (text-like inputs, textarea,
+// select, contenteditable). Live refresh waits while one has focus. The phone
+// tab bar (#731) hides for the subset that raises a keyboard (ui.js
+// raisesKeyboard: not a select or a date/time picker).
+export function isTextEntryElement(el) {
+    if (!el) return false;
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable) return true;
+    return el.tagName === 'INPUT' && !NON_TEXT_INPUTS.has((el.type || '').toLowerCase());
 }
 
 // Lock a form or modal while its save is pending (#459). A second submit

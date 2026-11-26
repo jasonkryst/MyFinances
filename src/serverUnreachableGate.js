@@ -21,6 +21,9 @@ export function showServerUnreachable(app) {
 
     if (status) status.textContent = '';
     retryBtn.disabled = false;
+    // #731: other overlays (the phone More sheet) close first, before
+    // makeBackgroundInert (see loginGate.js).
+    document.dispatchEvent(new CustomEvent('mf:gate-shown'));
     gate.classList.add('flex-visible');
     gate.classList.remove('hidden');
     // #464: the app behind the gate can't be reached by Tab or screen readers.

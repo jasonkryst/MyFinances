@@ -614,6 +614,8 @@ jobs:
             tests/ui/test_mobile_no_card_clipping.py \
             tests/ui/test_label_in_name.py \
             tests/ui/test_desktop_width.py \
+            tests/ui/test_back_overlays.py \
+            tests/ui/test_phone_tab_bar.py \
             --maxfail=15 \
             -v
 

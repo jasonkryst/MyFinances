@@ -1,7 +1,7 @@
 ﻿﻿﻿// UI helpers, event listeners, theming
 import { installAmountChangeListeners } from './amountChangeUi.js';
 import { lazyFeature, getResolvedModule, loadAppFeatures } from './lazyModules.js';
-import { APP_VERSION, renderLazyLoadError, escapeHtml, isCollapsibleOpen, withBusy, setCollapsibleOpen, refreshFilterDisclosureCounts, discardBody } from './utils.js';
+import { APP_VERSION, renderLazyLoadError, escapeHtml, isCollapsibleOpen, withBusy, setCollapsibleOpen, refreshFilterDisclosureCounts, discardBody, isTextEntryElement } from './utils.js';
 import { getZeroAmountPolicy, THEMES } from './settings.js';
 export { THEMES };
 import { initCommandPalette } from './commandPalette.js';
@@ -11,6 +11,7 @@ import { installOwnershipListeners } from './debtOwnership.js';
 import { t } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
 import { recordView, currentSubTab } from './router.js';
+import { makeBackgroundInert } from './overlayFocus.js';
 
 // #713: page renderers and forms live in appFeatures.js, loaded after the
 // landing page paints. These keep their old call shape.
@@ -115,6 +116,8 @@ export function initializeEventListeners(app) {
         });
     }
 
+    installPhoneTabBarKeyboardHide();
+
     // Navigation: page switching
     document.querySelectorAll('.page-button').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -131,6 +134,10 @@ export function initializeEventListeners(app) {
             }
         });
     });
+
+    // After the loop above: the sheet's cloned page buttons get their own
+    // handler (close the sheet, then navigate).
+    installPhoneMoreSheet(app);
 
     // Tab switching within the Results section (Tabular / Calendar / Chart)
     document.querySelectorAll('.tab-button').forEach(btn => {
@@ -832,6 +839,216 @@ const PAGE_SECTION_IDS = {
 // `resetToDefaults: false` (#730) keeps the page's remembered view state
 // (Reports month, Liabilities expense month and list page): Back/Forward
 // between sub-tabs of the page already showing passes it.
+// #731: hide the phone tab bar while a text field has focus at phone width,
+// since an on-screen keyboard is then up and the bar would ride above it.
+// Live refresh's "typing" rule (isTextEntryElement) minus the controls that
+// raise a picker, not a keyboard: a <select> and the date and time inputs.
+// On Android such a picker closes after a choice but keeps focus, which
+// would leave the bar hidden with no keyboard up. Only a field that is still
+// in the page and shown counts. A field inside a modal dialog does not
+// count: the dialog covers the bar anyway, and a hidden bar would make
+// the dialog's focus return to a tab (the command palette opened from More)
+// land on <body>.
+const PICKER_INPUT_TYPES = new Set(['date', 'month', 'week', 'time', 'datetime-local']);
+
+function raisesKeyboard(el) {
+    if (!isTextEntryElement(el) || el.tagName === 'SELECT') return false;
+    return !(el.tagName === 'INPUT' && PICKER_INPUT_TYPES.has((el.type || '').toLowerCase()));
+}
+
+function updatePhoneTabBarHidden(focused) {
+    const bar = document.getElementById('phoneTabBar');
+    if (!bar || typeof window.matchMedia !== 'function') return;
+    const typing = Boolean(focused) && focused.isConnected && focused.getClientRects().length > 0
+        && raisesKeyboard(focused) && !focused.closest('[aria-modal="true"]');
+    bar.classList.toggle('phone-tab-bar--hidden', typing && window.matchMedia('(max-width: 768px)').matches);
+}
+
+function installPhoneTabBarKeyboardHide() {
+    if (!document.getElementById('phoneTabBar') || typeof window.matchMedia !== 'function') return;
+    document.addEventListener('focusin', (e) => updatePhoneTabBarHidden(e.target));
+    // relatedTarget is the element taking focus (null when focus leaves).
+    document.addEventListener('focusout', (e) => updatePhoneTabBarHidden(e.relatedTarget));
+    // Some browsers (Firefox, iOS Safari) fire no focusout when the focused
+    // field is removed or hidden (an inline edit re-rendering, a form
+    // collapsing), which would leave the bar hidden with no navigation. Any
+    // tap re-checks what really has focus (capture: runs before handlers that
+    // stop the event); switchPage re-checks too.
+    document.addEventListener('pointerdown', () => updatePhoneTabBarHidden(document.activeElement), true);
+    // Back that cancels an inline edit (the router's popstate handler) removes
+    // the focused field the same way. A task, not a microtask: this listener
+    // is added before the router's, and a microtask queued here would run
+    // before the router's listener does.
+    window.addEventListener('popstate', () => {
+        setTimeout(() => updatePhoneTabBarHidden(document.activeElement), 0);
+    });
+    const phone = window.matchMedia('(max-width: 768px)');
+    if (typeof phone.addEventListener === 'function') {
+        phone.addEventListener('change', () => updatePhoneTabBarHidden(document.activeElement));
+    }
+}
+
+// #731: the phone More sheet. Its page list is cloned from #navMenu's
+// .nav-group markup (one source of nav items), minus the pages that have a
+// tab. The clones keep .page-button[data-page] and data-i18n, so switchPage
+// marks the current one and applyStaticTranslations re-translates them.
+// The sheet is a role="dialog" child of <body>: Back closes it through the
+// router's Escape (closeInnermost), and it never adds a history entry.
+let _phoneMoreSheetRelease = null;
+let _phoneMoreSheetKeydown = null;
+
+function buildPhoneMoreSheetBody(body) {
+    const tabPages = new Set(Array.from(document.querySelectorAll('#phoneTabBar .phone-tab[data-page]'))
+        .map(btn => btn.getAttribute('data-page')));
+    body.textContent = '';
+    document.querySelectorAll('#navMenu .nav-group').forEach((group, index) => {
+        const clone = group.cloneNode(true);
+        clone.querySelectorAll('.page-button[data-page]').forEach(btn => {
+            if (tabPages.has(btn.getAttribute('data-page'))) btn.remove();
+        });
+        if (!clone.querySelector('.page-button[data-page]')) return;
+        // Never duplicate an id from the desktop nav.
+        clone.removeAttribute('id');
+        clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+        clone.querySelectorAll('.page-button').forEach(btn => btn.setAttribute('type', 'button'));
+        const label = clone.querySelector('.nav-group-label');
+        if (label) {
+            label.id = `phoneMoreGroupLabel${index}`;
+            clone.setAttribute('role', 'group');
+            clone.setAttribute('aria-labelledby', label.id);
+        }
+        body.appendChild(clone);
+    });
+}
+
+function isPhoneMoreSheetOpen() {
+    const sheet = document.getElementById('phoneMoreSheet');
+    return Boolean(sheet && !sheet.classList.contains('hidden'));
+}
+
+function phoneMoreSheetFocusables(sheet) {
+    return Array.from(sheet.querySelectorAll('button:not([disabled])'))
+        .filter(el => el.getClientRects().length > 0);
+}
+
+function openPhoneMoreSheet(app) {
+    const sheet = document.getElementById('phoneMoreSheet');
+    const moreBtn = document.getElementById('phoneMoreBtn');
+    if (!sheet || isPhoneMoreSheetOpen()) return;
+    sheet.classList.remove('hidden');
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', 'true');
+    _phoneMoreSheetRelease = makeBackgroundInert(sheet);
+    // On the document in the capture phase, not on the sheet: the keys still
+    // work when focus has dropped to <body>, and Escape and Ctrl+K reach the
+    // sheet before any other document-level handler (the command palette's).
+    // The router's Back Escape passes through here too.
+    _phoneMoreSheetKeydown = (e) => handlePhoneMoreSheetKeydown(app, e);
+    document.addEventListener('keydown', _phoneMoreSheetKeydown, true);
+    const target = sheet.querySelector('.page-button[aria-current="page"]')
+        || sheet.querySelector('.page-button[data-page]')
+        || document.getElementById('phoneMoreCloseBtn');
+    if (target) target.focus();
+}
+
+// `returnFocus` puts focus back on More (Escape, the close button, the
+// backdrop, choosing a page). When the sheet closes because the window grew
+// past the phone breakpoint, More is hidden, so focus goes to the desktop
+// nav's current page instead.
+function closePhoneMoreSheet(_app, { returnFocus = true } = {}) {
+    const sheet = document.getElementById('phoneMoreSheet');
+    const moreBtn = document.getElementById('phoneMoreBtn');
+    if (!sheet || !isPhoneMoreSheetOpen()) return;
+    const active = document.activeElement;
+    // Focus in the sheet, or lost to <body> (the background is inert, so it
+    // can be nowhere else that matters).
+    const hadFocus = !active || active === document.body || active === document.documentElement
+        || sheet.contains(active);
+    sheet.classList.add('hidden');
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', 'false');
+    if (_phoneMoreSheetKeydown) document.removeEventListener('keydown', _phoneMoreSheetKeydown, true);
+    _phoneMoreSheetKeydown = null;
+    if (_phoneMoreSheetRelease) _phoneMoreSheetRelease();
+    _phoneMoreSheetRelease = null;
+    if (!hadFocus) return;
+    const target = returnFocus ? moreBtn : document.querySelector('#navMenu .page-button.active');
+    if (target && target.getClientRects().length > 0) target.focus({ preventScroll: !returnFocus });
+}
+
+function handlePhoneMoreSheetKeydown(app, e) {
+    const sheet = document.getElementById('phoneMoreSheet');
+    if (!sheet || !isPhoneMoreSheetOpen()) return;
+    if (e.key === 'Escape') {
+        // Only this sheet: no other global Escape handler acts on it.
+        e.preventDefault();
+        e.stopPropagation();
+        closePhoneMoreSheet(app);
+        return;
+    }
+    if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+        // The command palette (document-level Ctrl+K) would open behind the
+        // inert background: close the sheet first (focus back on More, which
+        // the palette returns to) and let the key through.
+        closePhoneMoreSheet(app);
+        return;
+    }
+    if (e.key !== 'Tab') return;
+    const focusable = phoneMoreSheetFocusables(sheet);
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!sheet.contains(document.activeElement)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+    } else if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+    }
+}
+
+function installPhoneMoreSheet(app) {
+    const sheet = document.getElementById('phoneMoreSheet');
+    const body = document.getElementById('phoneMoreSheetBody');
+    const moreBtn = document.getElementById('phoneMoreBtn');
+    if (!sheet || !body || !moreBtn) return;
+    buildPhoneMoreSheetBody(body);
+
+    moreBtn.addEventListener('click', () => {
+        if (isPhoneMoreSheetOpen()) closePhoneMoreSheet(app);
+        else openPhoneMoreSheet(app);
+    });
+
+    sheet.addEventListener('click', (e) => {
+        const pageBtn = e.target.closest('.page-button[data-page]');
+        if (pageBtn && body.contains(pageBtn)) {
+            closePhoneMoreSheet(app);
+            app.switchPage(pageBtn.getAttribute('data-page'));
+            return;
+        }
+        if (e.target.closest('#phoneMoreCloseBtn') || e.target.classList.contains('phone-more-backdrop')) {
+            closePhoneMoreSheet(app);
+        }
+    });
+
+    if (typeof window.matchMedia === 'function') {
+        const phone = window.matchMedia('(max-width: 768px)');
+        if (typeof phone.addEventListener === 'function') {
+            phone.addEventListener('change', () => {
+                if (!phone.matches) closePhoneMoreSheet(app, { returnFocus: false });
+            });
+        }
+    }
+
+    // A gate or the legacy-data modal is opening (a 401 mid-session): close
+    // the sheet before it makes the background inert. The sheet set `inert`
+    // on the hidden gate, and only the sheet's release removes it; left open,
+    // the whole page would be inert. The gates dispatch a DOM event rather
+    // than call into ui.js, so no new import edge joins its cycle.
+    document.addEventListener('mf:gate-shown', () => closePhoneMoreSheet(app, { returnFocus: false }));
+}
+
 export function switchPage(app, pageName, { subTab = null, resetToDefaults = true } = {}) {
     // #315: the Spending-to-Ledger cross-nav breadcrumb only makes sense
     // while still looking at the Ledger page it dropped you into — clear it
@@ -855,10 +1072,22 @@ export function switchPage(app, pageName, { subTab = null, resetToDefaults = tru
         b.classList.remove('active');
         b.setAttribute('aria-current', 'false');
     });
-    const btn = document.querySelector(`.page-button[data-page="${pageName}"]`);
-    if (btn) {
+    // #731: the desktop nav and the phone tab bar both hold a button for
+    // some pages; mark every one. More stands for every page in its sheet.
+    let tabMarked = false;
+    document.querySelectorAll(`.page-button[data-page="${pageName}"]`).forEach(btn => {
         btn.classList.add('active');
         btn.setAttribute('aria-current', 'page');
+        if (btn.classList.contains('phone-tab')) tabMarked = true;
+    });
+    const moreBtn = document.getElementById('phoneMoreBtn');
+    if (moreBtn) {
+        // Only the pages the More sheet lists (the desktop nav's pages minus
+        // the four tabs); Notifications, for one, is not among them.
+        const moreCurrent = !tabMarked
+            && Boolean(document.querySelector(`#navMenu .page-button[data-page="${pageName}"]`));
+        moreBtn.classList.toggle('active', moreCurrent);
+        moreBtn.setAttribute('aria-current', moreCurrent ? 'page' : 'false');
     }
 
     const mapping = PAGE_SECTION_IDS;
@@ -876,6 +1105,8 @@ export function switchPage(app, pageName, { subTab = null, resetToDefaults = tru
     // #730: the address follows the page (a no-op when it is already there
     // or while Back/Forward or boot is applying an address).
     recordView(app, { page: pageName, subTab: currentSubTab(app, pageName, subTab) });
+    // #731: the page swap may have removed a focused field without focusout.
+    updatePhoneTabBarHidden(document.activeElement);
 }
 
 /**
@@ -1134,6 +1365,13 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '8.8.0 — 2026-11-26',
+        items: [
+            '<strong>A tab bar for phones.</strong> On a phone the menu is now a bar along the bottom with <em>Health, Ledger, Plan, Reports</em> and <em>More</em>, where <em>More</em> opens the rest of the pages. It steps aside while you type so it never sits above the keyboard.',
+            '<strong>Back closes what is open.</strong> With a dialog or an edit open, the Back button (or swipe) now closes it instead of leaving the page, and a dialog opened over Settings closes without closing Settings.'
+        ]
+    },
     {
         version: '8.7.0 — 2026-11-25',
         items: [

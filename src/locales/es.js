@@ -77,6 +77,9 @@ export default {
     'nav.reconcile': 'Conciliar',
     'nav.retirement': 'Jubilación',
     'nav.people': 'Personas',
+    'nav.more': 'Más',
+    'nav.phoneTabsAria': 'Pestañas principales',
+    'nav.moreSheetTitle': 'Más páginas',
 
     'settings.close': 'Cerrar',
     'settings.title': 'Configuración',

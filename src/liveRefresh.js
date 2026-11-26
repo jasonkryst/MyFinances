@@ -14,6 +14,7 @@
 
 import { loadFromPostgres, SessionExpiredError } from './storage.js';
 import { requestLogin } from './loginGate.js';
+import { isTextEntryElement } from './utils.js';
 import { refreshNotifications } from './notificationsCenter.js';
 import { pendingWriteCount, currentWriteGeneration, seedShadows, DATA_WRITTEN_EVENT } from './postgresSync.js';
 import {
@@ -33,13 +34,8 @@ function isModalOpen() {
         .some(el => !el.classList.contains('hidden') && el.getClientRects().length > 0);
 }
 
-const NON_TEXT_INPUTS = new Set(['button', 'submit', 'reset', 'checkbox', 'radio', 'range', 'color', 'file', 'image']);
-
 function isTyping() {
-    const el = document.activeElement;
-    if (!el) return false;
-    if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable) return true;
-    return el.tagName === 'INPUT' && !NON_TEXT_INPUTS.has((el.type || '').toLowerCase());
+    return isTextEntryElement(document.activeElement);
 }
 
 function currentBlockReason(app) {
