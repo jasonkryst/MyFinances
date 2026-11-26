@@ -4,6 +4,19 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.8.0] — 2026-11-26
+
+### Added
+- **A bottom tab bar on phones (#731).** At 768 px and narrower the hamburger menu is replaced by a bar with Health, Ledger, Plan, Reports and More. The current page is marked (`aria-current="page"`), and More is current on any page that lives in its sheet. The bar hides while a text field has focus, so it never rides above the on-screen keyboard; page content and the fixed bottom UI (undo toast, banners) clear it, including the device safe area. Desktop navigation is unchanged.
+- **A More sheet.** More opens a sheet with the remaining pages in the same Overview, Manage and Analyze groups as the desktop menu (Accounts, Income, People; Liabilities, Recurring, Savings; Reconcile, Retirement). It is built from the desktop nav markup, so the two never drift apart, makes the page behind it inert, traps focus, and closes on Escape, a tap outside, Back, or growing the window past the phone width.
+
+### Changed
+- **Back closes what is open first (#734).** With a dialog open, Back closes it instead of leaving the page, and the address stays as it was. A Shortcuts or What's New dialog opened over Settings closes alone, leaving Settings; a second Back closes Settings. With an inline edit open (account, income, bonus, expense, person, recurring, debt), Back cancels it exactly as its Cancel button does. The sign-in and server-unreachable screens are never closed by Back. Overlays add no history entries.
+
+### Fixed
+- **Every dialog now closes on Escape.** Several dialogs ignored Escape; an audit covers the rest.
+- **The command palette closes Settings before switching pages**, so choosing a page while Settings is open no longer leaves Settings on top or a stale Settings address.
+
 ## [8.7.0] — 2026-11-25
 
 ### Added

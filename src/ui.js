@@ -1342,6 +1342,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '8.8.0 — 2026-11-26',
+        items: [
+            '<strong>A tab bar for phones.</strong> On a phone the menu is now a bar along the bottom with <em>Health, Ledger, Plan, Reports</em> and <em>More</em>, where <em>More</em> opens the rest of the pages. It steps aside while you type so it never sits above the keyboard.',
+            '<strong>Back closes what is open.</strong> With a dialog or an edit open, the Back button (or swipe) now closes it instead of leaving the page, and a dialog opened over Settings closes without closing Settings. Every dialog also closes on Escape.'
+        ]
+    },
+    {
         version: '8.7.0 — 2026-11-25',
         items: [
             '<strong>Every page has its own address.</strong> The Back and Forward buttons now move between the pages you visited, refreshing keeps you where you were, and you can bookmark or share a link to any page, tab or open Settings page, such as <em>Liabilities → Expenses</em> or <em>Reports → Net Worth</em>. Links you already saved keep working, and a page address loads offline the same way the home page does.'
