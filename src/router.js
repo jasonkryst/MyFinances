@@ -125,7 +125,14 @@ export function recordView(app, view, mode = 'push') {
     const path = buildPath({ page: view.page, subTab: view.subTab || null });
     if (path === location.pathname + location.search) return;
     // The new address carries no ?settings, so there is no pushed Settings
-    // entry for closing to step back over.
+    // entry for closing to step back over. Leaving a ?settings address for a
+    // page (the palette does) takes over that entry instead of stacking on it:
+    // a pushed one is replaced, an in-place one is dropped first.
+    const leavingSettings = parseLocation(location.pathname, location.search).settings !== null;
+    if (leavingSettings && mode === 'push') {
+        if (settingsPushed) mode = 'replace';
+        else history.replaceState(null, '', location.pathname);
+    }
     settingsPushed = false;
     if (mode === 'replace') history.replaceState(null, '', path);
     else history.pushState(null, '', path);

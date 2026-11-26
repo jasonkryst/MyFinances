@@ -20,6 +20,7 @@ function buildCommands(app) {
         label: t(labelKey),
         hint: page,
         icon,
+        leavesSettings: true,
         run: () => app.switchPage(pageName)
     });
 
@@ -35,6 +36,7 @@ function buildCommands(app) {
             label: `${t('nav.savings')} — ${t('savings.tabHome')}`,
             hint: page,
             icon: '🏠',
+            leavesSettings: true,
             run: () => {
                 app.savingsSubTab = 'home';
                 app.switchPage('savings');
@@ -46,6 +48,7 @@ function buildCommands(app) {
             label: `${t('nav.reports')} — ${t('reports.tabCalendar')}`,
             hint: page,
             icon: '📅',
+            leavesSettings: true,
             run: () => app.switchPage('reports', { subTab: 'calendar' })
         },
         nav('ledger', 'nav.ledger', '📒'),
@@ -84,6 +87,7 @@ function buildCommands(app) {
             label: t('palette.calcPlan'),
             hint: action,
             icon: '🧮',
+            leavesSettings: true,
             run: () => {
                 app.switchPage('strategy');
                 app.calculatePaymentPlanFromInputs();
@@ -106,6 +110,7 @@ function buildCommands(app) {
             hint: action,
             icon: '🎯',
             keywords: t('palette.bonusKeywords'),
+            leavesSettings: true,
             run: () => { app.switchPage('income'); app.showBonusAdvice(); }
         }
     ];
@@ -300,6 +305,11 @@ export function initCommandPalette(app) {
         if (!cmd) return;
         // A record jump moves focus to the record's Edit button itself.
         close({ restoreFocus: !cmd.group });
+        // A page or record jump leaves Settings behind (#731): close it first,
+        // without stepping history (the router replaces its entry with the page).
+        if ((cmd.leavesSettings || cmd.group) && document.getElementById('settingsModal')?.classList.contains('flex-visible')) {
+            app.closeSettings({ fromHistory: true });
+        }
         cmd.run();
     }
 

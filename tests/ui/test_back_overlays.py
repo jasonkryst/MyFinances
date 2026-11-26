@@ -187,3 +187,105 @@ def test_hidden_edit_on_other_sub_tab_does_not_swallow_back(app_page):
     _wait_path(page, "/liabilities/debts")
     page.wait_for_selector('#liabilitiesSection [data-subtab="debts"].visible', timeout=5000)
     expect(page.locator(f"#inline-name-{debt_id}")).to_be_visible()
+
+
+# ── Every overlay closes on Escape (Back relies on it) ───────────────────────
+
+OVERLAY_SEED = dict(SEED)
+OVERLAY_SEED["accounts"] = [
+    {"id": 1, "name": "Back Checking", "type": "Checking", "startingBalance": 1000},
+    {"id": 2, "name": "Back Savings", "type": "Savings", "startingBalance": 500},
+    {"id": 3, "name": "Back 401k", "type": "Retirement", "startingBalance": 5000, "retirementSubtype": "401k"},
+]
+
+_UI = "(await import('/src/ui.js'))"
+_RECURRING_ID = "window.app.recurringTemplates[0].id"
+
+# (overlay id, JS that opens it, run inside an async function with `app` bound).
+# Promise-returning dialogs are deliberately not awaited: they settle on close.
+OVERLAYS = [
+    ("whatsNewModal", "app.openWhatsNewModal()"),
+    ("keyboardShortcutsModal", "app.openKeyboardShortcuts()"),
+    ("alertModal", f"{_UI}.showAlertModal('Back test')"),
+    ("deleteConfirmModal", f"{_UI}.showDeleteConfirmModal('Back test')"),
+    ("archiveConfirmModal", f"{_UI}.showArchiveConfirmModal('Back Visa')"),
+    ("syncConflictModal", f"{_UI}.showSyncConflictModal('Back Visa')"),
+    ("reconSaveProgressModal", f"{_UI}.showReconSaveProgressModal()"),
+    ("accountReplacementModal", f"{_UI}.showAccountReplacementModal(app, app.accounts[0].id)"),
+    ("personReplacementModal", f"{_UI}.showPersonReplacementModal(app, app.persons[0].id, [], [{{name: 'Back Visa'}}])"),
+    ("amortizationModal", "app.showAmortizationModal('Back Visa')"),
+    ("accelerateDebtModal", "(await import('/src/debtBreakEven.js')).showAccelerateModal(app, app.debts[0].id)"),
+    ("acctBreakdownModal", "(await import('/src/accounts.js')).renderAccountBalanceBreakdown(app, app.accounts[0].id)"),
+    ("balanceHistoryModal", "app.showBalanceHistoryModal({kind: 'account', id: app.accounts[0].id})"),
+    ("calendarDayModal",
+     "app._reportsCalendarDayData = {year: 2026, month: 0, dayDataMap: {5: {incomes: [], bills: [], expenses: [], "
+     "recurring: [], debts: [], bonuses: []}}}; (await import('/src/reportsCalendar.js')).openCalendarDayModal(app, 5)"),
+    ("contributeModal", "(await import('/src/savings.js')).openContributeModal('Back fund')"),
+    ("ledgerOverrideModal",
+     "(await import('/src/ledgerOverrides.js')).openLedgerOverrideModal(app, {transactionId: 'income|1|1|2026-01-02', "
+     "name: 'Back Salary', accountId: 1, date: '2026-01-02', amount: 2000, type: 'income'})"),
+    ("manualTxModal", "(await import('/src/manualTransactions.js')).openManualTransactionModal(app, {})"),
+    ("transferModal", "(await import('/src/transfers.js')).openTransferModal(app, {})"),
+    ("reconcileModal", "(await import('/src/reconciliation.js')).openReconcileModal(app, app.accounts[0].id)"),
+    ("retirementSnapshotModal", "(await import('/src/retirement.js')).openRetirementSnapshotModal(app, app.accounts.find(a => a.type === 'Retirement').id)"),
+    ("updateBalanceModal", "(await import('/src/debts.js')).showUpdateBalanceModal(app, app.debts[0].id)"),
+    ("setupWizardModal", "(await import('/src/setupWizard.js')).maybeShowSetupWizard(app, true)"),
+    ("recurringPauseModal", f"(await import('/src/recurring.js')).openRecurringPauseModal(app, {_RECURRING_ID})"),
+    # Opened from a button, not a function the test can call.
+    ("calendarFeedModal", "document.getElementById('accountMenuCalendarFeedBtn').click()"),
+    ("ledgerExportModal", "document.getElementById('ledgerExportCsvBtn').click()"),
+    # skip-ok: private opener behind seeded Ledger rows; its keydown handler is at ledger.js (Escape -> close)
+    ("ledgerMarkAllClearedModal", None),
+    # skip-ok: private opener behind seeded Reports spending rows; Escape handled in spending.js
+    ("spendingDrilldownModal", None),
+    # skip-ok: private opener behind a Health budget card; Escape handled in health.js
+    ("budgetThresholdsModal", None),
+    # skip-ok: needs a legacy local-data migration prompt; Escape handled in pgMigrationModal.js
+    ("pgMigrationModal", None),
+    # skip-ok: needs a seeded recurring occurrence with a paid month; Escape handled in recurringPaid.js
+    ("recurringMarkPaidModal", None),
+]
+
+
+@pytest.mark.parametrize("overlay,opener", OVERLAYS, ids=[o[0] for o in OVERLAYS])
+def test_every_overlay_closes_on_escape(app_page, overlay, opener):
+    if opener is None:
+        pytest.skip("skip-ok: no test-drivable opener (see the comment in OVERLAYS)")
+    page = app_page
+    seed_state(page, OVERLAY_SEED)
+    wait_for_app_ready(page)
+    if overlay == "ledgerExportModal":
+        _nav(page, "ledger", "ledgerSection")
+    if overlay == "amortizationModal":
+        # The modal lives inside the Plan page, which must be showing.
+        _nav(page, "strategy", "strategySection")
+    if overlay == "calendarFeedModal":
+        page.click("#accountMenuBtn")
+        page.wait_for_selector("#accountMenuDropdown:not(.hidden)", timeout=3000)
+    page.evaluate("() => { const app = window.app; (async () => { " + opener + "; })(); }")
+    target = page.locator(f"#{overlay}")
+    expect(target).to_be_visible(timeout=5000)
+    page.wait_for_function(
+        "(id) => document.getElementById(id).contains(document.activeElement)", arg=overlay, timeout=5000)
+    page.keyboard.press("Escape")
+    expect(target).to_be_hidden(timeout=5000)
+
+
+def test_palette_page_choice_closes_settings(app_page):
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    page.click("#accountMenuBtn")
+    page.click("#accountMenuSettingsBtn")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
+    page.keyboard.press("Control+k")
+    expect(page.locator("#commandPaletteOverlay")).to_be_visible(timeout=5000)
+    page.fill("#commandPaletteInput", "Accounts")
+    page.keyboard.press("Enter")
+    expect(page.locator("#settingsModal")).to_be_hidden(timeout=5000)
+    page.wait_for_selector("#accountsSection.active", timeout=5000)
+    _wait_path(page, "/accounts")
+    # No stray ?settings entry: one Back leaves /accounts for the page before Settings.
+    page.go_back()
+    page.wait_for_selector("#ledgerSection.active", timeout=5000)
+    _wait_path(page, "/ledger")
+    expect(page.locator("#settingsModal")).to_be_hidden()

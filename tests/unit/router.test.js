@@ -205,7 +205,14 @@ test('leaveSettings does nothing once a page change dropped ?settings', () => {
     recordSettings('backup', 'push');
     recordView(fakeApp('ledger'), { page: 'reports', subTab: 'calendar' });
     leaveSettings();
-    expect(env.calls).toEqual([['push', '/ledger?settings=backup'], ['push', '/reports/calendar']]);
+    // The page takes over the entry Settings pushed: no stray ?settings entry.
+    expect(env.calls).toEqual([['push', '/ledger?settings=backup'], ['replace', '/reports/calendar']]);
+});
+
+test('a page change from a bookmarked ?settings address drops it before pushing', () => {
+    const env = settingsBrowser('/ledger', '?settings=security');
+    recordView(fakeApp('ledger'), { page: 'accounts' });
+    expect(env.calls).toEqual([['replace', '/ledger'], ['push', '/accounts']]);
 });
 
 test('applySettingsFromLocation opens Settings without recording; popstate closes it', () => {
