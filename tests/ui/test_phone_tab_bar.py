@@ -209,7 +209,9 @@ _FOCUS_DOOMED_FIELD = """() => {
     const input = document.createElement('input');
     input.type = 'text';
     input.id = 'doomedField';
-    document.querySelector('.page-section.active').prepend(input);
+    // Not inside the active page section: Health re-renders its section's innerHTML shortly
+    // after boot (_finishBoot), which on a slow runner removed this field and re-showed the bar.
+    document.querySelector('.container').prepend(input);
     input.focus();
 }"""
 
