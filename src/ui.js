@@ -1137,7 +1137,7 @@ const WHATS_NEW_ENTRIES = [
     {
         version: '8.7.0 — 2026-11-25',
         items: [
-            '<strong>Every page has its own address.</strong> The Back and Forward buttons now move between the pages you visited, refreshing keeps you where you were, and you can bookmark or share a link to any page, tab or open Settings page, such as <em>Liabilities → Expenses</em> or <em>Reports → Net Worth</em>. Links you already saved keep working, and the app opens on any page even offline.'
+            '<strong>Every page has its own address.</strong> The Back and Forward buttons now move between the pages you visited, refreshing keeps you where you were, and you can bookmark or share a link to any page, tab or open Settings page, such as <em>Liabilities → Expenses</em> or <em>Reports → Net Worth</em>. Links you already saved keep working, and a page address loads offline the same way the home page does.'
         ]
     },
     {

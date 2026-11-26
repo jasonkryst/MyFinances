@@ -46,17 +46,7 @@ function buildCommands(app) {
             label: `${t('nav.reports')} — ${t('reports.tabCalendar')}`,
             hint: page,
             icon: '📅',
-            run: () => {
-                document.querySelectorAll('.rpt-tab-btn').forEach(b => {
-                    const active = b.getAttribute('data-rptab') === 'calendar';
-                    b.classList.toggle('rpt-tab-btn--active', active);
-                    b.setAttribute('aria-selected', String(active));
-                });
-                document.querySelectorAll('.rpt-tab-panel').forEach(p => {
-                    p.classList.toggle('rpt-tab-panel--active', p.id === 'rptPanel-calendar');
-                });
-                app.switchPage('reports');
-            }
+            run: () => app.switchPage('reports', { subTab: 'calendar' })
         },
         nav('ledger', 'nav.ledger', '📒'),
         nav('reconcile', 'nav.reconcile', '🔄'),
