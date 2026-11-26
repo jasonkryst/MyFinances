@@ -6,6 +6,8 @@ cancels the edit exactly as its Cancel button does). The sign-in and
 server-unreachable gates are never closed by Back.
 """
 
+from datetime import date
+
 import pytest
 from playwright.sync_api import expect
 
@@ -123,6 +125,10 @@ SEED = {
                             "endDate": None, "paused": False, "archived": False,
                             "skippedMonths": [], "paidMonths": [], "paidAmounts": {}}],
     "persons": [{"id": 1, "name": "Back Person"}],
+    "bonuses": [{"id": 1, "name": "Back Bonus", "amount": 500, "date": date.today().isoformat(),
+                 "category": "Other", "accountId": 1}],
+    "expenses": [{"id": 1, "name": "Back Groceries", "budgetAmount": 300, "date": date.today().isoformat(),
+                  "category": "Food", "accountId": 1}],
     "debts": [{"id": 1, "name": "Back Visa", "category": "Credit Card", "debtType": "creditCard",
                "accountId": 1, "accountBalance": 900, "originalBalance": 900, "interestRate": 10,
                "minimumPayment": 40, "originalMinimumPayment": 40, "dueDate": 12}],
@@ -140,6 +146,11 @@ EDITS = [
      '[data-person-action="edit"][data-person-id="{id}"]', "#pe-name-"),
     ("debt", "liabilities", "liabilitiesSection", "/liabilities/debts", "debts", "/api/debts", "Back Visa",
      '[data-debt-action="edit"][data-debt-id="{id}"]', "#inline-name-"),
+    ("bonus", "income", "incomeSection", "/income", "bonuses", "/api/bonuses", "Back Bonus",
+     '[data-bonus-action="edit"][data-bonus-id="{id}"]', "#be-name-"),
+    # Reached through the Expenses sub-tab (see test_back_cancels_inline_edit).
+    ("expense", "liabilities", "liabilitiesSection", "/liabilities/expenses", "expenses", "/api/expenses",
+     "Back Groceries", '[data-expense-action="edit"][data-expense-id="{id}"]', "#ee-name-"),
 ]
 
 
@@ -152,6 +163,9 @@ def test_back_cancels_inline_edit(app_page, case, nav, section, address, collect
     wait_for_app_ready(page)
     _nav(page, "ledger", "ledgerSection")
     _nav(page, nav, section)
+    if case == "expense":
+        page.click('#liabilitiesSection .liabilities-subtab-btn[data-liabilities-subtab="expenses"]')
+        page.wait_for_selector('#liabilitiesSection [data-subtab="expenses"].visible', timeout=5000)
     _wait_path(page, address)
     record_id = page.evaluate("(c) => window.app[c][0].id", collection)
     page.click(edit_btn.format(id=record_id))
