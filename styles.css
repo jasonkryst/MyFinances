@@ -10266,7 +10266,8 @@ body.dark-mode .sinking-status--pastDue { background: #7f1d1d; color: #fca5a5; }
     /* The last content of every page (Ledger lives in the header, the
        footer follows <main>) clears the bar: one padding on the container. */
     .container {
-        padding-bottom: calc(var(--phone-tab-bar-height) + env(safe-area-inset-bottom));
+        /* + 12px so the footer does not sit flush against the bar (#743). */
+        padding-bottom: calc(var(--phone-tab-bar-height) + env(safe-area-inset-bottom) + 12px);
     }
 
     /* Fixed bottom UI (undo toast, banners, toasts) sits above the bar,
@@ -10486,13 +10487,11 @@ body.dark-mode #phoneMoreSheet .page-button[aria-current="page"] {
 
 /* ── Phone polish (#738-#743) ─────────────────────────────────────────── */
 
-/* #738: a chart card is 300px of content plus 18px padding and a 1px border either side, so it
-   was 338px wide and stuck out of any container under that (the page card clipped its right edge
-   on phones). Shrink the flex basis by that 38px when the row is narrower. */
-.rpt-chart-card {
-    flex-basis: min(300px, calc(100% - 38px));
-    min-width: 0;
-}
+/* #738: a flex item's automatic minimum width is its content's, and a chart canvas that has not been
+   sized yet is the browser default 300px wide, so the card (with its 38px of padding and border) was
+   338px and stuck out of any container narrower than that; the page card then clipped its right edge.
+   min-width: 0 lets the card shrink to its row, and the canvas rule below keeps the canvas inside it. */
+.rpt-chart-card { min-width: 0; }
 /* A chart with no data yet leaves its canvas at the browser default of 300px, wider than a phone's panel. */
 .rpt-chart-canvas-wrap canvas { max-width: 100%; }
 
@@ -10518,9 +10517,10 @@ body.dark-mode #phoneMoreSheet .page-button[aria-current="page"] {
     .health-bonus-cta-link {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
         min-height: 44px;
     }
+    .health-link { justify-content: flex-start; }
+    .health-bonus-cta-link { justify-content: center; }
     .health-budget-thresholds-btn {
         min-width: 44px;
         min-height: 44px;
@@ -10541,6 +10541,16 @@ body.dark-mode #phoneMoreSheet .page-button[aria-current="page"] {
         justify-content: center;
     }
     .debt-card .debt-name { padding-right: 44px; }
+}
+
+/* #743: Settings is full screen at phone width, so with viewport-fit=cover its top and bottom must
+   clear the status bar and the gesture area (its close button is positioned from the top edge). */
+@media (max-width: 767px) {
+    .settings-shell .modal-content.settings-modal-content {
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    #settingsModal .modal-close { top: calc(10px + env(safe-area-inset-top, 0px)); }
 }
 
 /* #742: the toolbar used to be absolutely positioned over the right of the header row, so the
@@ -10570,14 +10580,20 @@ body.dark-mode #phoneMoreSheet .page-button[aria-current="page"] {
 }
 
 /* The toolbar's five 44px buttons leave a 390px header only ~94px for the title, which needs ~140px.
-   Narrow the buttons (they stay 44px tall; 36px wide is still above WCAG's 24px) and tighten the
-   padding; below 380px the logo mark steps aside so the name still reads. */
-@media (max-width: 440px) {
+   Up to 768px the buttons are 44px; at 480px and narrower they are 36px wide (44px tall; 36px is
+   still above WCAG's 24px) with tighter padding; below 380px the logo mark steps aside. */
+@media (max-width: 768px) {
+    .header-icon-btn { width: 44px; height: 44px; }
+}
+@media (max-width: 480px) {
     header > .header-top { padding: 0 4px; }
     header > .header-hero { padding-right: 0; }
-    header h1 { font-size: 1.1rem; }
+    header h1 { font-size: 1.05rem; }
+    header h1 .logo-icon { margin-right: 0.2em; }
     .header-toolbar { gap: 2px; }
     .header-icon-btn { width: 36px; }
+    /* The Saving dot appears in this row during every save; keep it from squeezing the title. */
+    .save-status-chip { margin-right: 0; gap: 0; padding: 2px; }
 }
 @media (max-width: 380px) {
     header h1 .logo-icon { display: none; }

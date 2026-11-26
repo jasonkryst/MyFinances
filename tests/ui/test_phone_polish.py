@@ -121,6 +121,23 @@ def test_health_links_and_gear_are_touch_sized(app_page):
     assert not small, f"Health controls under 44px: {small}"
 
 
+@pytest.mark.ui
+def test_health_links_stay_left_aligned(app_page):
+    """Growing the links to 44px tall must not centre them (they are flex children of the card)."""
+    _open(app_page, "", PHONE_390)
+    app_page.wait_for_selector("#healthSection.active .health-link", state="attached", timeout=15000)
+    offsets = app_page.evaluate("""() => [...document.querySelectorAll('#healthSection .health-link')]
+        .filter(a => a.getClientRects().length && a.closest('.health-metric-card'))
+        .map(a => {
+            const r = document.createRange(); r.selectNodeContents(a);
+            const card = a.closest('.health-metric-card').getBoundingClientRect();
+            return Math.round(r.getBoundingClientRect().left - card.left);
+        })""")
+    assert offsets, "no Health links found in metric cards"
+    # Left aligned means the text starts at the card's left padding (about 20px), not mid-card.
+    assert max(offsets) <= 40, f"Health links are no longer left-aligned: {offsets}"
+
+
 # ── #741: checkboxes ─────────────────────────────────────────────────────────
 
 CHECKBOXES = [
@@ -169,13 +186,20 @@ def test_header_title_clear_of_toolbar(app_page, viewport):
     assert m["toolbarRight"] <= m["vw"] + 0.5, f"toolbar leaves the screen: {m}"
 
 
+PHONE_460 = {"width": 460, "height": 900}
+
+
 @pytest.mark.ui
-@pytest.mark.parametrize("viewport", [PHONE_412, PHONE_390], ids=["412", "390"])
-def test_header_title_is_not_truncated_on_common_phones(app_page, viewport):
-    """The wordmark is the app's name; it should read in full at ordinary phone widths."""
+@pytest.mark.parametrize("saving", [False, True], ids=["idle", "saving"])
+@pytest.mark.parametrize("viewport", [PHONE_460, PHONE_412, PHONE_390], ids=["460", "412", "390"])
+def test_header_title_is_not_truncated_on_common_phones(app_page, viewport, saving):
+    """The wordmark is the app's name; it should read in full at ordinary phone widths, also while
+    the Saving dot is showing in the toolbar (it appears during every save)."""
     page = app_page
     page.set_viewport_size(viewport)
     wait_for_app_ready(page)
+    if saving:
+        page.evaluate("() => document.getElementById('saveStatusChip').classList.remove('hidden')")
     clipped = page.evaluate("() => { const h = document.querySelector('header h1'); return h.scrollWidth > h.clientWidth + 1; }")
     assert not clipped, "the MyFinances title is cut off"
 
@@ -239,6 +263,39 @@ def test_header_clears_the_status_bar(app_page):
     }""")
     assert m["hero"] >= m["headerTop"] + 47 - 0.5, f"the title sits under the status bar: {m}"
     assert m["toolbar"] >= m["headerTop"] + 47 - 0.5, f"the toolbar sits under the status bar: {m}"
+
+
+@pytest.mark.ui
+def test_settings_panel_and_close_clear_the_system_bars(app_page):
+    page = app_page
+    page.set_viewport_size(PHONE_390)
+    wait_for_app_ready(page)
+    page.click("#accountMenuBtn")
+    page.click("#accountMenuSettingsBtn")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
+    _insets(page, top=47, bottom=34)
+    page.wait_for_function(
+        "() => parseFloat(getComputedStyle(document.querySelector('#settingsModal .settings-modal-content')).paddingTop) >= 47",
+        timeout=5000)
+    m = page.evaluate("""() => {
+        const c = getComputedStyle(document.querySelector('#settingsModal .settings-modal-content'));
+        const close = document.querySelector('#settingsModal .modal-close').getBoundingClientRect();
+        return {top: parseFloat(c.paddingTop), bottom: parseFloat(c.paddingBottom), closeTop: close.top};
+    }""")
+    assert m["top"] >= 47 and m["bottom"] >= 34, m
+    assert m["closeTop"] >= 47, f"the Settings close button sits under the status bar: {m}"
+
+
+@pytest.mark.ui
+def test_footer_has_room_above_the_tab_bar(app_page):
+    _open(app_page, "", PHONE_390)
+    app_page.evaluate("() => window.scrollTo(0, document.documentElement.scrollHeight)")
+    gap = app_page.evaluate("""() => {
+        const f = document.querySelector('.app-footer').getBoundingClientRect();
+        const bar = document.getElementById('phoneTabBar').getBoundingClientRect();
+        return bar.top - f.bottom;
+    }""")
+    assert gap >= 8, f"the footer sits {gap}px above the tab bar"
 
 
 @pytest.mark.ui
