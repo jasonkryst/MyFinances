@@ -208,6 +208,33 @@ Every page and modal at 390 px in the real app; one issue per finding,
 labelled for the epic. Start with quick-add for transactions, dialogs as
 full-screen sheets and wide tables. Fixes are out of scope here.
 
+### Back closes the innermost thing first (phase 2 addition, owner-approved 2026-11-25)
+
+Added to phase 2 (#731) from the phase 1 follow-ups (#734), because the More
+sheet needs it and Android's hardware Back makes it matter most on phones.
+
+- **Mechanism:** overlays never add history entries. When a `popstate`
+  arrives while an overlay is open, the router restores the address it just
+  left (`pushState` of the previous address, so the page does not change) and
+  closes the top overlay by sending it Escape. "Overlay" means any visible
+  `[role="dialog"]`/`.modal` (the test live refresh already uses) plus the
+  More sheet. The sign-in gate and the server-unreachable gate are excluded:
+  Back never closes them.
+- **Every overlay closes on Escape.** Any that does not today is fixed
+  (an accessibility requirement regardless).
+- **Settings stacking:** a dialog on top of Settings (About → Keyboard
+  Shortcuts / What's New) closes first; the next Back closes Settings through
+  its address, as in phase 1.
+- **Inline edits (owner's choice):** Back while an inline edit is open
+  (`editingAccountId`, `editingBillId`, `editingBonusId`, `editingDebtId`,
+  `editingExpenseId`, `editingIncomeId`, `editingPersonId`,
+  `editingRecurringId`) cancels that edit exactly as its Cancel button does
+  and stays on the page; nothing is saved.
+- **Palette over Settings:** choosing a page in the command palette while
+  Settings is open closes Settings first, so the address and the screen agree.
+- Not included: the remaining #734 items (render errors, canonical bare
+  `?settings`, test tidying).
+
 ## Phases (one issue and PR each, merged in order)
 
 1. **Router and addresses**: router module, address table, history
