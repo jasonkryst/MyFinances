@@ -15,6 +15,7 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ### Fixed
 - **The command palette closes Settings before switching pages**, so choosing a page while Settings is open no longer leaves Settings on top or a stale Settings address.
+- **The account menu and the notifications panel open over the Reports tabs, not under them.** On phones the Reports tab strip drew across the menu, cutting through Settings and Sign Out. The header toolbar now stacks above that strip (it still sits below the phone tab bar and every dialog).
 
 ## [8.7.0] — 2026-11-25
 
