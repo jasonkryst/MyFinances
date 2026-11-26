@@ -352,6 +352,47 @@ def test_more_sheet_focus_and_escape(app_page):
     assert page.locator("#commandPaletteOverlay").is_hidden()
 
 
+def _click_sheet_title(page):
+    # A non-focusable part of the panel: focus must not drop out of the sheet's reach.
+    page.locator("#phoneMoreSheetTitle").click()
+
+
+@pytest.mark.ui
+def test_more_sheet_escape_after_tapping_title(app_page):
+    page = app_page
+    _open_sheet(page)
+    _click_sheet_title(page)
+    page.keyboard.press("Escape")
+    page.locator(SHEET).wait_for(state="hidden", timeout=5000)
+    assert _inert_ids(page) == []
+    page.wait_for_function("() => document.activeElement === document.getElementById('phoneMoreBtn')",
+                           timeout=5000)
+
+
+@pytest.mark.ui
+@pytest.mark.parametrize("focus_on_body", [False, True], ids=["title", "body"])
+def test_more_sheet_ctrl_k_opens_usable_palette(app_page, focus_on_body):
+    page = app_page
+    _open_sheet(page)
+    _click_sheet_title(page)
+    if focus_on_body:
+        # Even with focus on <body>, the open sheet still handles the keys.
+        page.evaluate("() => document.activeElement && document.activeElement.blur()")
+    page.keyboard.press("Control+k")
+    page.locator(SHEET).wait_for(state="hidden", timeout=5000)
+    expect(page.locator("#commandPaletteOverlay")).to_be_visible(timeout=5000)
+    page.wait_for_function(
+        "() => document.activeElement === document.getElementById('commandPaletteInput')", timeout=5000)
+    assert _inert_ids(page) == []
+    # A field in a modal dialog does not hide the bar (the dialog covers it),
+    # so the palette can return focus to More when it closes.
+    assert "phone-tab-bar--hidden" not in (page.locator(BAR).get_attribute("class") or "")
+    page.keyboard.press("Escape")
+    expect(page.locator("#commandPaletteOverlay")).to_be_hidden(timeout=5000)
+    page.wait_for_function("() => document.activeElement === document.getElementById('phoneMoreBtn')",
+                           timeout=5000)
+
+
 @pytest.mark.ui
 def test_more_sheet_backdrop_closes(app_page):
     page = app_page

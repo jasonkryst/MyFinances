@@ -842,12 +842,15 @@ const PAGE_SECTION_IDS = {
 // #731: hide the phone tab bar while a text field has focus at phone width,
 // since an on-screen keyboard is then up and the bar would ride above it.
 // The same rule as live refresh's "typing" (isTextEntryElement), for a field
-// that is still in the page and shown.
+// that is still in the page and shown. A field inside a modal dialog does
+// not count: the dialog covers the bar anyway, and a hidden bar would make
+// the dialog's focus return to a tab (the command palette opened from More)
+// land on <body>.
 function updatePhoneTabBarHidden(focused) {
     const bar = document.getElementById('phoneTabBar');
     if (!bar || typeof window.matchMedia !== 'function') return;
     const typing = Boolean(focused) && focused.isConnected && focused.getClientRects().length > 0
-        && isTextEntryElement(focused);
+        && isTextEntryElement(focused) && !focused.closest('[aria-modal="true"]');
     bar.classList.toggle('phone-tab-bar--hidden', typing && window.matchMedia('(max-width: 768px)').matches);
 }
 
@@ -875,6 +878,7 @@ function installPhoneTabBarKeyboardHide() {
 // The sheet is a role="dialog" child of <body>: Back closes it through the
 // router's Escape (closeInnermost), and it never adds a history entry.
 let _phoneMoreSheetRelease = null;
+let _phoneMoreSheetKeydown = null;
 
 function buildPhoneMoreSheetBody(body) {
     const tabPages = new Set(Array.from(document.querySelectorAll('#phoneTabBar .phone-tab[data-page]'))
@@ -910,13 +914,19 @@ function phoneMoreSheetFocusables(sheet) {
         .filter(el => el.getClientRects().length > 0);
 }
 
-function openPhoneMoreSheet(_app) {
+function openPhoneMoreSheet(app) {
     const sheet = document.getElementById('phoneMoreSheet');
     const moreBtn = document.getElementById('phoneMoreBtn');
     if (!sheet || isPhoneMoreSheetOpen()) return;
     sheet.classList.remove('hidden');
     if (moreBtn) moreBtn.setAttribute('aria-expanded', 'true');
     _phoneMoreSheetRelease = makeBackgroundInert(sheet);
+    // On the document in the capture phase, not on the sheet: the keys still
+    // work when focus has dropped to <body>, and Escape and Ctrl+K reach the
+    // sheet before any other document-level handler (the command palette's).
+    // The router's Back Escape passes through here too.
+    _phoneMoreSheetKeydown = (e) => handlePhoneMoreSheetKeydown(app, e);
+    document.addEventListener('keydown', _phoneMoreSheetKeydown, true);
     const target = sheet.querySelector('.page-button[aria-current="page"]')
         || sheet.querySelector('.page-button[data-page]')
         || document.getElementById('phoneMoreCloseBtn');
@@ -931,14 +941,54 @@ function closePhoneMoreSheet(_app, { returnFocus = true } = {}) {
     const sheet = document.getElementById('phoneMoreSheet');
     const moreBtn = document.getElementById('phoneMoreBtn');
     if (!sheet || !isPhoneMoreSheetOpen()) return;
-    const hadFocus = sheet.contains(document.activeElement);
+    const active = document.activeElement;
+    // Focus in the sheet, or lost to <body> (the background is inert, so it
+    // can be nowhere else that matters).
+    const hadFocus = !active || active === document.body || active === document.documentElement
+        || sheet.contains(active);
     sheet.classList.add('hidden');
     if (moreBtn) moreBtn.setAttribute('aria-expanded', 'false');
+    if (_phoneMoreSheetKeydown) document.removeEventListener('keydown', _phoneMoreSheetKeydown, true);
+    _phoneMoreSheetKeydown = null;
     if (_phoneMoreSheetRelease) _phoneMoreSheetRelease();
     _phoneMoreSheetRelease = null;
     if (!hadFocus) return;
     const target = returnFocus ? moreBtn : document.querySelector('#navMenu .page-button.active');
     if (target && target.getClientRects().length > 0) target.focus({ preventScroll: !returnFocus });
+}
+
+function handlePhoneMoreSheetKeydown(app, e) {
+    const sheet = document.getElementById('phoneMoreSheet');
+    if (!sheet || !isPhoneMoreSheetOpen()) return;
+    if (e.key === 'Escape') {
+        // Only this sheet: no other global Escape handler acts on it.
+        e.preventDefault();
+        e.stopPropagation();
+        closePhoneMoreSheet(app);
+        return;
+    }
+    if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+        // The command palette (document-level Ctrl+K) would open behind the
+        // inert background: close the sheet first (focus back on More, which
+        // the palette returns to) and let the key through.
+        closePhoneMoreSheet(app);
+        return;
+    }
+    if (e.key !== 'Tab') return;
+    const focusable = phoneMoreSheetFocusables(sheet);
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!sheet.contains(document.activeElement)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+    } else if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+    }
 }
 
 function installPhoneMoreSheet(app) {
@@ -962,39 +1012,6 @@ function installPhoneMoreSheet(app) {
         }
         if (e.target.closest('#phoneMoreCloseBtn') || e.target.classList.contains('phone-more-backdrop')) {
             closePhoneMoreSheet(app);
-        }
-    });
-
-    // On the sheet itself (focus never leaves it while open), so it also
-    // receives the Escape the router sends on Back.
-    sheet.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            // Only this sheet: no other global Escape handler acts on it.
-            e.preventDefault();
-            e.stopPropagation();
-            closePhoneMoreSheet(app);
-            return;
-        }
-        if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
-            // The command palette (document-level Ctrl+K) would open behind
-            // the inert background: close the sheet first and let it through.
-            closePhoneMoreSheet(app, { returnFocus: false });
-            return;
-        }
-        if (e.key !== 'Tab') return;
-        const focusable = phoneMoreSheetFocusables(sheet);
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (!sheet.contains(document.activeElement)) {
-            e.preventDefault();
-            first.focus();
-        } else if (e.shiftKey && document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
         }
     });
 
