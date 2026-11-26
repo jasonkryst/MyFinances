@@ -209,7 +209,9 @@ _FOCUS_DOOMED_FIELD = """() => {
     const input = document.createElement('input');
     input.type = 'text';
     input.id = 'doomedField';
-    document.querySelector('.page-section.active').prepend(input);
+    // Not inside the active page section: Health re-renders its section's innerHTML shortly
+    // after boot (_finishBoot), which on a slow runner removed this field and re-showed the bar.
+    document.querySelector('.container').prepend(input);
     input.focus();
 }"""
 
@@ -576,3 +578,47 @@ def test_more_sheet_contrast(app_page, dark):
     for name, r in res.items():
         assert r["ratio"] >= 4.5, f"{name} contrast {r['ratio']:.2f} ({r})"
     assert res["active"]["fg"] != res["page"]["fg"], "the current page must look different"
+
+
+# ── Header menus stay above the sticky Reports tab strip ─────────────────────
+
+_TOP_OF_MENU_JS = """(sel) => {
+    const menu = document.querySelector(sel);
+    const r = menu.getBoundingClientRect();
+    // Sample the centre of every row (items and the divider-separated groups) down the menu.
+    const probes = [...menu.querySelectorAll('button, a, li, [role=menuitem], .account-menu-item')];
+    const offenders = [];
+    for (const el of probes) {
+        const b = el.getBoundingClientRect();
+        if (!b.width || !b.height) continue;
+        const x = Math.min(Math.max(b.left + b.width / 2, 0), innerWidth - 1);
+        const y = Math.min(Math.max(b.top + b.height / 2, 0), innerHeight - 1);
+        const hit = document.elementFromPoint(x, y);
+        if (hit && !menu.contains(hit)) {
+            offenders.push((el.textContent || '').trim().slice(0, 24) + ' covered by ' +
+                (hit.id ? '#' + hit.id : hit.tagName.toLowerCase() + '.' + String(hit.className).split(' ')[0]));
+        }
+    }
+    return { count: probes.length, offenders };
+}"""
+
+
+@pytest.mark.ui
+@pytest.mark.parametrize("viewport", [PHONE, DESKTOP], ids=["phone", "desktop"])
+@pytest.mark.parametrize("trigger,menu", [
+    ("#accountMenuBtn", "#accountMenuWrap .account-menu-dropdown"),
+    ("#notificationsBtn", "#notificationsPanel"),
+], ids=["account-menu", "notifications"])
+def test_header_menus_above_reports_tab_strip(app_page, viewport, trigger, menu):
+    """The toolbar's menus open over the sticky Reports tab strip, not under it. Both are
+    z-index 20 siblings otherwise, so the later one (the strip) painted over the menu."""
+    page = app_page
+    page.set_viewport_size(viewport)
+    page.goto(BASE + "reports/calendar")
+    wait_for_app_ready(page)
+    page.wait_for_selector(".rpt-tab-bar", state="visible", timeout=15000)
+    page.click(trigger)
+    expect(page.locator(menu)).to_be_visible()
+    result = page.evaluate(_TOP_OF_MENU_JS, menu)
+    assert result["count"] > 0, "the menu had no rows to probe"
+    assert not result["offenders"], f"menu rows covered by other elements: {result['offenders']}"
