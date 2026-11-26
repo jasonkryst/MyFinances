@@ -23,6 +23,10 @@ def _seed_debt_and_plan(page):
     page.click('#calculateBtn')
     page.wait_for_selector('#resultsSection.visible', timeout=10000)
     wait_for_api(page, '/api/plan-settings', lambda j: j.get('monthlyPayment'))
+    # 8.7.0: a reload keeps the current page, so return to the landing page first;
+    # these tests are about what a boot on Health renders.
+    page.click('button[data-page="health"]')
+    page.wait_for_selector('#healthSection.active', timeout=5000)
     page.reload()
     page.wait_for_selector('#healthSection.active', timeout=10000)
 
