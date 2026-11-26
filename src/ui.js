@@ -1,7 +1,7 @@
 ﻿﻿﻿// UI helpers, event listeners, theming
 import { installAmountChangeListeners } from './amountChangeUi.js';
 import { lazyFeature, getResolvedModule, loadAppFeatures } from './lazyModules.js';
-import { APP_VERSION, renderLazyLoadError, escapeHtml, isCollapsibleOpen, withBusy, setCollapsibleOpen, refreshFilterDisclosureCounts, discardBody } from './utils.js';
+import { APP_VERSION, renderLazyLoadError, escapeHtml, isCollapsibleOpen, withBusy, setCollapsibleOpen, refreshFilterDisclosureCounts, discardBody, isTextEntryElement } from './utils.js';
 import { getZeroAmountPolicy, THEMES } from './settings.js';
 export { THEMES };
 import { initCommandPalette } from './commandPalette.js';
@@ -114,6 +114,8 @@ export function initializeEventListeners(app) {
             navToggle.setAttribute('aria-expanded', String(!isOpen));
         });
     }
+
+    installPhoneTabBarKeyboardHide();
 
     // Navigation: page switching
     document.querySelectorAll('.page-button').forEach(btn => {
@@ -832,6 +834,23 @@ const PAGE_SECTION_IDS = {
 // `resetToDefaults: false` (#730) keeps the page's remembered view state
 // (Reports month, Liabilities expense month and list page): Back/Forward
 // between sub-tabs of the page already showing passes it.
+// #731: hide the phone tab bar while a text field has focus at phone width,
+// since an on-screen keyboard is then up and the bar would ride above it.
+// The same rule as live refresh's "typing" (isTextEntryElement).
+function installPhoneTabBarKeyboardHide() {
+    const bar = document.getElementById('phoneTabBar');
+    if (!bar || typeof window.matchMedia !== 'function') return;
+    const phone = window.matchMedia('(max-width: 768px)');
+    const update = (focused) => {
+        bar.classList.toggle('phone-tab-bar--hidden', phone.matches && isTextEntryElement(focused));
+    };
+    document.addEventListener('focusin', (e) => update(e.target));
+    // relatedTarget is the element taking focus (null when focus leaves).
+    document.addEventListener('focusout', (e) => update(e.relatedTarget));
+    const onBreakpoint = () => update(document.activeElement);
+    if (typeof phone.addEventListener === 'function') phone.addEventListener('change', onBreakpoint);
+}
+
 export function switchPage(app, pageName, { subTab = null, resetToDefaults = true } = {}) {
     // #315: the Spending-to-Ledger cross-nav breadcrumb only makes sense
     // while still looking at the Ledger page it dropped you into — clear it
@@ -855,10 +874,19 @@ export function switchPage(app, pageName, { subTab = null, resetToDefaults = tru
         b.classList.remove('active');
         b.setAttribute('aria-current', 'false');
     });
-    const btn = document.querySelector(`.page-button[data-page="${pageName}"]`);
-    if (btn) {
+    // #731: the desktop nav and the phone tab bar both hold a button for
+    // some pages; mark every one. More stands for every page in its sheet.
+    let tabMarked = false;
+    document.querySelectorAll(`.page-button[data-page="${pageName}"]`).forEach(btn => {
         btn.classList.add('active');
         btn.setAttribute('aria-current', 'page');
+        if (btn.classList.contains('phone-tab')) tabMarked = true;
+    });
+    const moreBtn = document.getElementById('phoneMoreBtn');
+    if (moreBtn) {
+        const moreCurrent = !tabMarked && Boolean(PAGE_SECTION_IDS[pageName]);
+        moreBtn.classList.toggle('active', moreCurrent);
+        moreBtn.setAttribute('aria-current', moreCurrent ? 'page' : 'false');
     }
 
     const mapping = PAGE_SECTION_IDS;

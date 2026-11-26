@@ -809,6 +809,17 @@ export function clearFieldInvalid(field, errorEl) {
     }
 }
 
+const NON_TEXT_INPUTS = new Set(['button', 'submit', 'reset', 'checkbox', 'radio', 'range', 'color', 'file', 'image']);
+
+// True for a control that takes typed text (text-like inputs, textarea,
+// select, contenteditable). Live refresh waits while one has focus, and the
+// phone tab bar hides then, since an on-screen keyboard is up (#731).
+export function isTextEntryElement(el) {
+    if (!el) return false;
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable) return true;
+    return el.tagName === 'INPUT' && !NON_TEXT_INPUTS.has((el.type || '').toLowerCase());
+}
+
 // Lock a form or modal while its save is pending (#459). A second submit
 // while busy is ignored (returns undefined without calling fn), so a double
 // click can't create two records. Text fields go read-only rather than

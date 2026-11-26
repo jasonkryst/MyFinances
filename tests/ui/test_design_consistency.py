@@ -1,5 +1,5 @@
 """
-UX D (#429): design-system consistency — page headers, nav toggle, button
+UX D (#429): design-system consistency — page headers, phone tab bar, button
 variants, Clear All Data placement, header chrome, dark-mode contrast.
 """
 
@@ -56,15 +56,18 @@ def test_savings_has_no_outer_card(app_page):
 
 
 @pytest.mark.ui
-def test_nav_toggle_is_44px_and_does_not_cover_account_menu(app_page):
+def test_phone_tabs_are_44px_and_do_not_cover_account_menu(app_page):
+    # #731: the phone tab bar replaced the hamburger toggle.
     page = app_page
     page.set_viewport_size({'width': 390, 'height': 844})
-    box = page.evaluate("""() => {
-        const r = document.getElementById('navToggle').getBoundingClientRect();
-        return {w: r.width, h: r.height, bg: getComputedStyle(document.getElementById('navToggle')).backgroundColor};
-    }""")
-    assert box['w'] >= 44 and box['h'] >= 44
-    assert box['bg'] != 'rgba(0, 0, 0, 0)' and box['bg'] != 'rgb(239, 239, 239)', "toggle should be styled"
+    page.wait_for_selector('#phoneTabBar', state='visible', timeout=5000)
+    boxes = page.evaluate("""() => [...document.querySelectorAll('#phoneTabBar .phone-tab')].map(b => {
+        const r = b.getBoundingClientRect();
+        return {w: r.width, h: r.height};
+    })""")
+    assert len(boxes) == 5
+    assert all(b['w'] >= 44 and b['h'] >= 44 for b in boxes), boxes
+    assert page.locator('#navToggle').is_hidden()
 
     page.click('#accountMenuBtn')
     page.wait_for_selector('#accountMenuDropdown:not(.hidden)')
@@ -80,13 +83,13 @@ def test_nav_toggle_is_44px_and_does_not_cover_account_menu(app_page):
 
 
 @pytest.mark.ui
-def test_nav_toggle_still_toggles_menu(app_page):
-    """Negative/regression: restyling must not break the menu toggle."""
+def test_phone_tab_still_switches_page(app_page):
+    """Negative/regression: restyling must not break phone navigation (#731)."""
     page = app_page
     page.set_viewport_size({'width': 390, 'height': 844})
-    page.click('#navToggle')
-    page.wait_for_selector('#topNav.menu-open')
-    assert page.get_attribute('#navToggle', 'aria-expanded') == 'true'
+    page.click('#phoneTabBar .phone-tab[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    assert page.get_attribute('#phoneTabBar .phone-tab[data-page="reports"]', 'aria-current') == 'page'
 
 
 @pytest.mark.ui
@@ -170,7 +173,9 @@ def test_dark_mode_secondary_button_has_visible_border_light_mode_unchanged(app_
 
 
 @pytest.mark.ui
-@pytest.mark.parametrize('w,h,lo,hi', [(390, 844, 90, 135), (1440, 900, 110, 150)])
+# #731: on a phone the hamburger row is gone (the bottom tab bar replaced it),
+# so the header is just the 56px logo/toolbar row.
+@pytest.mark.parametrize('w,h,lo,hi', [(390, 844, 50, 135), (1440, 900, 110, 150)])
 def test_header_height_bounds(app_page, w, h, lo, hi):
     app_page.set_viewport_size({'width': w, 'height': h})
     app_page.wait_for_timeout(200)

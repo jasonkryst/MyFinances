@@ -79,6 +79,8 @@ export default {
     'nav.reconcile': 'Reconcile',
     'nav.retirement': 'Retirement',
     'nav.people': 'People',
+    'nav.more': 'More',
+    'nav.phoneTabsAria': 'Main tabs',
 
     'settings.close': 'Close',
     'settings.title': 'Settings',

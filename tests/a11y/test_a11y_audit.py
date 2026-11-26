@@ -247,19 +247,19 @@ def test_modal_escape_closes_update_balance_modal(audit_results):
 
 
 @pytest.mark.a11y
-def test_mobile_nav_toggle_aria_expanded_updates(audit_results):
-    """#navToggle's aria-expanded must flip false -> true when opened
-    (WCAG 4.1.2). Covers the mobile nav sweep that test_accessibility.py
-    does not exercise (it has no mobile-viewport pass).
+def test_mobile_tab_bar_names_and_current_page(audit_results):
+    """At phone width the bottom tab bar (#731) replaces the hamburger: it is
+    a named <nav> landmark, every tab has a visible name, and the tab for the
+    page on screen carries aria-current="page" (WCAG 4.1.2). Covers the
+    mobile nav sweep that test_accessibility.py does not exercise.
     """
-    mobile = audit_results.get("mobile", {})
-    toggle = mobile.get("nav_toggle_aria_expanded")
-    assert toggle is not None, "#navToggle not found in mobile viewport - cannot verify aria-expanded"
-    assert toggle.get("before") == "false", f"Expected aria-expanded=false before open, got {toggle}"
-    assert toggle.get("after") == "true", f"Expected aria-expanded=true after open, got {toggle}"
-    assert mobile.get("nav_menu_visible_after_open") is True, (
-        "#navMenu should become visible after opening the mobile nav toggle"
-    )
+    bar = audit_results.get("mobile", {}).get("phone_tab_bar")
+    assert bar is not None, "#phoneTabBar Ledger tab not found in mobile viewport"
+    assert bar["visible"] is True, bar
+    assert bar["label"], f"the tab bar needs an accessible name: {bar}"
+    assert all(bar["names"]), f"every tab needs a visible name: {bar}"
+    assert bar["current"] == ["ledger"], f"only the Ledger tab should be current: {bar}"
+    assert bar["toggleHidden"] is True, f"the hamburger must be hidden at phone width: {bar}"
 
 
 @pytest.mark.a11y

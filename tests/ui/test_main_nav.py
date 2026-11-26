@@ -65,7 +65,7 @@ async def test_cross_group_navigation(async_app_page):
 
     # Click "Savings" (Manage group)
     await page.click('[data-page="savings"]')
-    active_btns = await page.query_selector_all('.page-button.active')
+    active_btns = await page.query_selector_all('#topNav .page-button.active')
     assert len(active_btns) == 1, f"Exactly 1 active button expected, got {len(active_btns)}"
     active_page = await active_btns[0].get_attribute('data-page')
     assert active_page == 'savings', f"Active button should be 'savings', got '{active_page}'"
@@ -77,7 +77,7 @@ async def test_only_one_page_active_at_a_time(async_app_page):
 
     for page_name in ['health', 'reports', 'liabilities', 'reconcile', 'income']:
         await page.click(f'[data-page="{page_name}"]')
-        active = await page.query_selector_all('.page-button.active')
+        active = await page.query_selector_all('#topNav .page-button.active')
         assert len(active) == 1, \
             f"After clicking '{page_name}', expected 1 active button but got {len(active)}"
         page_attr = await active[0].get_attribute('data-page')

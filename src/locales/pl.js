@@ -77,6 +77,8 @@ export default {
     'nav.reconcile': 'Uzgadnianie',
     'nav.retirement': 'Emerytura',
     'nav.people': 'Osoby',
+    'nav.more': 'Więcej',
+    'nav.phoneTabsAria': 'Główne karty',
 
     'settings.close': 'Zamknij',
     'settings.title': 'Ustawienia',

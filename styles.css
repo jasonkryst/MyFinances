@@ -10133,3 +10133,156 @@ body.dark-mode .sinking-status--pastDue { background: #7f1d1d; color: #fca5a5; }
     font-weight: 600;
     color: var(--danger-text);
 }
+
+/* ── #731: phone bottom tab bar ─────────────────────────────────────────
+   At max-width: 768px a fixed bar (Health, Ledger, Plan, Reports, More)
+   replaces the hamburger; above it the bar is never shown. The tabs are
+   .page-button too (switchPage marks them), so these rules reset the
+   header-nav look. Contrast (tests/ui/test_phone_tab_bar.py): light
+   inactive #475569 on #fff 7.6:1, active #1d4ed8 on #eff6ff 6.2:1; dark
+   inactive #cbd5e1 on #1e293b 9.9:1, active #93c5fd on #172554 8.2:1. */
+:root {
+    --phone-tab-bar-height: 56px;
+}
+
+.phone-tab-bar {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .top-nav {
+        display: none;
+    }
+
+    .phone-tab-bar {
+        display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 900;
+        min-height: var(--phone-tab-bar-height);
+        padding: 0 0 env(safe-area-inset-bottom);
+        background: #ffffff;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.08);
+    }
+
+    .phone-tab-bar.phone-tab-bar--hidden {
+        display: none;
+    }
+
+    .phone-tab-bar .phone-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: var(--phone-tab-bar-height);
+        width: auto;
+        max-width: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        margin: 0;
+        padding: 6px 2px;
+        border: none;
+        border-radius: 0;
+        box-shadow: inset 0 3px 0 transparent;
+        background: transparent;
+        color: #475569;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0;
+        line-height: 1.2;
+        text-align: center;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: none;
+    }
+
+    .phone-tab-bar .phone-tab:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+    }
+
+    .phone-tab-bar .phone-tab:focus-visible {
+        outline: 2px solid #1d4ed8;
+        outline-offset: -3px;
+    }
+
+    .phone-tab-bar .phone-tab.active,
+    .phone-tab-bar .phone-tab[aria-current="page"] {
+        color: #1d4ed8;
+        background: #eff6ff;
+        box-shadow: inset 0 3px 0 #1d4ed8;
+    }
+
+    .phone-tab-icon {
+        flex-shrink: 0;
+    }
+
+    .phone-tab-label {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    body.dark-mode .phone-tab-bar {
+        background: #1e293b;
+        border-top-color: #334155;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    body.dark-mode .phone-tab-bar .phone-tab {
+        color: #cbd5e1;
+    }
+
+    body.dark-mode .phone-tab-bar .phone-tab:hover {
+        background: #273449;
+        color: #f1f5f9;
+    }
+
+    body.dark-mode .phone-tab-bar .phone-tab:focus-visible {
+        outline-color: #93c5fd;
+    }
+
+    body.dark-mode .phone-tab-bar .phone-tab.active,
+    body.dark-mode .phone-tab-bar .phone-tab[aria-current="page"] {
+        color: #93c5fd;
+        background: #172554;
+        box-shadow: inset 0 3px 0 #93c5fd;
+    }
+
+    /* The last content of every page (Ledger lives in the header, the
+       footer follows <main>) clears the bar: one padding on the container. */
+    .container {
+        padding-bottom: calc(var(--phone-tab-bar-height) + env(safe-area-inset-bottom));
+    }
+
+    /* Fixed bottom UI (undo toast, banners, toasts) sits above the bar,
+       and drops back down while the bar is hidden for the keyboard. */
+    body {
+        --phone-tab-bar-offset: calc(var(--phone-tab-bar-height) + env(safe-area-inset-bottom));
+    }
+
+    body:has(#phoneTabBar.phone-tab-bar--hidden) {
+        --phone-tab-bar-offset: 0px;
+    }
+
+    body .undo-toast-region,
+    body .sw-update-banner,
+    body .sync-error-banner,
+    body .email-test-toast {
+        bottom: calc(16px + var(--phone-tab-bar-offset));
+    }
+
+    body .recon-result-region {
+        bottom: calc(72px + var(--phone-tab-bar-offset));
+    }
+}
+
+@media print {
+    .phone-tab-bar {
+        display: none !important;
+    }
+}

@@ -6,8 +6,8 @@ reconciliation, ledger) are contained in an overflow-x:auto wrapper on
 narrow viewports, so the table scrolls horizontally instead of forcing the
 whole page to overflow.
 
-Data is created at the default desktop viewport (the mobile nav menu is
-collapsed behind #navToggle and is covered by separate mobile-nav tests),
+Data is created at the default desktop viewport (on a phone the nav is the
+bottom tab bar, covered by tests/ui/test_phone_tab_bar.py),
 then the viewport is shrunk and navigation continues via app.switchPage()
 so each test stays focused on table/wrapper behavior.
 """

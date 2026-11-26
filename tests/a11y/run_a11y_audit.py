@@ -456,16 +456,25 @@ def collect_audit_findings(headless=True):
         wait_for_app_ready(mpage)
 
         results["mobile"]["tap_targets"] = mpage.evaluate(JS_TAP_TARGETS)
-        nav_toggle = mpage.query_selector("#navToggle")
-        if nav_toggle:
-            before = mpage.evaluate("() => document.getElementById('navToggle').getAttribute('aria-expanded')")
-            nav_toggle.click()
-            mpage.wait_for_timeout(200)
-            after = mpage.evaluate("() => document.getElementById('navToggle').getAttribute('aria-expanded')")
-            results["mobile"]["nav_toggle_aria_expanded"] = {"before": before, "after": after}
-            results["mobile"]["nav_menu_visible_after_open"] = mpage.evaluate(
-                "() => { const m = document.getElementById('navMenu'); "
-                "return m ? getComputedStyle(m).display !== 'none' : null; }"
+        # #731: on a phone the bottom tab bar replaced the hamburger toggle.
+        tab = mpage.query_selector('#phoneTabBar .phone-tab[data-page="ledger"]')
+        if tab:
+            tab.click()
+            mpage.wait_for_selector("#ledgerSection.active", timeout=5000)
+            results["mobile"]["phone_tab_bar"] = mpage.evaluate(
+                """() => {
+                    const bar = document.getElementById('phoneTabBar');
+                    const tabs = [...bar.querySelectorAll('.phone-tab')];
+                    const toggle = document.getElementById('navToggle');
+                    return {
+                        visible: getComputedStyle(bar).display !== 'none',
+                        label: bar.getAttribute('aria-label'),
+                        current: tabs.filter(t => t.getAttribute('aria-current') === 'page')
+                            .map(t => t.dataset.page || t.id),
+                        names: tabs.map(t => (t.textContent || '').trim()),
+                        toggleHidden: !toggle.getClientRects().length,
+                    };
+                }"""
             )
         mpage.close()
 
