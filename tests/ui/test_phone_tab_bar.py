@@ -247,6 +247,63 @@ def test_bar_returns_on_switch_page_after_focused_field_is_removed(app_page):
 
 
 @pytest.mark.ui
+def test_bar_returns_when_back_cancels_inline_edit(app_page):
+    """Back cancelling an inline edit removes the focused field; with no
+    focusout (Firefox, iOS Safari) the popstate re-check brings the bar back."""
+    page = app_page
+    seed_state(page, {"version": "3.0", "persons": [{"id": 1, "name": "Bar Person"}]})
+    wait_for_app_ready(page)
+    page.set_viewport_size(PHONE)
+    page.evaluate("() => window.app.switchPage('ledger')")
+    page.evaluate("() => window.app.switchPage('people')")
+    page.wait_for_selector("#peopleSection.active", timeout=5000)
+    person_id = page.evaluate("() => window.app.persons[0].id")
+    page.click(f'[data-person-action="edit"][data-person-id="{person_id}"]')
+    field = page.locator(f"#pe-name-{person_id}")
+    expect(field).to_be_visible(timeout=5000)
+    page.evaluate("() => window.addEventListener('focusout', e => e.stopImmediatePropagation(), true)")
+    field.focus()
+    page.locator(BAR).wait_for(state="hidden", timeout=5000)
+    page.go_back()
+    expect(field).to_have_count(0, timeout=5000)
+    assert page.evaluate("() => document.getElementById('peopleSection').classList.contains('active')")
+    page.locator(BAR).wait_for(state="visible", timeout=5000)
+
+
+@pytest.mark.ui
+def test_bar_stays_for_pickers(app_page):
+    """A select or a date/time picker raises no keyboard, so the bar stays;
+    on Android the picker closes but keeps focus (#731 final review)."""
+    page = app_page
+    page.set_viewport_size(PHONE)
+    page.locator(BAR).wait_for(state="visible", timeout=5000)
+    hidden_for = page.evaluate("""() => {
+        const host = document.querySelector('.page-section.active');
+        const make = (tag, type) => {
+            const el = document.createElement(tag);
+            if (type) el.type = type;
+            if (tag === 'select') el.append(new Option('One', '1'), new Option('Two', '2'));
+            host.prepend(el);
+            return el;
+        };
+        const bar = document.getElementById('phoneTabBar');
+        const out = {};
+        for (const [tag, type] of [['select', null], ['input', 'date'], ['input', 'month'], ['input', 'week'],
+                                   ['input', 'time'], ['input', 'datetime-local'], ['input', 'text']]) {
+            const el = make(tag, type);
+            el.focus();
+            out[type || tag] = bar.classList.contains('phone-tab-bar--hidden');
+            el.blur();
+            el.remove();
+        }
+        return out;
+    }""")
+    assert hidden_for == {"select": False, "date": False, "month": False, "week": False, "time": False,
+                          "datetime-local": False, "text": True}, hidden_for
+    page.locator(BAR).wait_for(state="visible", timeout=5000)
+
+
+@pytest.mark.ui
 def test_more_is_not_current_off_the_sheet(app_page):
     """Notifications is a page but not in the More sheet (#navMenu)."""
     page = app_page
@@ -439,6 +496,28 @@ def test_back_closes_more_sheet(app_page):
     expect(page).to_have_url(BASE + "ledger", timeout=5000)
     assert page.evaluate("() => document.getElementById('ledgerSection').classList.contains('active')")
     assert _inert_ids(page) == []
+
+
+@pytest.mark.ui
+def test_gate_closes_more_sheet(app_page):
+    """A 401 while the sheet is open shows the sign-in gate over a closed
+    sheet; the sheet's `inert` on the gate must not leave the page dead."""
+    page = app_page
+    _open_sheet(page)
+    page.route("**/api/**", lambda r: r.fulfill(status=401, body="{}", content_type="application/json"))
+    page.evaluate("""() => { import('/src/postgresSync.js')
+        .then(m => m.pgPost(window.app, '/api/persons', { name: 'Gate Person' })); }""")
+    expect(page.locator("#loginGate")).to_be_visible(timeout=15000)
+    page.locator(SHEET).wait_for(state="hidden", timeout=5000)
+    assert page.locator("#phoneMoreBtn").get_attribute("aria-expanded") == "false"
+    assert not page.evaluate("() => Boolean(document.getElementById('loginGate').closest('[inert]'))"), \
+        "the gate must not be inert"
+    assert page.evaluate("() => document.querySelector('.container').hasAttribute('inert')"), \
+        "the app behind the gate stays inert"
+    page.wait_for_function("() => document.activeElement === document.getElementById('loginGateEmail')",
+                           timeout=5000)
+    page.keyboard.type("someone@example.com")
+    assert page.input_value("#loginGateEmail") == "someone@example.com"
 
 
 @pytest.mark.ui

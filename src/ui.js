@@ -841,16 +841,26 @@ const PAGE_SECTION_IDS = {
 // between sub-tabs of the page already showing passes it.
 // #731: hide the phone tab bar while a text field has focus at phone width,
 // since an on-screen keyboard is then up and the bar would ride above it.
-// The same rule as live refresh's "typing" (isTextEntryElement), for a field
-// that is still in the page and shown. A field inside a modal dialog does
-// not count: the dialog covers the bar anyway, and a hidden bar would make
+// Live refresh's "typing" rule (isTextEntryElement) minus the controls that
+// raise a picker, not a keyboard: a <select> and the date and time inputs.
+// On Android such a picker closes after a choice but keeps focus, which
+// would leave the bar hidden with no keyboard up. Only a field that is still
+// in the page and shown counts. A field inside a modal dialog does not
+// count: the dialog covers the bar anyway, and a hidden bar would make
 // the dialog's focus return to a tab (the command palette opened from More)
 // land on <body>.
+const PICKER_INPUT_TYPES = new Set(['date', 'month', 'week', 'time', 'datetime-local']);
+
+function raisesKeyboard(el) {
+    if (!isTextEntryElement(el) || el.tagName === 'SELECT') return false;
+    return !(el.tagName === 'INPUT' && PICKER_INPUT_TYPES.has((el.type || '').toLowerCase()));
+}
+
 function updatePhoneTabBarHidden(focused) {
     const bar = document.getElementById('phoneTabBar');
     if (!bar || typeof window.matchMedia !== 'function') return;
     const typing = Boolean(focused) && focused.isConnected && focused.getClientRects().length > 0
-        && isTextEntryElement(focused) && !focused.closest('[aria-modal="true"]');
+        && raisesKeyboard(focused) && !focused.closest('[aria-modal="true"]');
     bar.classList.toggle('phone-tab-bar--hidden', typing && window.matchMedia('(max-width: 768px)').matches);
 }
 
@@ -865,6 +875,13 @@ function installPhoneTabBarKeyboardHide() {
     // tap re-checks what really has focus (capture: runs before handlers that
     // stop the event); switchPage re-checks too.
     document.addEventListener('pointerdown', () => updatePhoneTabBarHidden(document.activeElement), true);
+    // Back that cancels an inline edit (the router's popstate handler) removes
+    // the focused field the same way. A task, not a microtask: this listener
+    // is added before the router's, and a microtask queued here would run
+    // before the router's listener does.
+    window.addEventListener('popstate', () => {
+        setTimeout(() => updatePhoneTabBarHidden(document.activeElement), 0);
+    });
     const phone = window.matchMedia('(max-width: 768px)');
     if (typeof phone.addEventListener === 'function') {
         phone.addEventListener('change', () => updatePhoneTabBarHidden(document.activeElement));
@@ -1023,6 +1040,13 @@ function installPhoneMoreSheet(app) {
             });
         }
     }
+
+    // A gate or the legacy-data modal is opening (a 401 mid-session): close
+    // the sheet before it makes the background inert. The sheet set `inert`
+    // on the hidden gate, and only the sheet's release removes it; left open,
+    // the whole page would be inert. The gates dispatch a DOM event rather
+    // than call into ui.js, so no new import edge joins its cycle.
+    document.addEventListener('mf:gate-shown', () => closePhoneMoreSheet(app, { returnFocus: false }));
 }
 
 export function switchPage(app, pageName, { subTab = null, resetToDefaults = true } = {}) {

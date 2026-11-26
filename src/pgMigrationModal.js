@@ -61,6 +61,8 @@ function openModal(els, variant) {
     els.cleanupActions.classList.toggle('hidden', !cleanup);
     els.error.textContent = '';
     els.error.classList.add('hidden');
+    // #731: close the phone More sheet first (see loginGate.js).
+    document.dispatchEvent(new CustomEvent('mf:gate-shown'));
     els.modal.classList.add('flex-visible');
     els.modal.classList.remove('hidden');
     // #464: the app behind the modal can't be reached by Tab or screen readers.

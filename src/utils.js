@@ -812,8 +812,9 @@ export function clearFieldInvalid(field, errorEl) {
 const NON_TEXT_INPUTS = new Set(['button', 'submit', 'reset', 'checkbox', 'radio', 'range', 'color', 'file', 'image']);
 
 // True for a control that takes typed text (text-like inputs, textarea,
-// select, contenteditable). Live refresh waits while one has focus, and the
-// phone tab bar hides then, since an on-screen keyboard is up (#731).
+// select, contenteditable). Live refresh waits while one has focus. The phone
+// tab bar (#731) hides for the subset that raises a keyboard (ui.js
+// raisesKeyboard: not a select or a date/time picker).
 export function isTextEntryElement(el) {
     if (!el) return false;
     if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable) return true;
