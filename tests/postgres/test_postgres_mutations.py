@@ -16,10 +16,11 @@ def _capture_console(page):
 
 
 async def _wait_for_app_ready(page):
-    """Wait until app.init() completes -- _currentPage is set by switchPage('health'),
-    the last synchronous step of init(), after all loadFromPostgres GETs resolve."""
+    """Wait until app.init() completes -- _currentPage is set when boot opens the page the
+    address names (8.7.0: a reload keeps the current page, so it is not always 'health'),
+    after all loadFromPostgres GETs resolve."""
     await page.wait_for_function(
-        "() => document.documentElement.dataset.appReady === 'true' && window.app && window.app._currentPage === 'health'",
+        "() => document.documentElement.dataset.appReady === 'true' && window.app && !!window.app._currentPage",
         timeout=15000
     )
 

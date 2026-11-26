@@ -27,7 +27,7 @@ export { renderRecurringPage, addRecurringTemplate, deleteRecurringTemplate, pau
 export { markRecurringPaid, openRecurringMarkPaidModal, syncRecurringPaidFromLedger, reconcileRecurringPaidState } from './recurringPaid.js';
 export { renderSavingsPage, switchSavingsSubTab, attachSavingsEventListeners } from './savings.js';
 export { openKeyboardShortcutsModal } from './keyboardShortcuts.js';
-export { maybeShowSetupWizard, initSettingsModal, openSettings } from './setupWizard.js';
+export { maybeShowSetupWizard, initSettingsModal, openSettings, closeSettings } from './setupWizard.js';
 export { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
 export { initCalendarFeedModal } from './calendarFeed.js';
 export { addPerson, deletePerson, startEditPerson, cancelEditPerson, saveEditPerson, renderPeopleList, refreshPersonSelectors } from './people.js';

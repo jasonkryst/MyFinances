@@ -3,7 +3,7 @@ import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 import { getAmountOn } from './amountSchedule.js';
 import { getEffectiveMonthlyAllocation } from './sinkingFundSchedule.js';
 
-export const APP_VERSION = '8.6.0';
+export const APP_VERSION = '8.7.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by

@@ -3,6 +3,7 @@
 // screens drill in (list first, a row opens its page, Back returns).
 // DOM-only module; the values loading and saving live in setupWizard.js.
 import { t } from './i18n.js';
+import { recordSettings } from './router.js';
 
 export const SETTINGS_PAGES = ['appearance', 'language', 'notifications', 'backup', 'advanced', 'history', 'security', 'about'];
 const DEFAULT_PAGE = 'appearance';
@@ -49,6 +50,7 @@ export function showSettingsPage(page, { focus = true } = {}) {
     activePage = SETTINGS_PAGES.includes(page) ? page : DEFAULT_PAGE;
     drilledIn = true;
     apply();
+    recordSettings(activePage, 'replace'); // #730: moving inside Settings replaces
     const handler = pageShownHandlers.get(activePage);
     if (handler) handler();
     if (focus) {
@@ -61,6 +63,7 @@ export function showSettingsPage(page, { focus = true } = {}) {
 export function showSettingsList() {
     drilledIn = false;
     apply();
+    recordSettings('', 'replace');
     const row = rowFor(activePage);
     if (row) row.focus();
 }
@@ -68,6 +71,7 @@ export function showSettingsList() {
 export function showSettingsListQuiet() {
     drilledIn = false;
     apply();
+    recordSettings('', 'replace');
 }
 
 // Escape: on a narrow sub-page go back (true); otherwise let the caller close (false).

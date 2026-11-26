@@ -15,6 +15,7 @@ import { resetBackupPage } from './dataTransferModal.js';
 import { onSettingsPageShown, initSettingsNav, showSettingsPage, showSettingsListQuiet, handleSettingsEscape, isSettingsNarrow, getActiveSettingsPage, refreshSettingsRowValues } from './settingsNav.js';
 import { APP_VERSION } from './utils.js';
 import { loadChangeHistoryModule } from './lazyModules.js';
+import { recordSettings, leaveSettings } from './router.js';
 
 export function maybeShowSetupWizard(app, isFirstRun) {
     if (!isFirstRun) return;
@@ -51,11 +52,18 @@ export function maybeShowSetupWizard(app, isFirstRun) {
 }
 
 let openSettingsImpl = null;
+let closeSettingsImpl = null;
 
 // Opens Settings; `page` selects a page (a deep link). With no page, wide
 // screens show the last page used this session and narrow ones the list.
 export function openSettings(app, opts = {}) {
     if (openSettingsImpl) openSettingsImpl(opts && opts.page);
+}
+
+// Closes Settings. `fromHistory`: Back/Forward already moved the address, so
+// the close must not step back again (#730).
+export function closeSettings(app, { fromHistory = false } = {}) {
+    if (closeSettingsImpl) closeSettingsImpl({ fromHistory });
 }
 
 export function initSettingsModal(app) {
@@ -100,15 +108,21 @@ export function initSettingsModal(app) {
 
     let lastFocused = null;
 
-    const close = () => {
+    const close = ({ fromHistory = false } = {}) => {
+        if (modal.classList.contains('hidden')) return;
         modal.classList.add('hidden');
         modal.classList.remove('flex-visible');
         modal.onkeydown = null;
         if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+        // #730: the address drops ?settings (Back over the entry opening pushed).
+        if (!fromHistory) leaveSettings();
     };
+    closeSettingsImpl = close;
 
     const open = (page) => {
-        lastFocused = document.activeElement;
+        // #730: opening pushes an address; reopening while open replaces it.
+        const wasOpen = !modal.classList.contains('hidden');
+        if (!wasOpen) lastFocused = document.activeElement;
         adjustsCheckbox.checked = Boolean(getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false));
         if (showArchivedCheckbox) showArchivedCheckbox.checked = Boolean(getSetting(app, SHOW_ARCHIVED_DEBTS, false));
         if (showArchivedRecurringCheckbox) showArchivedRecurringCheckbox.checked = Boolean(getSetting(app, SHOW_ARCHIVED_RECURRING, false));
@@ -120,6 +134,7 @@ export function initSettingsModal(app) {
         currencySelect.value = getCurrencyCode();
         refreshSettingsRowValues();
         resetBackupPage();
+        recordSettings(page || '', wasOpen ? 'replace' : 'push');
         modal.classList.add('flex-visible');
         modal.classList.remove('hidden');
         if (page) showSettingsPage(page, { focus: false });
@@ -178,7 +193,7 @@ export function initSettingsModal(app) {
     if (shortcutsBtn) shortcutsBtn.addEventListener('click', () => app.openKeyboardShortcuts());
 
     settingsBtn.onclick = () => openSettings(app);
-    closeBtn.onclick = close;
+    closeBtn.onclick = () => close();
     if (sendTestEmailBtn) {
         sendTestEmailBtn.onclick = async () => {
             sendTestEmailBtn.disabled = true;

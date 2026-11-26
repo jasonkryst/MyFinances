@@ -117,7 +117,8 @@ def test_person_persists_after_reload(app_page):
     page = app_page
     _add_person(page, 'PersistMe')
     page.reload()
-    page.wait_for_selector('#healthSection.active', timeout=5000)
+    # 8.7.0: a reload keeps the page the address names (People here), not Health.
+    page.wait_for_selector('#peopleSection.active', timeout=5000)
     _nav_people(page)
     assert page.query_selector('#peopleList >> text=PersistMe'), "Person lost after reload"
 
@@ -620,7 +621,8 @@ def test_person_card_kpi_tiles_persist_after_reload(app_page):
     page = app_page
     _add_person(page, 'ReloadKPIPerson')
     page.reload()
-    page.wait_for_selector('#healthSection.active', timeout=5000)
+    # 8.7.0: a reload keeps the page the address names (People here), not Health.
+    page.wait_for_selector('#peopleSection.active', timeout=5000)
     _nav_people(page)
     tiles = page.query_selector_all('#peopleList .person-kpi-tile')
     assert len(tiles) == 4, f"KPI tiles should reappear after reload, got {len(tiles)}"

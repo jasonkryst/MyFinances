@@ -8,6 +8,7 @@ import {
 } from './strategyPlanCalculation.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, renderPageData as renderPageDataFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature, checkWhatsNew as checkWhatsNewFeature, openWhatsNewModal as openWhatsNewModalFeature, showAlertModal } from './ui.js';
 import { registerServiceWorker } from './serviceWorker.js';
+import { initRouter, applyLocation, applySettingsFromLocation } from './router.js';
 import { APP_VERSION, renderLazyLoadError } from './utils.js';
 import {
     loadRetirementModule,
@@ -138,6 +139,7 @@ const openKeyboardShortcutsModalFeature = lazyFeature('openKeyboardShortcutsModa
 const maybeShowSetupWizardFeature = lazyFeature('maybeShowSetupWizard');
 const initSettingsModalFeature = lazyFeature('initSettingsModal');
 const openSettingsFeature = lazyFeature('openSettings');
+const closeSettingsFeature = lazyFeature('closeSettings');
 const initDataTransferModal = lazyFeature('initDataTransferModal');
 const showImportResult = lazyFeature('showImportResult');
 const requestImportModeChoice = lazyFeature('requestImportModeChoice');
@@ -327,7 +329,10 @@ export class DebtTrackerApp {
         this.updateUI({ deferHiddenPages: true });
         this.updateFormVisibility();
         await nextFrame();
-        this.switchPage('health');
+        // #730: the address picks the landing page (Health at /); Back and
+        // Forward re-apply it.
+        initRouter(this);
+        applyLocation(this);
         // #713: everything else loads once the landing page is up.
         await this._finishBoot();
     }
@@ -359,6 +364,8 @@ export class DebtTrackerApp {
         initSettingsModalFeature(this);
         initDataTransferModal(this);
         initCalendarFeedModal(this);
+        // #730: a ?settings address opens Settings now that it is initialised.
+        applySettingsFromLocation(this);
         // These two used to run before the landing page rendered; redraw it only
         // when they changed something it shows.
         if ((reconciled || seeded > 0) && this._currentPage === 'health') this.renderHealthDashboard();
@@ -551,8 +558,8 @@ export class DebtTrackerApp {
      * Activate a top-level page section and update the nav button state.
      * @param {string} pageName - One of `'debts'`, `'income'`, `'budget'`, `'strategy'`
      */
-    switchPage(pageName) {
-        return switchPageFeature(this, pageName);
+    switchPage(pageName, opts) {
+        return switchPageFeature(this, pageName, opts);
     }
 
     /**
@@ -1335,6 +1342,7 @@ export class DebtTrackerApp {
     refreshPersonSelectors() { return refreshPersonSelectorsFeature(this); }
 
     openSettings(opts) { return openSettingsFeature(this, opts); }
+    closeSettings(opts) { return closeSettingsFeature(this, opts); }
     openKeyboardShortcuts() { return openKeyboardShortcutsModalFeature(this); }
 
     getSetting(key, defaultValue) { return getSettingFeature(this, key, defaultValue); }
@@ -1360,8 +1368,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // racing the window.app assignment. A data attribute keeps it CSP-safe.
         document.documentElement.dataset.appReady = 'true';
     }
-    const pageParam = new URLSearchParams(window.location.search).get('page');
-    if (pageParam) window.app.switchPage(pageParam);
     registerServiceWorker(window.app);
     // #703: fetch the other dictionaries once the landing page is up and the
     // browser is idle, so a language switch in Settings is instant.

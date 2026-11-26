@@ -10,6 +10,7 @@ import { initUndoToast } from './undo.js';
 import { installOwnershipListeners } from './debtOwnership.js';
 import { t } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
+import { recordView, currentSubTab } from './router.js';
 
 // #713: page renderers and forms live in appFeatures.js, loaded after the
 // landing page paints. These keep their old call shape.
@@ -38,6 +39,25 @@ export function applyTheme(theme) {
     return t;
 }
 
+// Delegated in-page anchor jump (#730). Bare href="#" links keep their own handlers.
+function handleInPageAnchorClick(e) {
+    if (e.defaultPrevented || e.button > 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const link = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!link) return;
+    const raw = link.getAttribute('href');
+    if (!raw || raw.length < 2 || raw[0] !== '#') return;
+    let id = raw.slice(1);
+    try { id = decodeURIComponent(id); } catch (err) { /* keep the raw id */ }
+    const target = document.getElementById(id);
+    if (!target) return;
+    e.preventDefault();
+    if (!target.hasAttribute('tabindex') && !/^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) {
+        target.setAttribute('tabindex', '-1');
+    }
+    target.focus();
+    target.scrollIntoView();
+}
+
 export function initializeEventListeners(app) {
     initCommandPalette(app);
     initSaveStatusChip();
@@ -55,6 +75,9 @@ export function initializeEventListeners(app) {
         const open = bodyEl ? bodyEl.classList.contains('is-open') : isCollapsibleOpen(bodyId);
         setCollapsibleOpen(bodyId, !open);
     });
+    // #730: with <base href="/"> an in-page link (#main) resolves to /#main, so on a
+    // path address (/liabilities/expenses) it would reload the app at /. Jump in page.
+    document.addEventListener('click', handleInPageAnchorClick);
     document.addEventListener('change', e => {
         if (e.target.closest && e.target.closest('.filters-disclosure-body')) refreshFilterDisclosureCounts();
     });
@@ -397,15 +420,9 @@ export function initializeEventListeners(app) {
     document.querySelectorAll('.rpt-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.getAttribute('data-rptab');
-            document.querySelectorAll('.rpt-tab-btn').forEach(b => {
-                const active = b === btn;
-                b.classList.toggle('rpt-tab-btn--active', active);
-                b.setAttribute('aria-selected', String(active));
-            });
-            document.querySelectorAll('.rpt-tab-panel').forEach(panel => {
-                panel.classList.toggle('rpt-tab-panel--active', panel.id === `rptPanel-${target}`);
-            });
+            selectReportsTab(target);
             app.renderReportsPage();
+            recordView(app, { page: 'reports', subTab: target }, 'push');
         });
     });
 
@@ -574,16 +591,20 @@ export function initializeEventListeners(app) {
     initAccountMenu(app);
 }
 
-export function navigateToReportsCalendar(app) {
+// Show one Reports tab (button state and panel); the caller renders.
+export function selectReportsTab(target) {
     document.querySelectorAll('.rpt-tab-btn').forEach(b => {
-        const active = b.getAttribute('data-rptab') === 'calendar';
+        const active = b.getAttribute('data-rptab') === target;
         b.classList.toggle('rpt-tab-btn--active', active);
         b.setAttribute('aria-selected', String(active));
     });
     document.querySelectorAll('.rpt-tab-panel').forEach(p => {
-        p.classList.toggle('rpt-tab-panel--active', p.id === 'rptPanel-calendar');
+        p.classList.toggle('rpt-tab-panel--active', p.id === `rptPanel-${target}`);
     });
-    app.switchPage('reports');
+}
+
+export function navigateToReportsCalendar(app) {
+    app.switchPage('reports', { subTab: 'calendar' });
 }
 
 export function updateAccountMenuEmail(app) {
@@ -779,10 +800,15 @@ export function attachLiabilitiesEventListeners(app) {
     const section = document.getElementById('liabilitiesSection');
     if (!section) return;
 
-    // Subtab switching
+    // Subtab switching. The buttons are static markup and this runs on every
+    // render, so each button is wired once.
     section.querySelectorAll('.liabilities-subtab-btn').forEach(btn => {
+        if (btn.dataset.subtabWired) return;
+        btn.dataset.subtabWired = 'true';
         btn.addEventListener('click', () => {
-            app.switchLiabilitiesSubTab(btn.dataset.liabilitiesSubtab);
+            const subTab = btn.dataset.liabilitiesSubtab;
+            app.switchLiabilitiesSubTab(subTab);
+            recordView(app, { page: 'liabilities', subTab }, 'push');
         });
     });
 }
@@ -803,7 +829,10 @@ const PAGE_SECTION_IDS = {
     notifications: 'notificationsPage'
 };
 
-export function switchPage(app, pageName) {
+// `resetToDefaults: false` (#730) keeps the page's remembered view state
+// (Reports month, Liabilities expense month and list page): Back/Forward
+// between sub-tabs of the page already showing passes it.
+export function switchPage(app, pageName, { subTab = null, resetToDefaults = true } = {}) {
     // #315: the Spending-to-Ledger cross-nav breadcrumb only makes sense
     // while still looking at the Ledger page it dropped you into — clear it
     // the moment you navigate anywhere else, so a later plain nav back into
@@ -843,7 +872,10 @@ export function switchPage(app, pageName) {
     }
 
     app._currentPage = pageName;
-    renderPageData(app, pageName);
+    renderPageData(app, pageName, { subTab, resetToDefaults });
+    // #730: the address follows the page (a no-op when it is already there
+    // or while Back/Forward or boot is applying an address).
+    recordView(app, { page: pageName, subTab: currentSubTab(app, pageName, subTab) });
 }
 
 /**
@@ -859,23 +891,25 @@ export function switchPage(app, pageName) {
  */
 // Render-scoped projection cache (#518): every balance this render reads
 // shares one projection build instead of one per account.
-export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
+// `subTab` (#730) opens that sub-tab of Liabilities, Savings or Reports,
+// including on the deferred render that waits for appFeatures.js.
+export function renderPageData(app, pageName, { resetToDefaults = true, subTab = null } = {}) {
     // #713: only Health renders before appFeatures.js has loaded. Any other
     // page waits for it (usually already there) and renders if the user is
     // still on that page.
     if (pageName !== 'health' && !getResolvedModule('appFeatures')) {
         return loadAppFeatures().then(
-            () => { if (app._currentPage === pageName) return renderPageData(app, pageName, { resetToDefaults }); },
+            () => { if (app._currentPage === pageName) return renderPageData(app, pageName, { resetToDefaults, subTab }); },
             (err) => {
                 console.error('Failed to load the app features', err);
                 renderLazyLoadError(PAGE_SECTION_IDS[pageName], 'this page');
             }
         );
     }
-    return withProjectionCache(app, () => renderPageDataUncached(app, pageName, { resetToDefaults }));
+    return withProjectionCache(app, () => renderPageDataUncached(app, pageName, { resetToDefaults, subTab }));
 }
 
-function renderPageDataUncached(app, pageName, { resetToDefaults }) {
+function renderPageDataUncached(app, pageName, { resetToDefaults, subTab }) {
     if (pageName === 'health') app.renderHealthDashboard();
     if (pageName === 'accounts') {
         app.renderAccountsList();
@@ -892,11 +926,12 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
         refreshPersonSelectors(app);
         // Attach liabilities subtab listeners
         attachLiabilitiesEventListeners(app);
-        // Default to debts subtab
-        if (resetToDefaults) app.switchLiabilitiesSubTab('debts');
+        // The requested subtab, else Debts on each visit
+        if (subTab || resetToDefaults) app.switchLiabilitiesSubTab(subTab || 'debts');
     }
     if (pageName === 'income') { app.renderIncomeList(); app.renderBonusList(); refreshAccountSelectors(app); refreshPersonSelectors(app); refreshCategoryDatalist(app); }
     if (pageName === 'savings') {
+        if (subTab) app.savingsSubTab = subTab;
         app.renderSavingsPage();
         app.attachSavingsEventListeners();
     }
@@ -921,6 +956,7 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
     }
     if (pageName === 'reports') {
         if (resetToDefaults) { app._reportMonthOffset = 0; app._reportRangeMonths = 1; }
+        if (subTab) selectReportsTab(subTab);
         app.renderReportsPage();
     }
     if (pageName === 'ledger') {
@@ -1098,6 +1134,12 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '8.7.0 — 2026-11-25',
+        items: [
+            '<strong>Every page has its own address.</strong> The Back and Forward buttons now move between the pages you visited, refreshing keeps you where you were, and you can bookmark or share a link to any page, tab or open Settings page, such as <em>Liabilities → Expenses</em> or <em>Reports → Net Worth</em>. Links you already saved keep working, and a page address loads offline the same way the home page does.'
+        ]
+    },
     {
         version: '8.6.0 — 2026-11-24',
         items: [

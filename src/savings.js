@@ -9,6 +9,7 @@ import { getSetting, setSetting, SHOW_ARCHIVED_SINKING_FUNDS } from './settings.
 import { renderHomePurchaseContent, attachHomePurchaseEventListeners } from './homePurchase.js';
 import { savingsStatus } from './health.js';
 import { getSinkingFundStatus, getEffectiveMonthlyAllocation, getRequiredMonthlyAmount } from './sinkingFundSchedule.js';
+import { recordView } from './router.js';
 
 /**
  * Savings rate summary panel shown at the top of the Savings page (issue #303):
@@ -481,10 +482,13 @@ export function attachSavingsEventListeners(app) {
     savingsPrintBtn.addEventListener('click', () => window.print());
   }
 
-  // Subtab switching
+  // Subtab switching. renderSavingsPage rebuilds these buttons on every
+  // render, so each listener lands on fresh markup and never stacks.
   section.querySelectorAll('.savings-subtab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      switchSavingsSubTab(app, btn.dataset.savingsSubtab);
+      const subTab = btn.dataset.savingsSubtab;
+      switchSavingsSubTab(app, subTab);
+      recordView(app, { page: 'savings', subTab }, 'push');
     });
   });
 

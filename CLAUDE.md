@@ -65,6 +65,7 @@ npm run test:mutation                                           # Stryker over t
 
 ### Page navigation
 Top-level pages are `data-page` buttons in `index.html`. `switchPage(app, pageName)` (`ui.js`) shows the section and calls `renderPageData(app, pageName, { resetToDefaults })`; **register a new page there**, in the command palette list and (if it has strings) in `TRANSLATED_PAGES`. `app.refreshCurrentPageData()` re-renders in place with `resetToDefaults: false`.
+**A new page or sub-tab joins the route table in `src/router.js`** (`ROUTE_PAGES`/`ROUTE_SUB_TABS`); view changes go through `switchPage`, the sub-tab functions and Settings open/close, which record the address, and **`history.pushState`/`replaceState` are never called elsewhere** (except the login gate's reset-token cleanup); Back/Forward and boot apply an address with recording suppressed. [App routing]
 
 ### Storage and data flow (details: `docs/architecture/storage.md`)
 - **The server is the only store.** State loads from Postgres at boot (`loadFromPostgres`) and every mutation is written back over the REST API. Browser storage holds only device preferences on the allowlist (theme, locale, currency, last-seen version, legacy-key cleanup; since 8.2.0 the reconcile draft and Ledger hidden columns are on the server, #587); **financial data never goes in browser storage**, and a new key must join the allowlist (`test_no_browser_financial_storage.py`).
