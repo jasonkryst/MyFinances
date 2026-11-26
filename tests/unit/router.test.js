@@ -73,7 +73,7 @@ function fakeBrowser(pathname, search = '') {
         replaceState: (s, t, url) => { calls.push(['replace', url]); move(url); }
     };
     globalThis.window = { addEventListener: (type, fn) => { (listeners[type] ||= []).push(fn); } };
-    globalThis.document = { querySelector: () => null };
+    globalThis.document = { querySelector: () => null, querySelectorAll: () => [], getElementById: () => null };
     return { calls, listeners };
 }
 
@@ -219,4 +219,170 @@ test('applySettingsFromLocation opens Settings without recording; popstate close
     applyLocation(app);
     expect(app.settingsCalls[1]).toEqual(['close', { fromHistory: true }]);
     expect(env.calls).toEqual([]);
+});
+
+// ── Phase 2 Task 1 (#731): Back closes the innermost overlay or inline edit ──
+
+const { closeInnermost, topOverlay, onPopState, EDIT_CANCELLERS, GATE_IDS } = require('../../src/router.js');
+
+const EDIT_PAGES = {
+    editingAccountId: 'accounts', editingBillId: 'liabilities', editingBonusId: 'income',
+    editingExpenseId: 'liabilities', editingIncomeId: 'income', editingPersonId: 'people',
+    editingRecurringId: 'recurring'
+};
+
+// A minimal element: shown unless `hidden`; contains() walks `children`.
+function fakeEl(id, { hidden = false, children = [] } = {}) {
+    const el = {
+        id,
+        dispatched: [],
+        classList: { contains: (c) => c === 'hidden' && el.hidden },
+        hidden,
+        getClientRects: () => (el.hidden ? [] : [{}]),
+        contains: (other) => other === el || children.some(c => c.contains(other)),
+        dispatchEvent: (ev) => { el.dispatched.push(ev); return true; }
+    };
+    return el;
+}
+
+function overlayDocument({ overlays = [], byId = {}, active = null } = {}) {
+    globalThis.document = {
+        querySelector: () => null,
+        querySelectorAll: () => overlays,
+        getElementById: (id) => byId[id] || null,
+        activeElement: active
+    };
+}
+
+function editApp(page) {
+    const app = fakeApp(page);
+    app.cancelled = [];
+    for (const name of [...Object.values(EDIT_CANCELLERS), 'cancelEdit', 'cancelInlineEdit']) {
+        app[name] = () => app.cancelled.push(name);
+    }
+    return app;
+}
+
+test('the gates and the edit cancellers are the agreed lists', () => {
+    expect(GATE_IDS).toEqual(['loginGate', 'serverUnreachableGate']);
+    expect(EDIT_CANCELLERS).toEqual({
+        editingAccountId: 'cancelEditAccount', editingBillId: 'cancelEditBill', editingBonusId: 'cancelEditBonus',
+        editingExpenseId: 'cancelEditExpense', editingIncomeId: 'cancelEditIncome', editingPersonId: 'cancelEditPerson',
+        editingRecurringId: 'cancelEditRecurring'
+    });
+});
+
+test('closeInnermost returns false with nothing open', () => {
+    fakeBrowser('/ledger');
+    overlayDocument();
+    const app = editApp('ledger');
+    expect(topOverlay()).toBeNull();
+    expect(closeInnermost(app)).toBe(false);
+    expect(app.cancelled).toEqual([]);
+});
+
+test.each(Object.entries(EDIT_CANCELLERS))('closeInnermost cancels %s with %s', (field, method) => {
+    fakeBrowser('/');
+    overlayDocument();
+    const app = editApp(EDIT_PAGES[field]);
+    app[field] = 7;
+    expect(closeInnermost(app)).toBe(true);
+    expect(app.cancelled).toEqual([method]);
+});
+
+test('an edit left open on another page does not swallow Back', () => {
+    fakeBrowser('/ledger');
+    overlayDocument();
+    const app = editApp('ledger');
+    app.editingAccountId = 7;
+    expect(closeInnermost(app)).toBe(false);
+    expect(app.cancelled).toEqual([]);
+});
+
+test('a debt edit uses the form canceller while #cancelEditBtn is shown, else the inline one', () => {
+    fakeBrowser('/liabilities/debts');
+    const btn = fakeEl('cancelEditBtn');
+    overlayDocument({ byId: { cancelEditBtn: btn } });
+    const app = editApp('liabilities');
+    app.editingDebtId = 3;
+    expect(closeInnermost(app)).toBe(true);
+    btn.hidden = true;
+    expect(closeInnermost(app)).toBe(true);
+    expect(app.cancelled).toEqual(['cancelEdit', 'cancelInlineEdit']);
+});
+
+test('an overlay is closed with Escape before any inline edit', () => {
+    fakeBrowser('/accounts');
+    globalThis.KeyboardEvent = class { constructor(type, init) { Object.assign(this, { type }, init); } };
+    const button = fakeEl('btn');
+    const dialog = fakeEl('ledgerExportModal', { children: [button] });
+    overlayDocument({ overlays: [dialog], active: button });
+    const app = editApp('accounts');
+    app.editingAccountId = 7;
+    expect(topOverlay()).toBe(dialog);
+    expect(closeInnermost(app)).toBe(true);
+    expect(app.cancelled).toEqual([]);
+    expect(button.dispatched).toEqual([expect.objectContaining({ type: 'keydown', key: 'Escape', bubbles: true, cancelable: true })]);
+    delete globalThis.KeyboardEvent;
+});
+
+test('topOverlay skips gates, Settings and hidden overlays, and prefers the one holding focus', () => {
+    fakeBrowser('/');
+    const inner = fakeEl('inner');
+    const a = fakeEl('a', { children: [inner] });
+    const b = fakeEl('b');
+    const settings = fakeEl('settingsModal');
+    const gate = fakeEl('loginGate', { hidden: true });
+    const hidden = fakeEl('c', { hidden: true });
+    overlayDocument({ overlays: [a, b, settings, gate, hidden], active: inner });
+    expect(topOverlay()).toBe(a);
+    globalThis.document.activeElement = null;
+    expect(topOverlay()).toBe(b);
+});
+
+test('with a gate up closeInnermost does nothing, so Back applies the address', () => {
+    fakeBrowser('/accounts');
+    const gate = fakeEl('loginGate');
+    overlayDocument({ overlays: [gate, fakeEl('x')], byId: { loginGate: gate } });
+    const app = editApp('accounts');
+    app.editingAccountId = 7;
+    expect(closeInnermost(app)).toBe(false);
+});
+
+test('popstate over an open edit restores the address and keeps the page', () => {
+    const { calls } = fakeBrowser('/accounts');
+    overlayDocument();
+    const app = editApp('accounts');
+    applyLocation(app); // the view on screen: /accounts
+    app.editingAccountId = 7;
+    globalThis.location.pathname = '/plan';
+    onPopState(app);
+    expect(app.cancelled).toEqual(['cancelEditAccount']);
+    expect(app.switched).toEqual([]);
+    expect(calls).toEqual([['push', '/accounts']]);
+});
+
+test('popstate with nothing open applies the address', () => {
+    const { calls } = fakeBrowser('/accounts');
+    overlayDocument();
+    const app = editApp('accounts');
+    applyLocation(app);
+    globalThis.location.pathname = '/ledger';
+    onPopState(app);
+    expect(app.switched).toEqual([['ledger', { subTab: null, resetToDefaults: true }]]);
+    expect(calls).toEqual([]);
+});
+
+test('the pop from leaveSettings stepping back is not treated as a user Back', () => {
+    const env = settingsBrowser('/accounts');
+    const app = settingsApp(env, 'accounts');
+    for (const name of Object.values(EDIT_CANCELLERS)) app[name] = () => { throw new Error('cancelled ' + name); };
+    globalThis.document.querySelectorAll = () => [];
+    globalThis.history.back = () => { env.calls.push(['back']); globalThis.location.search = ''; };
+    app.editingAccountId = 7;
+    recordSettings('', 'push');
+    leaveSettings();
+    onPopState(app);
+    expect(env.calls).toEqual([['push', '/accounts?settings'], ['back']]);
+    expect(app.editingAccountId).toBe(7);
 });
