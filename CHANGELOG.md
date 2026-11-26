@@ -14,7 +14,7 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 - **Back closes what is open first (#734).** With a dialog open, Back closes it instead of leaving the page, and the address stays as it was. A Shortcuts or What's New dialog opened over Settings closes alone, leaving Settings; a second Back closes Settings. With an inline edit open (account, income, bonus, expense, person, recurring, debt), Back cancels it exactly as its Cancel button does. The sign-in and server-unreachable screens are never closed by Back. Overlays add no history entries.
 
 ### Fixed
-- **Every dialog now closes on Escape.** Several dialogs ignored Escape; an audit covers the rest.
+- **Every dialog is now tested to close on Escape.** An audit of all dialogs found none that ignored it, and Back relies on it.
 - **The command palette closes Settings before switching pages**, so choosing a page while Settings is open no longer leaves Settings on top or a stale Settings address.
 
 ## [8.7.0] — 2026-11-25
