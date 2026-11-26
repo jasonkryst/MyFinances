@@ -491,3 +491,43 @@ def test_narrow_settings_list_address(app_page):
     page.go_back()
     _wait_settings_closed(page)
     _wait_path(page, "/ledger")
+
+
+# ── Final review: Back/Forward between sub-tabs keeps the page's view state ──
+
+
+def test_back_between_reports_tabs_keeps_month(app_page):
+    page = app_page
+    _nav(page, "reports", "reportsSection")
+    _reports_tab(page, "spending")
+    start = page.text_content("#rptMonthLabel")
+    page.click("#rptPrevMonth")
+    page.wait_for_function("(s) => document.getElementById('rptMonthLabel').textContent !== s", arg=start)
+    page.click("#rptPrevMonth")
+    page.wait_for_function("() => app._reportMonthOffset === -2")
+    moved = page.text_content("#rptMonthLabel")
+    assert moved != start
+    _reports_tab(page, "variance")
+    page.go_back()
+    page.wait_for_selector("#rptPanel-spending.rpt-tab-panel--active", timeout=5000)
+    assert _path(page) == "/reports/spending"
+    assert page.evaluate("() => app._reportMonthOffset") == -2
+    assert page.text_content("#rptMonthLabel") == moved
+
+
+def test_back_between_liabilities_tabs_keeps_expense_month(app_page):
+    page = app_page
+    _nav(page, "liabilities", "liabilitiesSection")
+    _liab_tab(page, "expenses")
+    label = "#expenseList .expense-month-label"
+    start = page.text_content(label)
+    page.click('#expenseList [data-expense-month-nav="prev"]')
+    page.wait_for_function("() => app._expenseMonthOffset === -1")
+    moved = page.text_content(label)
+    assert moved != start
+    _liab_tab(page, "debts")
+    page.go_back()
+    page.wait_for_selector("#expensesPanel.visible", timeout=5000)
+    assert _path(page) == "/liabilities/expenses"
+    assert page.evaluate("() => app._expenseMonthOffset") == -1
+    assert page.text_content(label) == moved

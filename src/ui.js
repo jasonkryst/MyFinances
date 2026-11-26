@@ -829,7 +829,10 @@ const PAGE_SECTION_IDS = {
     notifications: 'notificationsPage'
 };
 
-export function switchPage(app, pageName, { subTab = null } = {}) {
+// `resetToDefaults: false` (#730) keeps the page's remembered view state
+// (Reports month, Liabilities expense month and list page): Back/Forward
+// between sub-tabs of the page already showing passes it.
+export function switchPage(app, pageName, { subTab = null, resetToDefaults = true } = {}) {
     // #315: the Spending-to-Ledger cross-nav breadcrumb only makes sense
     // while still looking at the Ledger page it dropped you into — clear it
     // the moment you navigate anywhere else, so a later plain nav back into
@@ -869,7 +872,7 @@ export function switchPage(app, pageName, { subTab = null } = {}) {
     }
 
     app._currentPage = pageName;
-    renderPageData(app, pageName, { subTab });
+    renderPageData(app, pageName, { subTab, resetToDefaults });
     // #730: the address follows the page (a no-op when it is already there
     // or while Back/Forward or boot is applying an address).
     recordView(app, { page: pageName, subTab: currentSubTab(app, pageName, subTab) });

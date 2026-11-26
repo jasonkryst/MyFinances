@@ -184,7 +184,8 @@ export function applyLocation(app) {
         || (parsed.subTab !== null && parsed.subTab !== currentSubTab(app, current));
     applying = true;
     try {
-        if (differs) app.switchPage(parsed.page, { subTab: parsed.subTab });
+        // Only the sub-tab changed: keep the page's view state, as a tab click does.
+        if (differs) app.switchPage(parsed.page, { subTab: parsed.subTab, resetToDefaults: parsed.page !== current });
         if (settingsReady) applySettings(app, parsed.settings);
     } finally {
         applying = false;

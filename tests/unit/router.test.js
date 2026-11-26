@@ -128,7 +128,7 @@ test('applyLocation switches without pushing and canonicalises with replace', ()
     const { calls } = fakeBrowser('/', '?page=strategy');
     const app = fakeApp(undefined);
     applyLocation(app);
-    expect(app.switched).toEqual([['strategy', { subTab: null }]]);
+    expect(app.switched).toEqual([['strategy', { subTab: null, resetToDefaults: true }]]);
     expect(calls).toEqual([['replace', '/plan']]);
 });
 
@@ -140,6 +140,14 @@ test('applyLocation leaves a canonical address alone and skips the current view'
     expect(calls).toEqual([]);
 });
 
+test('applyLocation keeps view state when only the sub-tab changes', () => {
+    fakeBrowser('/liabilities/debts');
+    const app = fakeApp('liabilities');
+    app.liabilitiesSubTab = 'expenses';
+    applyLocation(app);
+    expect(app.switched).toEqual([['liabilities', { subTab: 'debts', resetToDefaults: false }]]);
+});
+
 test('initRouter registers one popstate listener that applies the address', () => {
     const { calls, listeners } = fakeBrowser('/');
     const app = fakeApp('health');
@@ -148,7 +156,7 @@ test('initRouter registers one popstate listener that applies the address', () =
     expect(listeners.popstate).toHaveLength(1);
     globalThis.location.pathname = '/ledger';
     listeners.popstate[0]();
-    expect(app.switched).toEqual([['ledger', { subTab: null }]]);
+    expect(app.switched).toEqual([['ledger', { subTab: null, resetToDefaults: true }]]);
     expect(calls).toEqual([]);
 });
 
