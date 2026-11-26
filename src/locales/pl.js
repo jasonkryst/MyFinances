@@ -78,7 +78,7 @@ export default {
     'nav.retirement': 'Emerytura',
     'nav.people': 'Osoby',
     'nav.more': 'Więcej',
-    'nav.phoneTabsAria': 'Główne karty',
+    'nav.phoneTabsAria': 'Główne zakładki',
 
     'settings.close': 'Zamknij',
     'settings.title': 'Ustawienia',

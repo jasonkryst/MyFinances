@@ -199,6 +199,63 @@ def test_bar_hides_while_typing(app_page):
     assert "phone-tab-bar--hidden" not in (bar.get_attribute("class") or "")
 
 
+# Firefox and iOS Safari fire no focusout when the focused field is removed;
+# Chromium does. To reproduce that here, a window capture listener swallows
+# every focusout before the app's document listener sees it, so only the
+# pointerdown / switchPage re-check can bring the bar back.
+_FOCUS_DOOMED_FIELD = """() => {
+    window.addEventListener('focusout', e => e.stopImmediatePropagation(), true);
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'doomedField';
+    document.querySelector('.page-section.active').prepend(input);
+    input.focus();
+}"""
+
+
+def _remove_doomed_field(page):
+    page.locator(BAR).wait_for(state="hidden", timeout=5000)
+    page.evaluate("() => document.getElementById('doomedField').remove()")
+    assert page.evaluate("() => document.activeElement === document.body")
+    # Proof that focusout was suppressed: nothing has re-shown the bar yet.
+    assert "phone-tab-bar--hidden" in (page.locator(BAR).get_attribute("class") or "")
+
+
+@pytest.mark.ui
+def test_bar_returns_on_tap_after_focused_field_is_removed(app_page):
+    page = app_page
+    page.set_viewport_size(PHONE)
+    page.locator(BAR).wait_for(state="visible", timeout=5000)
+    page.evaluate(_FOCUS_DOOMED_FIELD)
+    _remove_doomed_field(page)
+    # Tap plain, non-focusable content (the footer), so no focusin fires.
+    page.locator("#appVersion").click()
+    page.locator(BAR).wait_for(state="visible", timeout=5000)
+    assert page.evaluate("() => document.activeElement === document.body"), "the tap must not move focus"
+
+
+@pytest.mark.ui
+def test_bar_returns_on_switch_page_after_focused_field_is_removed(app_page):
+    page = app_page
+    page.set_viewport_size(PHONE)
+    page.locator(BAR).wait_for(state="visible", timeout=5000)
+    page.evaluate(_FOCUS_DOOMED_FIELD)
+    _remove_doomed_field(page)
+    page.evaluate("() => window.app.switchPage('ledger')")
+    page.locator(BAR).wait_for(state="visible", timeout=5000)
+
+
+@pytest.mark.ui
+def test_more_is_not_current_off_the_sheet(app_page):
+    """Notifications is a page but not in the More sheet (#navMenu)."""
+    page = app_page
+    page.set_viewport_size(PHONE)
+    page.evaluate("() => window.app.switchPage('notifications')")
+    page.wait_for_selector("#notificationsPage.active", timeout=5000)
+    assert page.locator("#phoneMoreBtn").get_attribute("aria-current") == "false"
+    assert _current_tabs(page) == []
+
+
 @pytest.mark.ui
 @pytest.mark.parametrize("dark", [False, True], ids=["light", "dark"])
 def test_tab_bar_contrast(app_page, dark):

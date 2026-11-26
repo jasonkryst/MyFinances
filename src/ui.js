@@ -836,19 +836,31 @@ const PAGE_SECTION_IDS = {
 // between sub-tabs of the page already showing passes it.
 // #731: hide the phone tab bar while a text field has focus at phone width,
 // since an on-screen keyboard is then up and the bar would ride above it.
-// The same rule as live refresh's "typing" (isTextEntryElement).
-function installPhoneTabBarKeyboardHide() {
+// The same rule as live refresh's "typing" (isTextEntryElement), for a field
+// that is still in the page and shown.
+function updatePhoneTabBarHidden(focused) {
     const bar = document.getElementById('phoneTabBar');
     if (!bar || typeof window.matchMedia !== 'function') return;
-    const phone = window.matchMedia('(max-width: 768px)');
-    const update = (focused) => {
-        bar.classList.toggle('phone-tab-bar--hidden', phone.matches && isTextEntryElement(focused));
-    };
-    document.addEventListener('focusin', (e) => update(e.target));
+    const typing = Boolean(focused) && focused.isConnected && focused.getClientRects().length > 0
+        && isTextEntryElement(focused);
+    bar.classList.toggle('phone-tab-bar--hidden', typing && window.matchMedia('(max-width: 768px)').matches);
+}
+
+function installPhoneTabBarKeyboardHide() {
+    if (!document.getElementById('phoneTabBar') || typeof window.matchMedia !== 'function') return;
+    document.addEventListener('focusin', (e) => updatePhoneTabBarHidden(e.target));
     // relatedTarget is the element taking focus (null when focus leaves).
-    document.addEventListener('focusout', (e) => update(e.relatedTarget));
-    const onBreakpoint = () => update(document.activeElement);
-    if (typeof phone.addEventListener === 'function') phone.addEventListener('change', onBreakpoint);
+    document.addEventListener('focusout', (e) => updatePhoneTabBarHidden(e.relatedTarget));
+    // Some browsers (Firefox, iOS Safari) fire no focusout when the focused
+    // field is removed or hidden (an inline edit re-rendering, a form
+    // collapsing), which would leave the bar hidden with no navigation. Any
+    // tap re-checks what really has focus (capture: runs before handlers that
+    // stop the event); switchPage re-checks too.
+    document.addEventListener('pointerdown', () => updatePhoneTabBarHidden(document.activeElement), true);
+    const phone = window.matchMedia('(max-width: 768px)');
+    if (typeof phone.addEventListener === 'function') {
+        phone.addEventListener('change', () => updatePhoneTabBarHidden(document.activeElement));
+    }
 }
 
 export function switchPage(app, pageName, { subTab = null, resetToDefaults = true } = {}) {
@@ -884,7 +896,10 @@ export function switchPage(app, pageName, { subTab = null, resetToDefaults = tru
     });
     const moreBtn = document.getElementById('phoneMoreBtn');
     if (moreBtn) {
-        const moreCurrent = !tabMarked && Boolean(PAGE_SECTION_IDS[pageName]);
+        // Only the pages the More sheet lists (the desktop nav's pages minus
+        // the four tabs); Notifications, for one, is not among them.
+        const moreCurrent = !tabMarked
+            && Boolean(document.querySelector(`#navMenu .page-button[data-page="${pageName}"]`));
         moreBtn.classList.toggle('active', moreCurrent);
         moreBtn.setAttribute('aria-current', moreCurrent ? 'page' : 'false');
     }
@@ -904,6 +919,8 @@ export function switchPage(app, pageName, { subTab = null, resetToDefaults = tru
     // #730: the address follows the page (a no-op when it is already there
     // or while Back/Forward or boot is applying an address).
     recordView(app, { page: pageName, subTab: currentSubTab(app, pageName, subTab) });
+    // #731: the page swap may have removed a focused field without focusout.
+    updatePhoneTabBarHidden(document.activeElement);
 }
 
 /**

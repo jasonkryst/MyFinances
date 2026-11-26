@@ -174,8 +174,8 @@ def test_dark_mode_secondary_button_has_visible_border_light_mode_unchanged(app_
 
 @pytest.mark.ui
 # #731: on a phone the hamburger row is gone (the bottom tab bar replaced it),
-# so the header is just the 56px logo/toolbar row.
-@pytest.mark.parametrize('w,h,lo,hi', [(390, 844, 50, 135), (1440, 900, 110, 150)])
+# so the header is just the 56px logo/toolbar row; a returning nav row fails.
+@pytest.mark.parametrize('w,h,lo,hi', [(390, 844, 50, 80), (1440, 900, 110, 150)])
 def test_header_height_bounds(app_page, w, h, lo, hi):
     app_page.set_viewport_size({'width': w, 'height': h})
     app_page.wait_for_timeout(200)
