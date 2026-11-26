@@ -207,8 +207,6 @@
                     <span class="phone-tab-label" data-i18n="nav.more">More</span>
                 </button>
             </nav>
-            <!-- #731: the More sheet (#phoneMoreBtn's aria-controls target); its content and behaviour come with the sheet -->
-            <div id="phoneMoreSheet" class="hidden"></div>
             <!-- ═══════════════════════════════════════════════════════════ -->
             <!-- Ledger Section                                            -->
             <!-- ═══════════════════════════════════════════════════════════ -->
@@ -1492,6 +1490,20 @@
         <footer class="app-footer">
             <span id="appVersion"></span>
         </footer>
+    </div>
+
+    <!-- #731: the phone More sheet (#phoneMoreBtn). A child of <body> so
+         makeBackgroundInert can make everything else inert. Its page list is
+         cloned from #navMenu's .nav-group markup at startup (ui.js). -->
+    <div id="phoneMoreSheet" class="phone-more-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="phoneMoreSheetTitle">
+        <div class="phone-more-backdrop" aria-hidden="true"></div>
+        <div class="phone-more-panel">
+            <div class="phone-more-header">
+                <h2 id="phoneMoreSheetTitle" class="phone-more-title" data-i18n="nav.moreSheetTitle">More pages</h2>
+                <button type="button" id="phoneMoreCloseBtn" class="phone-more-close" aria-label="Close" data-i18n-attr="aria-label:common.close">&times;</button>
+            </div>
+            <div id="phoneMoreSheetBody" class="phone-more-body"></div>
+        </div>
     </div>
 
     <script src="src/debtCalculator.js" defer></script>

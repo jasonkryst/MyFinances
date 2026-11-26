@@ -7,6 +7,7 @@ Health, Ledger, Plan, Reports and More. The desktop navigation is unchanged.
 from datetime import date
 
 import pytest
+from playwright.sync_api import expect
 
 from tests.conftest import BASE_URL, seed_state, wait_for_app_ready
 from tests.ui.contrast_utils import text_contrast
@@ -272,3 +273,186 @@ def test_tab_bar_contrast(app_page, dark):
     for name, res in (("active", active), ("inactive", inactive), ("more", more)):
         assert res["ratio"] >= 4.5, f"{name} tab label contrast {res['ratio']:.2f} ({res})"
     assert active["fg"] != inactive["fg"], "the active tab must look different"
+
+
+# ── More sheet (Task 4) ──────────────────────────────────────────────────────
+
+SHEET = "#phoneMoreSheet"
+SHEET_GROUPS = ["Overview", "Manage", "Analyze"]
+SHEET_PAGES = ["Accounts", "Income", "People", "Liabilities", "Recurring", "Savings", "Reconcile", "Retirement"]
+
+
+def _open_sheet(page):
+    page.set_viewport_size(PHONE)
+    page.locator("#phoneMoreBtn").click()
+    page.locator(SHEET).wait_for(state="visible", timeout=5000)
+    page.wait_for_function(
+        "() => document.getElementById('phoneMoreSheet').contains(document.activeElement)", timeout=5000)
+
+
+def _sheet_labels(page):
+    # textContent: the group labels are uppercased by CSS only.
+    groups = [t.strip() for t in page.locator(f"{SHEET} .nav-group-label").all_text_contents()]
+    pages = [t.strip() for t in page.locator(f"{SHEET} .page-button[data-page]").all_text_contents()]
+    return groups, pages
+
+
+def _inert_ids(page):
+    return page.evaluate("""() => [...document.querySelectorAll('[inert]')]
+        .map(e => e.id || e.className || e.tagName)""")
+
+
+@pytest.mark.ui
+def test_more_sheet_lists_other_pages(app_page):
+    page = app_page
+    more = page.locator("#phoneMoreBtn")
+    assert more.get_attribute("aria-expanded") == "false"
+    _open_sheet(page)
+    sheet = page.locator(SHEET)
+    assert sheet.get_attribute("role") == "dialog"
+    assert sheet.get_attribute("aria-modal") == "true"
+    title_id = sheet.get_attribute("aria-labelledby")
+    assert title_id and page.locator(f"#{title_id}").inner_text().strip(), "the sheet is named by its title"
+    assert more.get_attribute("aria-expanded") == "true"
+    groups, pages = _sheet_labels(page)
+    assert groups == SHEET_GROUPS, groups
+    assert pages == SHEET_PAGES, pages
+    for b in page.locator(f"{SHEET} .page-button[data-page]").all():
+        assert b.is_visible()
+        bb = b.bounding_box()
+        assert bb["height"] >= 44, bb
+    # Cloned, not moved: the desktop nav keeps its buttons, and no id is duplicated.
+    assert page.locator('#navMenu .page-button[data-page="accounts"]').count() == 1
+    dup = page.evaluate("""() => {
+        const ids = [...document.querySelectorAll('[id]')].map(e => e.id);
+        return ids.filter((id, i) => ids.indexOf(id) !== i);
+    }""")
+    assert dup == [], f"duplicate ids: {dup}"
+
+
+@pytest.mark.ui
+def test_more_sheet_focus_and_escape(app_page):
+    page = app_page
+    _open_sheet(page)
+    assert page.evaluate("() => document.querySelector('.container').hasAttribute('inert')"), \
+        "the page behind the sheet is inert"
+    assert not page.evaluate("() => document.getElementById('phoneMoreSheet').closest('[inert]')")
+    # Tab and Shift+Tab stay inside the sheet.
+    for key in ["Tab"] * 12 + ["Shift+Tab"] * 12:
+        page.keyboard.press(key)
+        assert page.evaluate(
+            "() => document.getElementById('phoneMoreSheet').contains(document.activeElement)"), key
+    page.keyboard.press("Escape")
+    page.locator(SHEET).wait_for(state="hidden", timeout=5000)
+    assert _inert_ids(page) == []
+    page.wait_for_function("() => document.activeElement === document.getElementById('phoneMoreBtn')",
+                           timeout=5000)
+    assert page.locator("#phoneMoreBtn").get_attribute("aria-expanded") == "false"
+    # Escape on the sheet opened nothing else.
+    assert page.locator("#commandPaletteOverlay").is_hidden()
+
+
+@pytest.mark.ui
+def test_more_sheet_backdrop_closes(app_page):
+    page = app_page
+    _open_sheet(page)
+    # Tap above the panel, on the backdrop.
+    page.mouse.click(PHONE["width"] // 2, 20)
+    page.locator(SHEET).wait_for(state="hidden", timeout=5000)
+    assert _inert_ids(page) == []
+    assert page.locator("#phoneMoreBtn").get_attribute("aria-expanded") == "false"
+
+
+@pytest.mark.ui
+def test_more_sheet_navigates(app_page):
+    page = app_page
+    page.set_viewport_size(PHONE)
+    _tab(page, "ledger").click()
+    page.wait_for_selector("#ledgerSection.active", timeout=5000)
+    before = page.evaluate("() => history.length")
+    _open_sheet(page)
+    page.locator(f'{SHEET} .page-button[data-page="savings"]').click()
+    page.locator(SHEET).wait_for(state="hidden", timeout=5000)
+    page.wait_for_selector("#savingsSection.active", timeout=5000)
+    expect(page).to_have_url(BASE + "savings/emergency", timeout=5000)
+    assert page.locator("#phoneMoreBtn").get_attribute("aria-current") == "page"
+    assert page.locator(f'{SHEET} .page-button[data-page="savings"]').get_attribute("aria-current") == "page"
+    assert _inert_ids(page) == []
+    # One history entry for the page, none for the sheet: one Back returns to the Ledger.
+    assert page.evaluate("() => history.length") == before + 1
+    page.go_back()
+    page.wait_for_selector("#ledgerSection.active", timeout=5000)
+    expect(page).to_have_url(BASE + "ledger", timeout=5000)
+
+
+@pytest.mark.ui
+def test_back_closes_more_sheet(app_page):
+    page = app_page
+    page.set_viewport_size(PHONE)
+    _tab(page, "health").click()
+    _tab(page, "ledger").click()
+    page.wait_for_selector("#ledgerSection.active", timeout=5000)
+    _open_sheet(page)
+    page.go_back()
+    page.locator(SHEET).wait_for(state="hidden", timeout=5000)
+    expect(page).to_have_url(BASE + "ledger", timeout=5000)
+    assert page.evaluate("() => document.getElementById('ledgerSection').classList.contains('active')")
+    assert _inert_ids(page) == []
+
+
+@pytest.mark.ui
+def test_tab_labels_follow_language(app_page):
+    # Review Focus 4.
+    page = app_page
+    page.set_viewport_size(PHONE)
+    page.evaluate("() => window.app.openSettings({ page: 'language' })")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
+    page.select_option("#settingLocale", "es")
+    page.click("#settingsModalCloseBtn")
+    page.wait_for_selector("#settingsModal", state="hidden", timeout=5000)
+    es = page.evaluate("async () => (await import('/src/locales/es.js')).default")
+    tabs = [t.strip() for t in page.locator(f"{BAR} .phone-tab").all_inner_texts()]
+    assert tabs == [es[k] for k in ("nav.health", "nav.ledger", "nav.strategy", "nav.reports", "nav.more")], tabs
+    assert page.locator(BAR).get_attribute("aria-label") == es["nav.phoneTabsAria"]
+    _open_sheet(page)
+    groups, pages = _sheet_labels(page)
+    assert groups == [es[k] for k in ("nav.overview", "nav.manage", "nav.analyze")], groups
+    assert pages == [es[f"nav.{k}"] for k in ("accounts", "income", "people", "liabilities", "recurring",
+                                              "savings", "reconcile", "retirement")], pages
+    title_id = page.locator(SHEET).get_attribute("aria-labelledby")
+    assert page.locator(f"#{title_id}").inner_text().strip() == es["nav.moreSheetTitle"]
+
+
+@pytest.mark.ui
+def test_sheet_closes_when_widened(app_page):
+    # Review Focus 5.
+    page = app_page
+    _open_sheet(page)
+    page.set_viewport_size(DESKTOP)
+    page.locator(SHEET).wait_for(state="hidden", timeout=5000)
+    assert _inert_ids(page) == []
+    assert page.locator("#phoneMoreBtn").get_attribute("aria-expanded") == "false"
+    assert page.locator('#navMenu .page-button[data-page="accounts"]').is_visible()
+
+
+@pytest.mark.ui
+@pytest.mark.parametrize("dark", [False, True], ids=["light", "dark"])
+def test_more_sheet_contrast(app_page, dark):
+    page = app_page
+    page.set_viewport_size(PHONE)
+    if dark:
+        page.evaluate("() => { document.body.classList.add('dark-mode'); "
+                      "document.documentElement.setAttribute('data-theme','dark'); }")
+    page.evaluate("() => window.app.switchPage('accounts')")
+    page.wait_for_selector("#accountsSection.active", timeout=5000)
+    _open_sheet(page)
+    checks = {
+        "title": f"{SHEET} #phoneMoreSheetTitle",
+        "group": f"{SHEET} .nav-group-label",
+        "page": f'{SHEET} .page-button[data-page="income"]',
+        "active": f'{SHEET} .page-button[data-page="accounts"]',
+    }
+    res = {name: text_contrast(page.locator(sel)) for name, sel in checks.items()}
+    for name, r in res.items():
+        assert r["ratio"] >= 4.5, f"{name} contrast {r['ratio']:.2f} ({r})"
+    assert res["active"]["fg"] != res["page"]["fg"], "the current page must look different"

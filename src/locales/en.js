@@ -81,6 +81,7 @@ export default {
     'nav.people': 'People',
     'nav.more': 'More',
     'nav.phoneTabsAria': 'Main tabs',
+    'nav.moreSheetTitle': 'More pages',
 
     'settings.close': 'Close',
     'settings.title': 'Settings',

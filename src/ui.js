@@ -11,6 +11,7 @@ import { installOwnershipListeners } from './debtOwnership.js';
 import { t } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
 import { recordView, currentSubTab } from './router.js';
+import { makeBackgroundInert } from './overlayFocus.js';
 
 // #713: page renderers and forms live in appFeatures.js, loaded after the
 // landing page paints. These keep their old call shape.
@@ -133,6 +134,10 @@ export function initializeEventListeners(app) {
             }
         });
     });
+
+    // After the loop above: the sheet's cloned page buttons get their own
+    // handler (close the sheet, then navigate).
+    installPhoneMoreSheet(app);
 
     // Tab switching within the Results section (Tabular / Calendar / Chart)
     document.querySelectorAll('.tab-button').forEach(btn => {
@@ -860,6 +865,146 @@ function installPhoneTabBarKeyboardHide() {
     const phone = window.matchMedia('(max-width: 768px)');
     if (typeof phone.addEventListener === 'function') {
         phone.addEventListener('change', () => updatePhoneTabBarHidden(document.activeElement));
+    }
+}
+
+// #731: the phone More sheet. Its page list is cloned from #navMenu's
+// .nav-group markup (one source of nav items), minus the pages that have a
+// tab. The clones keep .page-button[data-page] and data-i18n, so switchPage
+// marks the current one and applyStaticTranslations re-translates them.
+// The sheet is a role="dialog" child of <body>: Back closes it through the
+// router's Escape (closeInnermost), and it never adds a history entry.
+let _phoneMoreSheetRelease = null;
+
+function buildPhoneMoreSheetBody(body) {
+    const tabPages = new Set(Array.from(document.querySelectorAll('#phoneTabBar .phone-tab[data-page]'))
+        .map(btn => btn.getAttribute('data-page')));
+    body.textContent = '';
+    document.querySelectorAll('#navMenu .nav-group').forEach((group, index) => {
+        const clone = group.cloneNode(true);
+        clone.querySelectorAll('.page-button[data-page]').forEach(btn => {
+            if (tabPages.has(btn.getAttribute('data-page'))) btn.remove();
+        });
+        if (!clone.querySelector('.page-button[data-page]')) return;
+        // Never duplicate an id from the desktop nav.
+        clone.removeAttribute('id');
+        clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+        clone.querySelectorAll('.page-button').forEach(btn => btn.setAttribute('type', 'button'));
+        const label = clone.querySelector('.nav-group-label');
+        if (label) {
+            label.id = `phoneMoreGroupLabel${index}`;
+            clone.setAttribute('role', 'group');
+            clone.setAttribute('aria-labelledby', label.id);
+        }
+        body.appendChild(clone);
+    });
+}
+
+function isPhoneMoreSheetOpen() {
+    const sheet = document.getElementById('phoneMoreSheet');
+    return Boolean(sheet && !sheet.classList.contains('hidden'));
+}
+
+function phoneMoreSheetFocusables(sheet) {
+    return Array.from(sheet.querySelectorAll('button:not([disabled])'))
+        .filter(el => el.getClientRects().length > 0);
+}
+
+function openPhoneMoreSheet(_app) {
+    const sheet = document.getElementById('phoneMoreSheet');
+    const moreBtn = document.getElementById('phoneMoreBtn');
+    if (!sheet || isPhoneMoreSheetOpen()) return;
+    sheet.classList.remove('hidden');
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', 'true');
+    _phoneMoreSheetRelease = makeBackgroundInert(sheet);
+    const target = sheet.querySelector('.page-button[aria-current="page"]')
+        || sheet.querySelector('.page-button[data-page]')
+        || document.getElementById('phoneMoreCloseBtn');
+    if (target) target.focus();
+}
+
+// `returnFocus` puts focus back on More (Escape, the close button, the
+// backdrop, choosing a page). When the sheet closes because the window grew
+// past the phone breakpoint, More is hidden, so focus goes to the desktop
+// nav's current page instead.
+function closePhoneMoreSheet(_app, { returnFocus = true } = {}) {
+    const sheet = document.getElementById('phoneMoreSheet');
+    const moreBtn = document.getElementById('phoneMoreBtn');
+    if (!sheet || !isPhoneMoreSheetOpen()) return;
+    const hadFocus = sheet.contains(document.activeElement);
+    sheet.classList.add('hidden');
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', 'false');
+    if (_phoneMoreSheetRelease) _phoneMoreSheetRelease();
+    _phoneMoreSheetRelease = null;
+    if (!hadFocus) return;
+    const target = returnFocus ? moreBtn : document.querySelector('#navMenu .page-button.active');
+    if (target && target.getClientRects().length > 0) target.focus({ preventScroll: !returnFocus });
+}
+
+function installPhoneMoreSheet(app) {
+    const sheet = document.getElementById('phoneMoreSheet');
+    const body = document.getElementById('phoneMoreSheetBody');
+    const moreBtn = document.getElementById('phoneMoreBtn');
+    if (!sheet || !body || !moreBtn) return;
+    buildPhoneMoreSheetBody(body);
+
+    moreBtn.addEventListener('click', () => {
+        if (isPhoneMoreSheetOpen()) closePhoneMoreSheet(app);
+        else openPhoneMoreSheet(app);
+    });
+
+    sheet.addEventListener('click', (e) => {
+        const pageBtn = e.target.closest('.page-button[data-page]');
+        if (pageBtn && body.contains(pageBtn)) {
+            closePhoneMoreSheet(app);
+            app.switchPage(pageBtn.getAttribute('data-page'));
+            return;
+        }
+        if (e.target.closest('#phoneMoreCloseBtn') || e.target.classList.contains('phone-more-backdrop')) {
+            closePhoneMoreSheet(app);
+        }
+    });
+
+    // On the sheet itself (focus never leaves it while open), so it also
+    // receives the Escape the router sends on Back.
+    sheet.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            // Only this sheet: no other global Escape handler acts on it.
+            e.preventDefault();
+            e.stopPropagation();
+            closePhoneMoreSheet(app);
+            return;
+        }
+        if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+            // The command palette (document-level Ctrl+K) would open behind
+            // the inert background: close the sheet first and let it through.
+            closePhoneMoreSheet(app, { returnFocus: false });
+            return;
+        }
+        if (e.key !== 'Tab') return;
+        const focusable = phoneMoreSheetFocusables(sheet);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!sheet.contains(document.activeElement)) {
+            e.preventDefault();
+            first.focus();
+        } else if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
+    });
+
+    if (typeof window.matchMedia === 'function') {
+        const phone = window.matchMedia('(max-width: 768px)');
+        if (typeof phone.addEventListener === 'function') {
+            phone.addEventListener('change', () => {
+                if (!phone.matches) closePhoneMoreSheet(app, { returnFocus: false });
+            });
+        }
     }
 }
 

@@ -10286,3 +10286,185 @@ body.dark-mode .sinking-status--pastDue { background: #7f1d1d; color: #fca5a5; }
         display: none !important;
     }
 }
+
+/* ── #731: phone More sheet ─────────────────────────────────────────────
+   A bottom sheet opened by the tab bar's More. Its groups are clones of the
+   desktop .nav-group markup, so these rules are scoped to #phoneMoreSheet
+   (an id) to beat the header-nav .page-button / .nav-group-label rules,
+   including the phone and high-contrast ones. Contrast
+   (tests/ui/test_phone_tab_bar.py): light title #0f172a, page #1e293b on
+   #fff, group label #475569 on #fff 7.6:1, current #1d4ed8 on #eff6ff
+   6.2:1; dark title/page #f1f5f9 on #1e293b, group label #cbd5e1 9.9:1,
+   current #93c5fd on #172554 8.2:1. */
+.phone-more-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.phone-more-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+}
+
+.phone-more-panel {
+    position: relative;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+    background: #ffffff;
+    color: #1e293b;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.25);
+}
+
+.phone-more-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+#phoneMoreSheet .phone-more-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+#phoneMoreSheet .phone-more-close {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #1e293b;
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+#phoneMoreSheet .phone-more-close:hover {
+    background: #f1f5f9;
+}
+
+#phoneMoreSheet .nav-group {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    margin-top: 12px;
+}
+
+#phoneMoreSheet .nav-group-label {
+    display: block;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: none;
+}
+
+#phoneMoreSheet .nav-group-btns {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+#phoneMoreSheet .page-button {
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 8px 6px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    transition: none;
+}
+
+#phoneMoreSheet .page-button:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+#phoneMoreSheet .page-button:focus-visible,
+#phoneMoreSheet .phone-more-close:focus-visible {
+    outline: 2px solid #1d4ed8;
+    outline-offset: 2px;
+}
+
+#phoneMoreSheet .page-button.active,
+#phoneMoreSheet .page-button[aria-current="page"] {
+    color: #1d4ed8;
+    background: #eff6ff;
+    border-color: #1d4ed8;
+}
+
+body.dark-mode .phone-more-panel {
+    background: #1e293b;
+    color: #f1f5f9;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode #phoneMoreSheet .phone-more-title,
+body.dark-mode #phoneMoreSheet .phone-more-close {
+    color: #f1f5f9;
+}
+
+body.dark-mode #phoneMoreSheet .phone-more-close:hover {
+    background: #273449;
+}
+
+body.dark-mode #phoneMoreSheet .nav-group-label {
+    color: #cbd5e1;
+}
+
+body.dark-mode #phoneMoreSheet .page-button {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+body.dark-mode #phoneMoreSheet .page-button:hover {
+    background: #273449;
+    border-color: #475569;
+}
+
+body.dark-mode #phoneMoreSheet .page-button:focus-visible,
+body.dark-mode #phoneMoreSheet .phone-more-close:focus-visible {
+    outline-color: #93c5fd;
+}
+
+body.dark-mode #phoneMoreSheet .page-button.active,
+body.dark-mode #phoneMoreSheet .page-button[aria-current="page"] {
+    color: #93c5fd;
+    background: #172554;
+    border-color: #93c5fd;
+}
+
+@media print {
+    .phone-more-sheet {
+        display: none !important;
+    }
+}

@@ -79,6 +79,7 @@ export default {
     'nav.people': 'Osoby',
     'nav.more': 'Więcej',
     'nav.phoneTabsAria': 'Główne zakładki',
+    'nav.moreSheetTitle': 'Więcej stron',
 
     'settings.close': 'Zamknij',
     'settings.title': 'Ustawienia',
