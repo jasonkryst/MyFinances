@@ -221,7 +221,7 @@ def test_keyed_rows_show_readable_text_not_keys(app_page):
     open_history(page)
     rows = items(page)
     assert rows.count() == 4
-    assert rows.nth(0).locator('.change-history-name').inner_text() == 'Notify filter status'
+    assert rows.nth(0).locator('.change-history-name').inner_text() == 'Notification filter: read status'
     override_name = rows.nth(1).locator('.change-history-name').inner_text()
     assert override_name.startswith('Maurices') and '|' not in override_name
     # Unresolvable source and no stored name: falls back to the key rather than hiding the row.

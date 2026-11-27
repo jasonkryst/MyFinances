@@ -86,7 +86,9 @@ function renderEntry(entry) {
         list.setAttribute('aria-label', t('history.changesAria'));
         for (const change of changes) {
             const row = el('li', 'change-history-field');
-            row.appendChild(el('span', 'change-history-field-name', humanizeKey(change.field)));
+            const fieldName = el('span', 'change-history-field-name', humanizeKey(change.field));
+            fieldName.setAttribute('translate', 'no'); // a stored field name is data, not UI text
+            row.appendChild(fieldName);
             row.appendChild(el('span', 'change-history-sep', ': '));
             if (change.added || change.removed) {
                 const bits = [];
