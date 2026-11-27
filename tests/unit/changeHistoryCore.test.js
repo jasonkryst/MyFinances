@@ -1,7 +1,7 @@
 // Change history page helpers (#580).
 import {
     changedFields, recordName, formatAuditValue, describeChanges, auditQuery,
-    KEYED_AUDIT_TABLES, AUDIT_TABLE_ORDER
+    KEYED_AUDIT_TABLES, AUDIT_TABLE_ORDER, parseLedgerKey, humanizeKey, keyedEntryLabel
 } from '../../src/changeHistoryCore.js';
 
 describe('changedFields', () => {
@@ -105,4 +105,60 @@ test('every record type and op has an English label', () => {
     for (const op of ['create', 'update', 'delete']) {
         expect(t(`history.op.${op}`)).not.toBe(`history.op.${op}`);
     }
+});
+
+describe('readable keyed entries (#749)', () => {
+    const ctx = {
+        sourceName: (type, id) => (type === 'debt' && id === '15' ? 'Maurices' : null),
+        accountName: id => (id === '7' ? 'Checking' : null),
+        formatDate: iso => `D(${iso})`,
+        settingLabel: key => `S(${key})`
+    };
+    test('parseLedgerKey splits a key and rejects malformed ones', () => {
+        expect(parseLedgerKey('debt|15|7|2026-11-22')).toEqual({ type: 'debt', sourceId: '15', accountId: '7', date: '2026-11-22' });
+        expect(parseLedgerKey('debt|15|__unlinked__|2026-11-22').accountId).toBeNull();
+        expect(parseLedgerKey('debt|15|7')).toBeNull();
+        expect(parseLedgerKey('|15|7|2026-11-22')).toBeNull();
+        expect(parseLedgerKey(null)).toBeNull();
+    });
+    test('humanizeKey turns a camelCase key into words', () => {
+        expect(humanizeKey('notifyFilterStatus')).toBe('Notify filter status');
+        expect(humanizeKey('debt_start-date')).toBe('Debt start date');
+        expect(humanizeKey('')).toBe('');
+    });
+    test('a Cleared mark shows the bill name, date and account, not the key', () => {
+        const entry = { table: 'ledger_cleared_transactions', rowId: 'debt|15|7|2026-11-22', op: 'create', after: null };
+        expect(keyedEntryLabel(entry, ctx)).toBe('Maurices · D(2026-11-22) · Checking');
+    });
+    test('an override prefers the stored transaction name and survives a deleted source', () => {
+        const entry = { table: 'ledger_amount_overrides', rowId: 'debt|99|7|2026-11-22', op: 'update', after: { transactionName: 'Old card' } };
+        expect(keyedEntryLabel(entry, ctx)).toBe('Old card · D(2026-11-22) · Checking');
+    });
+    test('an unresolvable Ledger key gives null so the page can fall back', () => {
+        expect(keyedEntryLabel({ table: 'ledger_cleared_transactions', rowId: 'debt|99|7|2026-11-22' }, ctx)).toBeNull();
+        expect(keyedEntryLabel({ table: 'ledger_cleared_transactions', rowId: 'junk' }, ctx)).toBeNull();
+        expect(keyedEntryLabel(null, ctx)).toBeNull();
+        expect(keyedEntryLabel({ table: 'debts', rowId: '1' }, ctx)).toBeNull();
+    });
+    test('settings and snapshots use their label and date', () => {
+        expect(keyedEntryLabel({ table: 'settings', rowId: 'ledgerHiddenColumns' }, ctx)).toBe('S(ledgerHiddenColumns)');
+        expect(keyedEntryLabel({ table: 'settings', rowId: 'notifyFilterStatus' })).toBe('Notify filter status');
+        expect(keyedEntryLabel({ table: 'net_worth_snapshots', rowId: '2026-11-01' }, ctx)).toBe('D(2026-11-01)');
+    });
+    test('describeChanges hides bookkeeping fields and summarises list changes', () => {
+        const entry = {
+            op: 'update',
+            before: { name: 'Maurices', updatedAt: '2026-11-17', rowVersion: 1, paidMonths: ['2026-09'], cols: ['a', 'b'] },
+            after: { name: 'Maurices', updatedAt: '2026-11-23', rowVersion: 2, paidMonths: ['2026-09', '2026-10'], cols: ['b', 'c'] }
+        };
+        const rows = describeChanges(entry);
+        expect(rows.map(r => r.field)).toEqual(['cols']);
+        expect(rows[0].added).toEqual(['c']);
+        expect(rows[0].removed).toEqual(['a']);
+    });
+    test('scalar changes carry no added/removed lists', () => {
+        const [row] = describeChanges({ op: 'update', before: { debtStartDate: null }, after: { debtStartDate: '2026-11-01' } });
+        expect(row.added).toBeUndefined();
+        expect(row.to).toBe('2026-11-01');
+    });
 });

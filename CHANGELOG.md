@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.8.6] — 2026-11-26
+
+### Fixed
+- **Change history reads as sentences, not keys (#749).** A Cleared mark or amount override now shows the bill, date and account (for example "Maurices · Nov 22, 2026 · Checking") instead of `debt|15|7|2026-11-22`; settings show a readable label instead of `ledgerHiddenColumns`; net worth snapshots show their date. The name comes from the loaded record, then from the name stored in the audit row, so a deleted record still reads well. Bookkeeping fields (`updatedAt`, `rowVersion`) and the derived `paidMonths` cache no longer appear in a change, field names are shown as words, and a changed list says "added …" / "removed …" instead of printing both whole lists.
+
 ## [8.8.5] — 2026-11-26
 
 ### Fixed

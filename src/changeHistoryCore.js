@@ -54,14 +54,81 @@ export function formatAuditValue(value, maxLen = 60) {
     return text.length > maxLen ? `${text.slice(0, Math.max(0, maxLen - 1))}…` : text;
 }
 
-// The list of { field, from, to } rows an update shows.
+// Bookkeeping and derived fields: they change on every write or are rebuilt
+// from the Ledger, so listing them only buries the change the person made.
+export const HIDDEN_AUDIT_FIELDS = ['updatedAt', 'createdAt', 'rowVersion', 'paidMonths'];
+
+// Ledger key `type` -> the app collection holding that source's records.
+export const LEDGER_SOURCE_COLLECTIONS = {
+    income: 'incomes', bonus: 'bonuses', debt: 'debts', bill: 'bills', expense: 'expenses',
+    transfer: 'transfers', manual: 'manualTransactions', recurring: 'recurringTemplates', interest: 'accounts'
+};
+
+// `type|sourceId|accountId|date` -> its parts, or null when malformed.
+export function parseLedgerKey(key) {
+    const parts = String(key ?? '').split('|');
+    if (parts.length !== 4 || !parts[0] || !parts[1] || !parts[3]) return null;
+    const [type, sourceId, accountId, date] = parts;
+    return { type, sourceId, accountId: /^\d+$/.test(accountId) ? accountId : null, date };
+}
+
+// "notifyFilterStatus" -> "Notify filter status": the fallback label for a
+// setting that has no translation of its own.
+export function humanizeKey(key) {
+    const words = String(key ?? '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim().toLowerCase();
+    return words ? words.charAt(0).toUpperCase() + words.slice(1) : '';
+}
+
+function nonBlank(v) {
+    return typeof v === 'string' && v.trim() ? v.trim() : null;
+}
+
+// What to show for a keyed row (Ledger mark or override, setting, snapshot)
+// instead of its raw key; null when nothing readable can be built.
+// `ctx`: { sourceName(type, id), accountName(id), formatDate(iso), settingLabel(key) },
+// every member optional.
+export function keyedEntryLabel(entry, ctx = {}) {
+    if (!entry) return null;
+    const { table, rowId } = entry;
+    if (table === 'settings') return nonBlank(ctx.settingLabel ? ctx.settingLabel(rowId) : humanizeKey(rowId));
+    if (table === 'net_worth_snapshots') {
+        return nonBlank(ctx.formatDate ? ctx.formatDate(rowId) : String(rowId ?? ''));
+    }
+    if (table !== 'ledger_amount_overrides' && table !== 'ledger_cleared_transactions') return null;
+    const key = parseLedgerKey(rowId);
+    if (!key) return null;
+    const snap = (entry.after && typeof entry.after === 'object' ? entry.after : null)
+        || (entry.before && typeof entry.before === 'object' ? entry.before : {});
+    const name = nonBlank(snap.transactionName) || nonBlank(ctx.sourceName && ctx.sourceName(key.type, key.sourceId));
+    const account = key.accountId && ctx.accountName ? nonBlank(ctx.accountName(key.accountId)) : null;
+    const date = ctx.formatDate ? nonBlank(ctx.formatDate(key.date)) : key.date;
+    const parts = [name, date, account].filter(Boolean);
+    return name ? parts.join(' · ') : null;
+}
+
+function isPrimitiveList(v) {
+    return Array.isArray(v) && v.every(x => x === null || ['string', 'number', 'boolean'].includes(typeof x));
+}
+
+// The list of { field, from, to } rows an update shows. A list of plain values
+// (paid months, hidden columns) also carries `added`/`removed` so the page can
+// say what changed instead of printing both whole lists.
 export function describeChanges(entry) {
     if (!entry || entry.op !== 'update') return [];
-    return changedFields(entry.before, entry.after).map(field => ({
-        field,
-        from: formatAuditValue(entry.before ? entry.before[field] : null),
-        to: formatAuditValue(entry.after ? entry.after[field] : null)
-    }));
+    return changedFields(entry.before, entry.after)
+        .filter(field => !HIDDEN_AUDIT_FIELDS.includes(field))
+        .map(field => {
+            const b = entry.before ? entry.before[field] : null;
+            const a = entry.after ? entry.after[field] : null;
+            const row = { field, from: formatAuditValue(b), to: formatAuditValue(a) };
+            if (isPrimitiveList(b ?? []) && isPrimitiveList(a ?? []) && (Array.isArray(b) || Array.isArray(a))) {
+                const bl = (b ?? []).map(String);
+                const al = (a ?? []).map(String);
+                row.added = al.filter(x => !bl.includes(x));
+                row.removed = bl.filter(x => !al.includes(x));
+            }
+            return row;
+        });
 }
 
 // Query string for GET /api/audit-log.

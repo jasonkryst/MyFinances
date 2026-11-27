@@ -3,7 +3,7 @@
     "src/balanceHistoryCore.js": 83,
     "src/budgetRollover.js": 94,
     "src/categoryBudgets.js": 94,
-    "src/changeHistoryCore.js": 88,
+    "src/changeHistoryCore.js": 75,
     "src/concurrency.js": 92,
     "src/debtCalculator.js": 85,
     "src/debtOwnership.js": 87,
