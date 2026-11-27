@@ -306,9 +306,10 @@ export function initCommandPalette(app) {
         // A record jump moves focus to the record's Edit button itself.
         close({ restoreFocus: !cmd.group });
         // A page or record jump leaves Settings behind (#731): close it first,
-        // without stepping history (the router replaces its entry with the page).
+        // without stepping history: the router replaces its entry with the page,
+        // or steps back over it when the page is the one under Settings (#734).
         // Invariant: every leavesSettings/record command calls switchPage
-        // synchronously; that is what clears the router's settingsPushed flag.
+        // synchronously; that is what drops ?settings from the address.
         if ((cmd.leavesSettings || cmd.group) && document.getElementById('settingsModal')?.classList.contains('flex-visible')) {
             app.closeSettings({ fromHistory: true });
         }

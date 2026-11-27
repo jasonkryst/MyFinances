@@ -306,3 +306,174 @@ def test_palette_page_choice_closes_settings(app_page):
     page.wait_for_selector("#ledgerSection.active", timeout=5000)
     _wait_path(page, "/ledger")
     expect(page.locator("#settingsModal")).to_be_hidden()
+
+
+# ── #734: entries carry an index; Back over a dialog undoes with history.go ──
+
+
+def _history_length(page):
+    return page.evaluate("() => history.length")
+
+
+def _open_shortcuts(page):
+    page.evaluate("() => { window.app.openKeyboardShortcuts(); }")
+    expect(page.locator("#keyboardShortcutsModal")).to_be_visible(timeout=5000)
+    page.wait_for_function("() => document.getElementById('keyboardShortcutsModal').contains(document.activeElement)",
+                           timeout=5000)
+
+
+def _open_settings(page):
+    page.click("#accountMenuBtn")
+    page.click("#accountMenuSettingsBtn")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
+
+
+def test_forward_over_dialog_leaves_no_extra_entry(app_page):
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    _nav(page, "accounts", "accountsSection")
+    page.go_back()
+    page.wait_for_selector("#ledgerSection.active", timeout=5000)
+    _wait_path(page, "/ledger")
+    page.click("#ledgerExportCsvBtn")
+    expect(page.locator("#ledgerExportModal")).to_be_visible(timeout=5000)
+    length = _history_length(page)
+
+    page.go_forward()
+    expect(page.locator("#ledgerExportModal")).to_be_hidden(timeout=5000)
+    _wait_path(page, "/ledger")
+    assert page.evaluate("() => document.getElementById('ledgerSection').classList.contains('active')")
+    assert _history_length(page) == length, "the undo must not push an entry"
+
+    # The Accounts entry is still ahead.
+    page.go_forward()
+    page.wait_for_selector("#accountsSection.active", timeout=5000)
+    _wait_path(page, "/accounts")
+
+
+def test_multi_step_back_over_dialog(app_page):
+    # Review Focus 1: Android's long-press Back menu jumps several entries.
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    _nav(page, "accounts", "accountsSection")
+    _nav(page, "income", "incomeSection")
+    _open_shortcuts(page)
+    length = _history_length(page)
+
+    page.evaluate("() => { history.go(-2); }")
+    expect(page.locator("#keyboardShortcutsModal")).to_be_hidden(timeout=5000)
+    _wait_path(page, "/income")
+    assert page.evaluate("() => document.getElementById('incomeSection').classList.contains('active')")
+    assert _history_length(page) == length
+
+    # Back from where it started, not from a pushed copy two entries back.
+    page.go_back()
+    page.wait_for_selector("#accountsSection.active", timeout=5000)
+    _wait_path(page, "/accounts")
+
+
+def test_reload_keeps_index_for_back_guard(app_page):
+    # Review Focus 2: history.state survives a reload, so the index is read back.
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    _nav(page, "accounts", "accountsSection")
+    index = page.evaluate("() => history.state && history.state.mf")
+    assert isinstance(index, int)
+    page.reload()
+    wait_for_app_ready(page)
+    page.wait_for_selector("#accountsSection.active", timeout=10000)
+    assert page.evaluate("() => history.state && history.state.mf") == index
+
+    _nav(page, "income", "incomeSection")
+    assert page.evaluate("() => history.state.mf") == index + 1
+    _open_shortcuts(page)
+    length = _history_length(page)
+    page.go_back()
+    expect(page.locator("#keyboardShortcutsModal")).to_be_hidden(timeout=5000)
+    _wait_path(page, "/income")
+    assert _history_length(page) == length
+    page.wait_for_function("(i) => history.state && history.state.mf === i", arg=index + 1, timeout=5000)
+    page.go_back()
+    page.wait_for_selector("#accountsSection.active", timeout=5000)
+    _wait_path(page, "/accounts")
+
+
+def test_settings_reached_by_forward_closes_by_back(app_page):
+    # Review Focus 4: the entry Settings pushed keeps its marker, so closing
+    # Settings reached by Forward steps back over it (no duplicate /ledger).
+    page = app_page
+    _nav(page, "accounts", "accountsSection")
+    _nav(page, "ledger", "ledgerSection")
+    _open_settings(page)
+    page.go_back()
+    expect(page.locator("#settingsModal")).to_be_hidden(timeout=5000)
+    _wait_path(page, "/ledger")
+    page.go_forward()
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
+    assert page.evaluate("() => history.state.settings") is True
+
+    page.click("#settingsModalCloseBtn")
+    expect(page.locator("#settingsModal")).to_be_hidden(timeout=5000)
+    _wait_path(page, "/ledger")
+    page.go_back()
+    page.wait_for_selector("#accountsSection.active", timeout=5000)
+    _wait_path(page, "/accounts")
+
+
+def test_bookmarked_settings_closes_in_place(app_page):
+    # Review Focus 4: a bookmarked ?settings entry has no marker; closing it
+    # replaces the address in place and never steps back out of the app.
+    page = app_page
+    page.goto(BASE + "ledger?settings=security", wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
+    page.wait_for_selector("#settingsPage-security", state="visible", timeout=10000)
+    assert page.evaluate("() => history.state && history.state.settings") is None
+    length = _history_length(page)
+    page.evaluate("""() => {
+        window.__backCalls = 0;
+        const orig = history.back.bind(history);
+        history.back = () => { window.__backCalls++; return orig(); };
+    }""")
+    page.keyboard.press("Escape")
+    expect(page.locator("#settingsModal")).to_be_hidden(timeout=5000)
+    _wait_path(page, "/ledger")
+    assert page.evaluate("() => window.__backCalls") == 0
+    assert _history_length(page) == length
+    assert page.evaluate("() => document.getElementById('ledgerSection').classList.contains('active')")
+
+
+def test_entry_without_index_falls_back(app_page):
+    # Review Focus 3: an entry whose state has no index (the login gate's
+    # replaceState) gets the old restore, and nothing throws.
+    page = app_page
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    _nav(page, "ledger", "ledgerSection")
+    page.evaluate("() => history.replaceState(null, '', location.href)")
+    _nav(page, "accounts", "accountsSection")
+    _open_shortcuts(page)
+    page.go_back()
+    expect(page.locator("#keyboardShortcutsModal")).to_be_hidden(timeout=5000)
+    _wait_path(page, "/accounts")
+    assert page.evaluate("() => document.getElementById('accountsSection').classList.contains('active')")
+    assert errors == []
+
+
+def test_palette_same_page_over_settings_leaves_no_duplicate(app_page):
+    page = app_page
+    _nav(page, "accounts", "accountsSection")
+    _nav(page, "ledger", "ledgerSection")
+    _open_settings(page)
+    length = _history_length(page)
+    page.keyboard.press("Control+k")
+    expect(page.locator("#commandPaletteOverlay")).to_be_visible(timeout=5000)
+    page.fill("#commandPaletteInput", "Ledger")
+    page.keyboard.press("Enter")
+    expect(page.locator("#settingsModal")).to_be_hidden(timeout=5000)
+    _wait_path(page, "/ledger")
+    assert page.evaluate("() => document.getElementById('ledgerSection').classList.contains('active')")
+    assert _history_length(page) == length
+    # The Settings entry was stepped back over, not turned into a second /ledger.
+    page.go_back()
+    page.wait_for_selector("#accountsSection.active", timeout=5000)
+    _wait_path(page, "/accounts")

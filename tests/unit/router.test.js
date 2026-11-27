@@ -49,7 +49,17 @@ test('unrelated query params are ignored and kept canonical', () => {
 
 const fs = require('fs');
 const path = require('path');
-const { recordView, currentSubTab, applyLocation, initRouter } = require('../../src/router.js');
+// The glue keeps module state (the entry index, an expected pop), so every
+// test gets a fresh copy of the module.
+let recordView, currentSubTab, applyLocation, initRouter, recordSettings, leaveSettings,
+    applySettingsFromLocation, closeInnermost, topOverlay, onPopState, EDIT_CANCELLERS, GATE_IDS;
+beforeEach(() => {
+    jest.resetModules();
+    ({
+        recordView, currentSubTab, applyLocation, initRouter, recordSettings, leaveSettings,
+        applySettingsFromLocation, closeInnermost, topOverlay, onPopState, EDIT_CANCELLERS, GATE_IDS
+    } = require('../../src/router.js'));
+});
 
 test('PAGE_SECTION_IDS in ui.js has exactly the ROUTE_PAGES keys', () => {
     const source = fs.readFileSync(path.resolve(__dirname, '../../src/ui.js'), 'utf8');
@@ -59,22 +69,42 @@ test('PAGE_SECTION_IDS in ui.js has exactly the ROUTE_PAGES keys', () => {
     expect(keys.sort()).toEqual([...ROUTE_PAGES].sort());
 });
 
-function fakeBrowser(pathname, search = '') {
+// A history stack. pushState/replaceState act at once; go/back only record
+// the call (the browser traverses later): a test completes a traversal, or
+// makes a user one, with env.traverse(delta) and then calls onPopState.
+function fakeBrowser(pathname, search = '', state = null) {
     const calls = [];
     const listeners = {};
     globalThis.location = { pathname, search };
-    const move = (url) => {
-        const u = new URL(url, 'http://x');
+    const entries = [{ url: pathname + search, state }];
+    let at = 0;
+    const show = () => {
+        const u = new URL(entries[at].url, 'http://x');
         globalThis.location.pathname = u.pathname;
         globalThis.location.search = u.search;
     };
+    const here = () => globalThis.location.pathname + globalThis.location.search;
     globalThis.history = {
-        pushState: (s, t, url) => { calls.push(['push', url]); move(url); },
-        replaceState: (s, t, url) => { calls.push(['replace', url]); move(url); }
+        get state() { return entries[at].state; },
+        get length() { return entries.length; },
+        pushState: (s, t, url) => {
+            calls.push(['push', url]);
+            entries.splice(at + 1, entries.length, { url: url ?? here(), state: s });
+            at += 1;
+            show();
+        },
+        replaceState: (s, t, url) => {
+            calls.push(['replace', url]);
+            entries[at] = { url: url ?? here(), state: s };
+            show();
+        },
+        go: (delta) => calls.push(['go', delta]),
+        back: () => calls.push(['back'])
     };
     globalThis.window = { addEventListener: (type, fn) => { (listeners[type] ||= []).push(fn); } };
     globalThis.document = { querySelector: () => null, querySelectorAll: () => [], getElementById: () => null };
-    return { calls, listeners };
+    const traverse = (delta) => { at += delta; show(); };
+    return { calls, listeners, entries, traverse, at: () => at };
 }
 
 function fakeApp(startPage) {
@@ -157,16 +187,14 @@ test('initRouter registers one popstate listener that applies the address', () =
     globalThis.location.pathname = '/ledger';
     listeners.popstate[0]();
     expect(app.switched).toEqual([['ledger', { subTab: null, resetToDefaults: true }]]);
-    expect(calls).toEqual([]);
+    // The only write: the first entry gets index 0 (#734).
+    expect(calls).toEqual([['replace', undefined]]);
 });
 
 // ── Task 5 glue: recordSettings / leaveSettings / applySettingsFromLocation ──
 
-const { recordSettings, leaveSettings, applySettingsFromLocation } = require('../../src/router.js');
-
-function settingsBrowser(pathname, search = '', modalOpen = false) {
-    const env = fakeBrowser(pathname, search);
-    globalThis.history.back = () => env.calls.push(['back']);
+function settingsBrowser(pathname, search = '', modalOpen = false, state = null) {
+    const env = fakeBrowser(pathname, search, state);
     const modal = { classList: { contains: (c) => c === 'hidden' && !env.modalOpen } };
     env.modalOpen = modalOpen;
     globalThis.document = { querySelector: () => null, getElementById: (id) => (id === 'settingsModal' ? modal : null) };
@@ -229,8 +257,6 @@ test('applySettingsFromLocation opens Settings without recording; popstate close
 });
 
 // ── Phase 2 Task 1 (#731): Back closes the innermost overlay or inline edit ──
-
-const { closeInnermost, topOverlay, onPopState, EDIT_CANCELLERS, GATE_IDS } = require('../../src/router.js');
 
 // Each module renders its inline edit's name input as <prefix><record id>.
 const EDIT_INPUTS = {
@@ -390,11 +416,185 @@ test('the pop from leaveSettings stepping back is not treated as a user Back', (
     globalThis.document.querySelectorAll = () => [];
     const input = fakeEl('ac-name-7');
     globalThis.document.getElementById = (id) => (id === 'ac-name-7' ? input : null);
-    globalThis.history.back = () => { env.calls.push(['back']); globalThis.location.search = ''; };
     app.editingAccountId = 7;
     recordSettings('', 'push');
     leaveSettings();
+    env.traverse(-1);
     onPopState(app);
     expect(env.calls).toEqual([['push', '/accounts?settings'], ['back']]);
     expect(app.editingAccountId).toBe(7);
+});
+
+// ── #734: every entry carries an index; Back over a dialog undoes with go() ──
+
+function openDialog() {
+    globalThis.KeyboardEvent = class { constructor(type, init) { Object.assign(this, { type }, init); } };
+    const dialog = fakeEl('ledgerExportModal');
+    globalThis.document.querySelectorAll = () => (dialog.hidden ? [] : [dialog]);
+    return dialog;
+}
+
+// Boots at '/' and visits the given pages: entries '/' (0), then 1, 2, ...
+function visited(...pages) {
+    const env = fakeBrowser('/');
+    const app = editApp('health');
+    initRouter(app);
+    applyLocation(app);
+    for (const page of pages) app.switchPage(page);
+    env.calls.length = 0;
+    app.switched.length = 0;
+    return { env, app };
+}
+
+afterEach(() => { delete globalThis.KeyboardEvent; });
+
+test('a push writes the next index and a replace keeps it', () => {
+    const { env, app } = visited();
+    expect(globalThis.history.state).toEqual({ mf: 0 });
+    recordView(app, { page: 'ledger' });
+    expect(globalThis.history.state).toEqual({ mf: 1 });
+    recordView(app, { page: 'strategy' }, 'replace');
+    expect(globalThis.history.state).toEqual({ mf: 1 });
+    expect(env.entries.map(e => e.url)).toEqual(['/', '/plan']);
+});
+
+test('initRouter adopts a stored index and assigns 0 to an entry without one', () => {
+    fakeBrowser('/ledger', '', { mf: 4 });
+    const app = editApp('ledger');
+    initRouter(app);
+    expect(globalThis.history.state).toEqual({ mf: 4 });
+    recordView(app, { page: 'accounts' });
+    expect(globalThis.history.state).toEqual({ mf: 5 });
+});
+
+test.each([[null], [{}], ['mf'], [7], [{ mf: 'x' }], [{ mf: -1 }]])('initRouter treats state %p as no index', (state) => {
+    const { calls } = fakeBrowser('/ledger', '', state);
+    initRouter(editApp('ledger'));
+    expect(calls).toEqual([['replace', undefined]]);
+    expect(globalThis.history.state).toEqual({ mf: 0 });
+});
+
+test('Back over an open dialog undoes with go(+1) and never pushes', () => {
+    const { env, app } = visited('ledger', 'accounts');
+    const dialog = openDialog();
+    env.traverse(-1);
+    onPopState(app);
+    expect(dialog.dispatched).toHaveLength(1);
+    expect(env.calls).toEqual([['go', 1]]);
+    expect(app.switched).toEqual([]);
+});
+
+test('Forward over an open dialog undoes with go(-1)', () => {
+    const { env, app } = visited('ledger', 'accounts');
+    env.traverse(-1);
+    onPopState(app);                                   // Back to /ledger, nothing open
+    expect(app.switched.map(s => s[0])).toEqual(['ledger']);
+    openDialog();
+    env.traverse(1);
+    onPopState(app);                                   // Forward over the dialog
+    expect(env.calls).toEqual([['go', -1]]);
+    expect(app.switched.map(s => s[0])).toEqual(['ledger']);
+});
+
+test('a pop two entries back over a dialog returns with one go(2)', () => {
+    const { env, app } = visited('ledger', 'accounts', 'income');
+    openDialog();
+    env.traverse(-2);
+    onPopState(app);
+    expect(env.calls).toEqual([['go', 2]]);
+});
+
+test('the pop the undo causes does not re-trigger the guard', () => {
+    const { env, app } = visited('ledger', 'accounts');
+    const dialog = openDialog();                       // stays shown in the fake
+    env.traverse(-1);
+    onPopState(app);
+    env.traverse(1);                                   // the go(1) lands
+    onPopState(app);
+    expect(dialog.dispatched).toHaveLength(1);
+    expect(env.calls).toEqual([['go', 1]]);
+    expect(app.switched).toEqual([]);
+    // The index on screen is still 2: the next page gets 3.
+    dialog.hidden = true;
+    app.switchPage('income');
+    expect(globalThis.history.state).toEqual({ mf: 3 });
+});
+
+test('a user pop to another index while an undo is pending is not taken for it', () => {
+    const { env, app } = visited('ledger', 'accounts');
+    const dialog = openDialog();
+    env.traverse(-1);
+    onPopState(app);                                   // undo pending: expects index 2
+    dialog.hidden = true;
+    env.traverse(-1);                                  // a second user Back lands on 0
+    onPopState(app);
+    expect(app.switched.map(s => s[0])).toEqual(['health']);
+});
+
+test('an entry without an index falls back to pushing the address back', () => {
+    const { env, app } = visited('ledger', 'accounts');
+    env.entries[1].state = null;                       // e.g. the login gate's replaceState
+    openDialog();
+    env.traverse(-1);
+    onPopState(app);
+    expect(env.calls).toEqual([['push', '/accounts']]);
+    expect(app.switched).toEqual([]);
+});
+
+test('leaveSettings steps back only when the entry carries the Settings marker', () => {
+    const marked = settingsBrowser('/ledger', '?settings=security', true, { mf: 3, settings: true });
+    leaveSettings();
+    expect(marked.calls).toEqual([['back']]);
+    const unmarked = settingsBrowser('/ledger', '?settings=security', true, { mf: 3 });
+    leaveSettings();
+    expect(unmarked.calls).toEqual([['replace', '/ledger']]);
+    expect(globalThis.history.state).toEqual({ mf: 3 });
+});
+
+test('Settings marks its pushed entry and keeps the mark on replace', () => {
+    const env = settingsBrowser('/ledger', '', false, { mf: 2 });
+    initRouter(settingsApp(env, 'ledger'));
+    recordSettings('', 'push');
+    expect(globalThis.history.state).toEqual({ mf: 3, settings: true });
+    recordSettings('security', 'replace');
+    expect(globalThis.history.state).toEqual({ mf: 3, settings: true });
+});
+
+test('the step back from leaveSettings applies the address and syncs the index', () => {
+    const env = settingsBrowser('/ledger', '', false, { mf: 2 });
+    const app = settingsApp(env, 'ledger');
+    initRouter(app);
+    applySettingsFromLocation(app);
+    app.openSettings({ page: 'security' });
+    env.modalOpen = false;                             // closed by its button
+    leaveSettings();
+    env.traverse(-1);
+    onPopState(app);
+    expect(env.calls.map(c => c[0])).toEqual(['push', 'back']);
+    app.switchPage('accounts');
+    expect(globalThis.history.state).toEqual({ mf: 3 });
+});
+
+test('the palette choosing the page under Settings steps back; another page replaces', () => {
+    const same = settingsBrowser('/ledger', '', false, { mf: 2 });
+    initRouter(settingsApp(same, 'ledger'));
+    recordSettings('', 'push');
+    recordView(fakeApp('ledger'), { page: 'ledger' });
+    expect(same.calls).toEqual([['push', '/ledger?settings'], ['back']]);
+
+    jest.resetModules();
+    ({ recordView, recordSettings, initRouter } = require('../../src/router.js'));
+    const other = settingsBrowser('/ledger', '', false, { mf: 2 });
+    initRouter(settingsApp(other, 'ledger'));
+    recordSettings('', 'push');
+    recordView(fakeApp('ledger'), { page: 'accounts' });
+    expect(other.calls).toEqual([['push', '/ledger?settings'], ['replace', '/accounts']]);
+    expect(globalThis.history.state).toEqual({ mf: 3 });
+});
+
+test('the palette choosing the page under a bookmarked Settings drops it in place', () => {
+    const env = settingsBrowser('/ledger', '?settings=security', false, { mf: 0 });
+    initRouter(settingsApp(env, 'ledger'));
+    recordView(fakeApp('ledger'), { page: 'ledger' });
+    expect(env.calls).toEqual([['replace', '/ledger']]);
 });

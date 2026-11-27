@@ -85,23 +85,79 @@ export function parseLocation(pathname, search) {
 
 let applying = false;
 let listening = false;
-// True while the open Settings has an entry of its own that this session
-// pushed, so closing it can step back over that entry. False when Settings
-// came from the address (refresh, bookmark, Back/Forward): stepping back then
-// could leave the app (Review Focus 3).
-let settingsPushed = false;
 // The settings half of applyLocation waits for the (lazy) Settings modal,
 // initialised in _finishBoot; applySettingsFromLocation turns it on.
 let settingsReady = false;
 // Path + search of the view on screen, kept after every write or apply, so a
 // Back that only closes an overlay can put the address back (#731).
 let lastPath = null;
-// The address leaveSettings' history.back() lands on: that pop is ours, not
-// a user Back, so it must not close a dialog or cancel an edit.
-let expectedPop = null;
+// #734: every entry the router writes carries history.state.mf, its position
+// in the app's own history (a push is current + 1, a replace keeps it), and
+// survives a reload with the entry. currentIndex is the mf of the entry on
+// screen, null when unknown (an entry written by other code, such as the
+// login gate's replaceState): then the Back guard falls back to pushing the
+// address back. The entry Settings' opening pushed also carries
+// `settings: true`, so closing Settings knows it can step back over it.
+let currentIndex = null;
+// A traversal the router started itself (history.go/back): { index, path,
+// undo }. Its popstate is recognised by the index it lands on (by the address
+// when indexes are unknown), so a user Back arriving meanwhile is not taken
+// for it. `undo` marks the return over a dialog: the view did not change.
+let expected = null;
 
 function syncLastPath() {
     lastPath = location.pathname + location.search;
+}
+
+// The index stored in a history state, or null for anything else.
+function indexOf(state) {
+    const mf = state && typeof state === 'object' ? state.mf : undefined;
+    return Number.isInteger(mf) && mf >= 0 ? mf : null;
+}
+
+function hasSettingsMarker() {
+    const state = history.state;
+    return Boolean(state && typeof state === 'object' && state.settings === true);
+}
+
+function entryState(index, settings) {
+    if (index === null && !settings) return null;
+    const state = {};
+    if (index !== null) state.mf = index;
+    if (settings) state.settings = true;
+    return state;
+}
+
+function pushEntry(path, settings = false) {
+    const index = currentIndex === null ? null : currentIndex + 1;
+    history.pushState(entryState(index, settings), '', path);
+    currentIndex = index;
+}
+
+// Keeps the entry's index, and its Settings marker while the address still
+// carries ?settings (a page taking over the Settings entry drops it).
+function replaceEntry(path) {
+    const stored = indexOf(history.state);
+    const index = stored !== null ? stored : currentIndex;
+    const url = new URL(path, 'http://x');
+    const settings = hasSettingsMarker() && parseLocation(url.pathname, url.search).settings !== null;
+    history.replaceState(entryState(index, settings), '', path);
+    currentIndex = index;
+}
+
+// Step back over the Settings entry on screen (it carries the marker, so
+// this session pushed it from the same path without ?settings).
+function stepBackOverSettings() {
+    const path = location.pathname;
+    expected = { index: currentIndex === null ? null : currentIndex - 1, path, undo: false };
+    lastPath = path;
+    history.back();
+}
+
+function isExpectedPop(newIndex) {
+    if (!expected) return false;
+    if (expected.index !== null && newIndex !== null) return newIndex === expected.index;
+    return location.pathname + location.search === expected.path;
 }
 
 // Sub-tab `page` is showing now (or `requested`). switchPage records after
@@ -124,18 +180,28 @@ export function recordView(app, view, mode = 'push') {
     if (applying) return;
     const path = buildPath({ page: view.page, subTab: view.subTab || null });
     if (path === location.pathname + location.search) return;
-    // The new address carries no ?settings, so there is no pushed Settings
-    // entry for closing to step back over. Leaving a ?settings address for a
-    // page (the palette does) takes over that entry instead of stacking on it:
-    // a pushed one is replaced, an in-place one is dropped first.
+    // Leaving a ?settings address for a page (the palette does) never stacks
+    // on the Settings entry. Its own entry (marked) is stepped back over for
+    // the page under it and taken over for another page; a bookmarked one is
+    // dropped in place first.
     const leavingSettings = parseLocation(location.pathname, location.search).settings !== null;
     if (leavingSettings && mode === 'push') {
-        if (settingsPushed) mode = 'replace';
-        else history.replaceState(null, '', location.pathname);
+        if (hasSettingsMarker()) {
+            if (path === location.pathname) {
+                stepBackOverSettings();
+                return;
+            }
+            mode = 'replace';
+        } else {
+            replaceEntry(location.pathname);
+            if (path === location.pathname + location.search) {
+                syncLastPath();
+                return;
+            }
+        }
     }
-    settingsPushed = false;
-    if (mode === 'replace') history.replaceState(null, '', path);
-    else history.pushState(null, '', path);
+    if (mode === 'replace') replaceEntry(path);
+    else pushEntry(path);
     syncLastPath();
 }
 
@@ -145,30 +211,25 @@ export function recordSettings(settingsPage, mode = 'replace') {
     if (applying) return;
     const path = location.pathname + (settingsPage ? '?settings=' + settingsPage : '?settings');
     if (mode === 'push') {
-        history.pushState(null, '', path);
-        settingsPushed = true;
+        pushEntry(path, true);
         syncLastPath();
         return;
     }
-    if (path !== location.pathname + location.search) history.replaceState(null, '', path);
+    if (path !== location.pathname + location.search) replaceEntry(path);
     syncLastPath();
 }
 
 // Settings closed by its button or Escape: step back over the entry opening
-// pushed, else drop ?settings in place (never back out of the app).
+// pushed (marked, also when reached again by Forward or a reload), else drop
+// ?settings in place (a bookmark: never back out of the app).
 export function leaveSettings() {
     if (applying) return;
-    const carriesSettings = parseLocation(location.pathname, location.search).settings !== null;
-    const pushed = settingsPushed;
-    settingsPushed = false;
-    if (!carriesSettings) return;
-    if (pushed) {
+    if (parseLocation(location.pathname, location.search).settings === null) return;
+    if (hasSettingsMarker()) {
         // Lands on the entry before ?settings (recordView never writes a search).
-        expectedPop = location.pathname;
-        lastPath = expectedPop;
-        history.back();
+        stepBackOverSettings();
     } else {
-        history.replaceState(null, '', location.pathname);
+        replaceEntry(location.pathname);
         syncLastPath();
     }
 }
@@ -184,7 +245,6 @@ function applySettings(app, settings) {
     if (settings !== null && !open) {
         app.openSettings({ page: settings || undefined });
     } else if (settings === null && open) {
-        settingsPushed = false;
         app.closeSettings({ fromHistory: true });
     }
 }
@@ -218,7 +278,7 @@ export function applyLocation(app) {
         applying = false;
     }
     if (!parsed.canonical) {
-        history.replaceState(null, '', buildPath(parsed));
+        replaceEntry(buildPath(parsed));
     }
     syncLastPath();
 }
@@ -318,17 +378,42 @@ export function closeInnermost(app) {
 }
 
 export function onPopState(app) {
-    const ours = expectedPop !== null && location.pathname + location.search === expectedPop;
-    expectedPop = null;
-    if (!ours && lastPath !== null && closeInnermost(app)) {
-        history.pushState(null, '', lastPath);
+    const newIndex = indexOf(history.state);
+    if (isExpectedPop(newIndex)) {
+        const { undo } = expected;
+        expected = null;
+        currentIndex = newIndex;
+        // An undo returned to the view on screen; a Settings step-back applies.
+        if (!undo) applyLocation(app);
         return;
     }
+    if (lastPath !== null && closeInnermost(app)) {
+        if (currentIndex !== null && newIndex !== null) {
+            // Undo the pop (Back, Forward or several entries) in one step:
+            // no entry is added or dropped, so Forward history survives.
+            if (newIndex !== currentIndex) {
+                expected = { index: currentIndex, path: lastPath, undo: true };
+                history.go(currentIndex - newIndex);
+            }
+            return;
+        }
+        // Unknown index: put the address back by pushing it (pre-#734).
+        history.pushState(null, '', lastPath);
+        currentIndex = null;
+        return;
+    }
+    currentIndex = newIndex;
     applyLocation(app);
 }
 
 export function initRouter(app) {
     if (listening) return;
     listening = true;
+    // A reload keeps history.state with the entry, so a stored index stands.
+    currentIndex = indexOf(history.state);
+    if (currentIndex === null) {
+        currentIndex = 0;
+        history.replaceState({ mf: 0 }, '');
+    }
     window.addEventListener('popstate', () => onPopState(app));
 }
