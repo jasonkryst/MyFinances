@@ -4,6 +4,13 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.8.3] — 2026-11-26
+
+### Fixed
+- **The Retirement page no longer scrolls sideways on phones (#732).** A visually hidden label inside a scrolling table had no positioned ancestor, so it sat at the table's far right edge and widened the whole page by 18 px at 360 px. Table wrappers now contain it (this fixes the same leak in every table).
+- **Income, People and Spending fit at 320 px and at large text sizes.** Edit and Delete buttons wrap beneath the details instead of spilling out of the card, the Income Trend controls and Spending pie shrink to the page, and the debts layout, calendar and ranked list no longer grow past it at 150–200% text (Android's largest font setting).
+- **Checkboxes are 24 px** (inside their 44 px tap areas), so they also pass a strict size check.
+
 ## [8.8.2] — 2026-11-26
 
 ### Fixed

@@ -5642,7 +5642,7 @@ body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
 
 .rpt-cal-day-labels {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     text-align: center;
     font-size: 0.72rem;
     font-weight: 700;
@@ -5653,7 +5653,7 @@ body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
 }
 .rpt-cal-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 3px;
 }
 .rpt-cal-cell {
@@ -7767,7 +7767,7 @@ body.dark-mode .spending-badge--down { background: #052e16; color: #86efac; }
 
 .spending-hero-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 24px;
     margin-bottom: 28px;
     align-items: start;
@@ -7777,7 +7777,7 @@ body.dark-mode .spending-badge--down { background: #052e16; color: #86efac; }
 .spending-ranked-list { display: flex; flex-direction: column; gap: 6px; }
 .spending-ranked-row {
     display: grid;
-    grid-template-columns: 28px 1fr auto auto 20px;
+    grid-template-columns: 28px minmax(0, 1fr) auto auto 20px;
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
@@ -7894,7 +7894,7 @@ body.dark-mode .rpt-tab-group:has(.rpt-tab-btn--active) .rpt-tab-group-label {
 }
 
 @media (max-width: 640px) {
-    .spending-hero-row    { grid-template-columns: 1fr; }
+    .spending-hero-row    { grid-template-columns: minmax(0, 1fr); }
     .spending-pie-wrap    { height: 220px; }
 }
 
@@ -10530,7 +10530,7 @@ body.dark-mode #phoneMoreSheet .page-button[aria-current="page"] {
     .retire-limit-toggle { min-height: 44px; }
     .income-trend-yoy-toggle input[type="checkbox"],
     .retire-limit-toggle input[type="checkbox"],
-    .debt-select-label input[type="checkbox"] { width: 22px; height: 22px; }
+    .debt-select-label input[type="checkbox"] { width: 24px; height: 24px; }
     .debt-select-label {
         top: 0;
         right: 0;
@@ -10597,4 +10597,32 @@ body.dark-mode #phoneMoreSheet .page-button[aria-current="page"] {
 }
 @media (max-width: 380px) {
     header h1 .logo-icon { display: none; }
+}
+
+/* ── Phone audit, second pass (#732) ──────────────────────────────────── */
+
+/* A visually hidden span (.sr-only is position: absolute) inside a scrolling table has no positioned
+   ancestor to clip it, so it landed at the table's far right edge and widened the whole page: the
+   Retirement page scrolled sideways at 360px. Make the wrapper the containing block. */
+.table-wrapper { position: relative; }
+
+/* A debts layout whose single 1fr track grew to its widest unbreakable content at large text sizes. */
+@media (max-width: 900px) {
+    .debts-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Spending's pie canvas keeps the browser default 300px until it draws, wider than a 320px phone. */
+.spending-pie-wrap { min-width: 0; }
+.spending-pie-wrap canvas { max-width: 100%; }
+
+/* Income, bonus and person cards put their Edit / Delete buttons on the same row as the details,
+   which pushed them past the card at 320px or large text; let the buttons wrap beneath instead. */
+@media (max-width: 480px) {
+    .income-card, .bonus-card { flex-wrap: wrap; }
+    .income-card-info, .bonus-card-info { flex: 1 1 10rem; min-width: 0; }
+    /* The Income Trend controls: a nowrap label around a 229px select, and a nowrap toggle. */
+    .income-trend-controls { min-width: 0; max-width: 100%; }
+    .income-trend-controls .filter-label { display: flex; align-items: center; gap: 6px; max-width: 100%; }
+    .income-trend-controls select { flex: 1 1 auto; min-width: 0; max-width: 100%; }
+    .income-trend-yoy-toggle { white-space: normal; }
 }
