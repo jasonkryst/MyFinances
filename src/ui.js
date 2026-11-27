@@ -1101,12 +1101,17 @@ export function switchPage(app, pageName, { subTab = null, resetToDefaults = tru
     }
 
     app._currentPage = pageName;
-    renderPageData(app, pageName, { subTab, resetToDefaults });
-    // #730: the address follows the page (a no-op when it is already there
-    // or while Back/Forward or boot is applying an address).
-    recordView(app, { page: pageName, subTab: currentSubTab(app, pageName, subTab) });
-    // #731: the page swap may have removed a focused field without focusout.
-    updatePhoneTabBarHidden(document.activeElement);
+    try {
+        renderPageData(app, pageName, { subTab, resetToDefaults });
+    } finally {
+        // #730: the address follows the page (a no-op when it is already there
+        // or while Back/Forward or boot is applying an address). #734: also
+        // when the render throws, so the address matches the section shown;
+        // the error still propagates.
+        recordView(app, { page: pageName, subTab: currentSubTab(app, pageName, subTab) });
+        // #731: the page swap may have removed a focused field without focusout.
+        updatePhoneTabBarHidden(document.activeElement);
+    }
 }
 
 /**

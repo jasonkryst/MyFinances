@@ -531,3 +531,67 @@ def test_back_between_liabilities_tabs_keeps_expense_month(app_page):
     assert _path(page) == "/liabilities/expenses"
     assert page.evaluate("() => app._expenseMonthOffset") == -1
     assert page.text_content(label) == moved
+
+
+# ── #734 Task 2: router hardening ───────────────────────────────────────────
+
+WIDE = {"width": 1280, "height": 900}
+
+
+def test_render_error_still_records_address(app_page):
+    # Review Focus 5: a page whose render throws still gets its address, and
+    # the error still reaches the caller.
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    thrown = page.evaluate("""() => {
+        const orig = app.renderPeopleList;
+        app.renderPeopleList = function () {
+            app.renderPeopleList = orig;
+            throw new Error('render boom');
+        };
+        try { app.switchPage('people'); return null; } catch (e) { return e.message; }
+    }""")
+    assert thrown == "render boom", "the render error must propagate"
+    assert _active(page, "peopleSection")
+    assert _path(page) == "/people"
+    page.go_back()
+    page.wait_for_selector("#ledgerSection.active", timeout=5000)
+    assert _path(page) == "/ledger"
+
+
+def test_bare_settings_on_wide_screen_is_canonicalised(app_page):
+    page = app_page
+    page.set_viewport_size(WIDE)
+    _goto(page, "?settings")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=10000)
+    shown = _shown_settings_page(page)
+    assert shown
+    _wait_path(page, f"/?settings={shown}")
+
+    # A name that is no Settings page shows the default page, and says so.
+    _goto(page, "ledger?settings=nope")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=10000)
+    shown = _shown_settings_page(page)
+    assert shown and shown != "nope"
+    _wait_path(page, f"/ledger?settings={shown}")
+
+
+def test_resize_narrow_to_wide_updates_settings_address(app_page):
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    page.set_viewport_size(NARROW)
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
+    assert _path(page) == "/ledger?settings"
+    before = _history_length(page)
+    page.set_viewport_size(WIDE)
+    page.wait_for_function("() => location.search.startsWith('?settings=')", timeout=5000)
+    shown = _shown_settings_page(page)
+    assert _path(page) == f"/ledger?settings={shown}"
+    # Back on a narrow screen the list shows again, and so does the address.
+    page.set_viewport_size(NARROW)
+    _wait_path(page, "/ledger?settings")
+    assert _history_length(page) == before, "a width change replaces the address"
+    page.go_back()
+    _wait_settings_closed(page)
+    _wait_path(page, "/ledger")

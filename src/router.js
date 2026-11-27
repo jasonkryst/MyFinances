@@ -23,13 +23,22 @@ const PAGE_BY_SEGMENT = Object.fromEntries(Object.entries(SEGMENT_BY_PAGE).map((
 
 const SETTINGS_NAME = /^[a-z]+$/;
 
+// An unknown sub-tab is dropped; a Settings name that is not a plain word
+// falls back to the bare ?settings (the router does not know the pages).
 export function buildPath(view) {
     const page = ROUTE_PAGES.includes(view.page) ? view.page : 'health';
     let path = '/' + SEGMENT_BY_PAGE[page];
-    if (view.subTab && ROUTE_SUB_TABS[page]) path += '/' + view.subTab;
-    if (view.settings === '') path += '?settings';
+    const tabs = ROUTE_SUB_TABS[page];
+    if (view.subTab && tabs && tabs.includes(view.subTab)) path += '/' + view.subTab;
+    if (view.settings === '' || (view.settings && !SETTINGS_NAME.test(view.settings))) path += '?settings';
     else if (view.settings) path += '?settings=' + view.settings;
     return path;
+}
+
+// True when the search holds a bare `settings` pair (no `=`): the canonical
+// narrow-list address, as opposed to an empty `settings=`.
+function hasBareSettings(search) {
+    return String(search || '').replace(/^\?/, '').split('&').includes('settings');
 }
 
 export function parseLocation(pathname, search) {
@@ -72,7 +81,7 @@ export function parseLocation(pathname, search) {
             settings = raw;
         } else {
             settings = '';
-            if (raw !== '' || String(search).includes('settings=')) canonical = false;
+            if (raw !== '' || !hasBareSettings(search)) canonical = false;
         }
     }
 
@@ -106,6 +115,10 @@ let bootIndex = null;
 // when indexes are unknown), so a user Back arriving meanwhile is not taken
 // for it. `undo` marks the return over a dialog: the view did not change.
 let expected = null;
+// The last Settings page recorded while an address was being applied (null:
+// none). Recording then is suppressed; once applied, flushPendingSettings
+// makes the address name the page Settings actually shows.
+let pendingSettings = null;
 
 function syncLastPath() {
     lastPath = location.pathname + location.search;
@@ -229,7 +242,10 @@ export function recordView(app, view, mode = 'push') {
 // Settings in the address: keeps the path and sets ?settings=<page> (bare
 // ?settings for the narrow list). Opening pushes; moving inside replaces.
 export function recordSettings(settingsPage, mode = 'replace') {
-    if (applying) return;
+    if (applying) {
+        pendingSettings = settingsPage;
+        return;
+    }
     const path = location.pathname + (settingsPage ? '?settings=' + settingsPage : '?settings');
     if (mode === 'push') {
         pushEntry(path, true);
@@ -256,9 +272,21 @@ export function leaveSettings() {
     }
 }
 
-function isSettingsOpen() {
+export function isSettingsOpen() {
     const modal = document.getElementById('settingsModal');
     return Boolean(modal && !modal.classList.contains('hidden'));
+}
+
+// Settings opened by an applied address (a bare ?settings on a wide screen,
+// an unknown page name) shows a page the address does not name: once the
+// address is applied, rewrite it in place to the page shown. A replace keeps
+// the entry's index and Settings marker.
+function flushPendingSettings() {
+    const settingsPage = pendingSettings;
+    pendingSettings = null;
+    if (settingsPage === null || !isSettingsOpen()) return;
+    if (parseLocation(location.pathname, location.search).settings === null) return;
+    recordSettings(settingsPage, 'replace');
 }
 
 // The settings half of applyLocation: open or close Settings to match the address.
@@ -277,11 +305,13 @@ export function applySettingsFromLocation(app) {
     settingsReady = true;
     const { settings } = parseLocation(location.pathname, location.search);
     applying = true;
+    pendingSettings = null;
     try {
         applySettings(app, settings);
     } finally {
         applying = false;
     }
+    flushPendingSettings();
 }
 
 // Show the view the address names (boot and popstate). Never pushes; a
@@ -292,6 +322,7 @@ export function applyLocation(app) {
     const differs = parsed.page !== current
         || (parsed.subTab !== null && parsed.subTab !== currentSubTab(app, current));
     applying = true;
+    pendingSettings = null;
     try {
         // Only the sub-tab changed: keep the page's view state, as a tab click does.
         if (differs) app.switchPage(parsed.page, { subTab: parsed.subTab, resetToDefaults: parsed.page !== current });
@@ -302,6 +333,7 @@ export function applyLocation(app) {
     if (!parsed.canonical) {
         replaceEntry(buildPath(parsed));
     }
+    flushPendingSettings();
     syncLastPath();
 }
 

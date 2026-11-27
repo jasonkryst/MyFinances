@@ -36,6 +36,20 @@ test('settings query', () => {
     expect(parseLocation('/', '?settings')).toMatchObject({ settings: '', canonical: true });
     expect(parseLocation('/', '?settings=Bad!')).toMatchObject({ settings: '', canonical: false });
 });
+test('buildPath drops an unknown sub-tab and an invalid Settings name (#734)', () => {
+    expect(buildPath({ page: 'liabilities', subTab: 'bogus' })).toBe('/liabilities');
+    expect(buildPath({ page: 'ledger', subTab: 'debts' })).toBe('/ledger');
+    expect(buildPath({ page: 'reports', subTab: 'spending' })).toBe('/reports/spending');
+    expect(buildPath({ page: 'health', settings: 'Bad!' })).toBe('/?settings');
+    expect(buildPath({ page: 'health', settings: 'a&b=c' })).toBe('/?settings');
+});
+test('parseLocation reads settings as a parameter, not a substring (#734)', () => {
+    expect(parseLocation('/', '?foo=a_settings=1&settings')).toMatchObject({ settings: '', canonical: true });
+    expect(parseLocation('/', '?foo=settings')).toMatchObject({ settings: null, canonical: true });
+    expect(parseLocation('/', '?settings=')).toMatchObject({ settings: '', canonical: false });
+    expect(parseLocation('/', '?a=1&settings=&b=2')).toMatchObject({ settings: '', canonical: false });
+    expect(parseLocation('/', '?a=1&settings&b=2')).toMatchObject({ settings: '', canonical: true });
+});
 test('legacy ?page= maps to the path address', () => {
     expect(parseLocation('/', '?page=strategy')).toEqual({ page: 'strategy', subTab: null, settings: null, canonical: false });
     expect(parseLocation('/', '?page=reports')).toMatchObject({ page: 'reports', subTab: 'calendar', canonical: false });
@@ -650,5 +664,86 @@ test('the palette choosing the page under a bookmarked Settings drops it in plac
     const env = settingsBrowser('/ledger', '?settings=security', false, { mf: 0 });
     initRouter(settingsApp(env, 'ledger'));
     recordView(fakeApp('ledger'), { page: 'ledger' });
+    expect(env.calls).toEqual([['replace', '/ledger']]);
+});
+
+// ── #734 Task 2: router hardening ────────────────────────────────────────────
+
+test('isSettingsOpen is the #settingsModal not-hidden check', () => {
+    const env = settingsBrowser('/ledger');
+    const { isSettingsOpen } = require('../../src/router.js');
+    expect(isSettingsOpen()).toBe(false);
+    env.modalOpen = true;
+    expect(isSettingsOpen()).toBe(true);
+    globalThis.document.getElementById = () => null;
+    expect(isSettingsOpen()).toBe(false);
+});
+
+// Settings as the app opens it: the open records its address, then the page
+// shown (the default one on a wide screen) records itself with a replace.
+function wideSettingsApp(env, page, shown = 'appearance') {
+    const app = settingsApp(env, page);
+    app.openSettings = (opts) => {
+        app.settingsCalls.push(['open', opts]);
+        env.modalOpen = true;
+        recordSettings(opts.page || '', 'push');
+        recordSettings(shown, 'replace');
+    };
+    return app;
+}
+
+test('a bare ?settings opened from the address names the page shown, in place', () => {
+    const env = settingsBrowser('/', '?settings', false, { mf: 4, settings: true });
+    const app = wideSettingsApp(env, 'health');
+    initRouter(app);
+    applySettingsFromLocation(app);
+    expect(env.calls).toEqual([['replace', '/?settings=appearance']]);
+    expect(globalThis.history.state).toEqual({ mf: 4, settings: true });
+});
+
+test('an unknown Settings page from the address is rewritten to the page shown', () => {
+    const env = settingsBrowser('/ledger', '?settings=nope', false, { mf: 1 });
+    const app = wideSettingsApp(env, 'ledger');
+    initRouter(app);
+    applySettingsFromLocation(app);
+    expect(env.calls).toEqual([['replace', '/ledger?settings=appearance']]);
+    expect(globalThis.history.state).toEqual({ mf: 1 });
+});
+
+test('Settings opened by popstate canonicalises after the address is applied', () => {
+    const env = settingsBrowser('/ledger', '', false, { mf: 0 });
+    const app = wideSettingsApp(env, 'ledger', 'security');
+    initRouter(app);
+    applySettingsFromLocation(app);
+    globalThis.location.search = '?settings';
+    onPopState(app);
+    expect(app.settingsCalls.map(c => c[0])).toEqual(['open']);
+    expect(env.calls).toEqual([['replace', '/ledger?settings=security']]);
+});
+
+test('an address that already names the page shown is not rewritten', () => {
+    const env = settingsBrowser('/ledger', '?settings=security', false, { mf: 0 });
+    const app = wideSettingsApp(env, 'ledger', 'security');
+    initRouter(app);
+    applySettingsFromLocation(app);
+    expect(env.calls).toEqual([]);
+});
+
+test('a narrow list opened from a bare ?settings keeps it', () => {
+    const env = settingsBrowser('/ledger', '?settings', false, { mf: 0 });
+    const app = wideSettingsApp(env, 'ledger', '');
+    initRouter(app);
+    applySettingsFromLocation(app);
+    expect(env.calls).toEqual([]);
+});
+
+test('a page record made while an address is applied is not replayed later', () => {
+    const env = settingsBrowser('/ledger', '?settings', false, { mf: 0 });
+    const app = wideSettingsApp(env, 'ledger');
+    app.openSettings = () => { env.modalOpen = true; recordSettings('security', 'replace'); env.modalOpen = false; };
+    initRouter(app);
+    applySettingsFromLocation(app);
+    expect(env.calls).toEqual([]);
+    recordView(app, { page: 'ledger' }, 'replace');
     expect(env.calls).toEqual([['replace', '/ledger']]);
 });
