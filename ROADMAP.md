@@ -20,8 +20,7 @@ Translating the app into Spanish and Polish is the main open effort. The Health 
 
 - **Bank import**, in this order:
   1. #690 Store posted transactions as Ledger rows and keep future occurrences projected. This is the foundation.
-  2. #260 Bank CSV/OFX import with auto-clear.
-  3. #269 The full bank CSV import pipeline (umbrella issue).
+  2. #269 The full bank CSV/OFX import pipeline with auto-clear (umbrella issue; #260 was folded into it).
 - #682 Optional TOTP two-factor authentication with recovery codes.
 - #362 A savable dashboard layout.
 
@@ -57,13 +56,14 @@ Translating the app into Spanish and Polish is the main open effort. The Health 
 
 ## From the 2026-11-27 audit
 
-Full report set: [docs/audit/AUDIT_SUMMARY_2026-11-27.md](docs/audit/AUDIT_SUMMARY_2026-11-27.md). These are proposals; each gets a GitHub issue (and a priority label) once the owner approves it.
+Full report set: [docs/audit/AUDIT_SUMMARY_2026-11-27.md](docs/audit/AUDIT_SUMMARY_2026-11-27.md). Filed as issues:
 
-- **Server shuts down gracefully on `SIGTERM`** (Medium): today `docker stop` waits 10 s and kills the process.
-- **Prune `password_reset_tokens` and `known_devices`** in the hourly job.
-- **Dim archived and paused cards without `opacity`** (accessibility contrast).
-- **Route the 19 direct `toLocale*String` calls through the `utils.js` formatters.**
-- **Revalidate fewer assets per load** (service-worker strategy, brotli).
+- #752 Server shuts down gracefully on `SIGTERM` (p2).
+- #754 Dim archived and paused cards without `opacity` (p2, accessibility contrast).
+- #753 Prune `password_reset_tokens` and `known_devices` in the hourly job.
+- #755 Route the 19 direct `toLocale*String` calls through the `utils.js` formatters.
+- #756 Revalidate fewer assets per load.
+- #757 to #760 Container hardening, CSP without Google hosts unless GA is on, login throttling, SHA-pinned Actions (security, Low severity, labelled p0).
 
 ## Recently shipped (8.x)
 

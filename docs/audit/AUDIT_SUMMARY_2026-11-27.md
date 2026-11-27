@@ -22,7 +22,9 @@
 - Dependabot open alerts: 0. Code-scanning open alerts: 0. (Down from 2 Dependabot alerts on 2026-11-04.)
 - Outdated server dependencies (patch/minor only): `argon2` 0.45.1 to 0.45.2, `express-rate-limit` 8.7.1 to 8.7.5, `nodemailer` 10.1.0 to 10.6.1. Dependabot covers all of them.
 
-## Findings to file as issues
+## Findings filed as issues
+
+Filed 2026-11-27: OTH-01 #752, DB-01 #753, A11Y-01 #754, I18N-01 #755, PERF-01 #756, SEC-01 to SEC-04 #757 to #760 (security items labelled p0 at the owner's request, although Low severity). Owner decisions: #640/#642 stay; #260 folded into #269.
 
 Severity is the audit's view; the priority label follows the repo scheme (p1 to p3). **Security findings are held back until the owner approves publishing them** (the repository is public).
 
