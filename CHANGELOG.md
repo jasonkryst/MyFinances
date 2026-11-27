@@ -4,6 +4,20 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.8.4] — 2026-11-26
+
+### Fixed
+- **Back and Forward over a dialog no longer leave or drop history entries (#734).** Every history entry now carries an index, so Back or Forward landing over an open dialog or inline edit is undone with a single `history.go` instead of pushing the address again; the entries ahead of you survive and a multi-step Back (Android's long-press Back menu) returns to where you started.
+- **Back closes the account menu and the notifications panel.** Both count as overlays: Escape closes them too and returns focus to the button that opened them.
+- **The More sheet yields to a dialog above it.** One Escape (or Back) closes the dialog, then the next closes the sheet.
+- **Settings reached by Forward closes cleanly, and closing it after a refresh never reloads the app.** Closing steps back only when the entry on screen opened Settings in this page load; otherwise it replaces the address in place.
+- **A page that fails to render still updates the address**, so the address always matches the page you switched to.
+- **On wide screens the Settings address names the page shown** (a bare or unknown `?settings`, or resizing between narrow and wide, rewrites it).
+- **The active phone tab has a high-contrast indicator.**
+
+### Removed
+- The old hamburger menu code (`#navToggle`) and two dead edit handlers.
+
 ## [8.8.3] — 2026-11-26
 
 ### Fixed

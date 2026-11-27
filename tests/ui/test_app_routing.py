@@ -362,8 +362,10 @@ def test_back_to_spending_sets_address(app_page):
     page.click("#spendingDrilldownViewLedgerBtn")
     page.wait_for_selector("#ledgerSection.active", timeout=5000)
     # Another Reports tab is remembered by the time Back to Spending is used.
-    # The Reports tab buttons stay in the DOM behind the Ledger; clicking one runs its real
-    # handler without leaving the Ledger (leaving it would clear the Back to Spending link).
+    # The Reports tab buttons stay in the DOM behind the Ledger. dispatch_event("click") runs the
+    # real handler, which pushes /reports/networth while the Ledger is still on screen (leaving
+    # the Ledger would clear the Back to Spending link). The `before + 1` assertion below relies
+    # on that: `before` is read after this push, so only Back to Spending's own push is counted.
     page.locator('.rpt-tab-btn[data-rptab="networth"]').dispatch_event("click")
     page.wait_for_selector("#rptPanel-networth.rpt-tab-panel--active", state="attached", timeout=5000)
     before = _history_length(page)

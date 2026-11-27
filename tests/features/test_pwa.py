@@ -46,13 +46,6 @@ REQUIRED_MANIFEST_FIELDS = [
     'id', 'categories',
 ]
 
-KNOWN_PAGE_NAMES = {
-    'health', 'accounts', 'liabilities', 'income', 'savings',
-    'strategy', 'reports', 'ledger', 'recurring', 'reconcile',
-    'retirement'
-}
-
-
 @pytest.mark.feature
 def test_manifest_has_required_fields(manifest_json):
     for field in REQUIRED_MANIFEST_FIELDS:
@@ -99,7 +92,6 @@ def test_manifest_shortcuts_structure(manifest_json):
 def _router_addresses():
     """Every address `buildPath` in src/router.js can produce (no ?settings),
     read from its route tables: '/', '/plan', '/ledger', '/reports/calendar' ..."""
-    import re
     with open(os.path.join(PROJECT_ROOT, 'src', 'router.js'), 'r', encoding='utf-8') as f:
         src = f.read()
     pages_src = re.search(r"ROUTE_PAGES = \[(.*?)\]", src, re.S).group(1)
@@ -108,7 +100,8 @@ def _router_addresses():
     sub_tabs = {m.group(1): re.findall(r"'([a-z]+)'", m.group(2))
                 for m in re.finditer(r"(\w+): \[(.*?)\]", tabs_src, re.S)}
     segment = {p: p for p in pages}
-    segment.update({'health': '', 'strategy': 'plan'})
+    # Overrides come from the route table's own SEGMENT_BY_PAGE.<page> = '<segment>' lines.
+    segment.update(re.findall(r"SEGMENT_BY_PAGE\.(\w+) = '([^']*)'", src))
     addresses = set()
     for page in pages:
         addresses.add('/' + segment[page])
