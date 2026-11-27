@@ -158,7 +158,7 @@ def test_checkboxes_have_touch_sized_targets(app_page, path, selector, square):
         const r = el.getBoundingClientRect(), l = lab.getBoundingClientRect();
         return {iw: r.width, ih: r.height, lw: l.width, lh: l.height};
     }""", selector)
-    assert m["iw"] >= 22 and m["ih"] >= 22, f"checkbox itself is {m['iw']}x{m['ih']}"
+    assert m["iw"] >= 24 and m["ih"] >= 24, f"checkbox itself is {m['iw']}x{m['ih']}"
     assert m["lh"] >= TOUCH, f"tap area is {m['lw']}x{m['lh']} tall"
     if square:
         assert m["lw"] >= TOUCH, f"tap area is {m['lw']}x{m['lh']}"
@@ -309,3 +309,66 @@ def test_landscape_notch_gets_side_padding(app_page):
     left, right = page.evaluate(
         "() => [parseFloat(getComputedStyle(document.body).paddingLeft), parseFloat(getComputedStyle(document.body).paddingRight)]")
     assert left >= 47 and right >= 47, (left, right)
+
+
+# ── Second audit pass (#732): 320px, 360px and larger text ───────────────────
+
+PHONE_320 = {"width": 320, "height": 640}
+
+_CLIPPED_JS = """() => {
+    const out = {docOverflow: document.documentElement.scrollWidth - innerWidth, clipped: []};
+    const sec = document.querySelector('.page-section.active') || document.body;
+    const cont = document.querySelector('.container');
+    const limit = cont.getBoundingClientRect().right - parseFloat(getComputedStyle(cont).paddingRight || 0) + 1;
+    const clips = (el) => { const o = getComputedStyle(el).overflowX; return o === 'auto' || o === 'scroll' || o === 'hidden'; };
+    for (const el of sec.querySelectorAll('*')) {
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height) continue;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+        if (el.closest('.sr-only, canvas, svg, [aria-hidden=true]')) continue;
+        // Inside a scroller or clip that itself stays within the page, overflow is handled.
+        let n = el.parentElement, handled = false;
+        while (n && n !== cont) { if (clips(n) && n.getBoundingClientRect().right <= limit) { handled = true; break; } n = n.parentElement; }
+        if (handled) continue;
+        if (r.right > limit) {
+            out.clipped.push((el.id ? '#' + el.id : el.tagName.toLowerCase() + '.' + String(el.className).split(' ')[0]) +
+                             ' by ' + Math.round(r.right - limit) + 'px');
+        }
+    }
+    out.clipped = [...new Set(out.clipped)].slice(0, 6);
+    return out;
+}"""
+
+SECOND_PASS = [
+    # (id, viewport, text size, path)
+    ("320-retirement", PHONE_320, None, "retirement"),
+    ("320-income", PHONE_320, None, "income"),
+    ("320-people", PHONE_320, None, "people"),
+    ("320-spending", PHONE_320, None, "reports/spending"),
+    ("320-networth", PHONE_320, None, "reports/networth"),
+    ("360-retirement", PHONE_360, None, "retirement"),
+    ("150pct-income", PHONE_390, "150%", "income"),
+    ("150pct-people", PHONE_390, "150%", "people"),
+    ("150pct-spending", PHONE_390, "150%", "reports/spending"),
+    ("200pct-debts", PHONE_390, "200%", "liabilities/debts"),
+    ("200pct-calendar", PHONE_390, "200%", "reports/calendar"),
+    ("200pct-retirement", PHONE_390, "200%", "retirement"),
+]
+
+
+@pytest.mark.ui
+@pytest.mark.parametrize("viewport,text_size,path", [c[1:] for c in SECOND_PASS], ids=[c[0] for c in SECOND_PASS])
+def test_pages_fit_at_320px_and_large_text(app_page, viewport, text_size, path):
+    """No page scrolls sideways and nothing sticks out of the page card at 320px or at 150-200% text.
+    (Android's largest font setting is 200%.)"""
+    _open(app_page, path, viewport)
+    if text_size:
+        # Set through the DOM: the strict CSP blocks an injected <style>, but not CSSOM changes.
+        app_page.evaluate("(z) => { document.documentElement.style.fontSize = z; }", text_size)
+        app_page.wait_for_function(
+            "(z) => getComputedStyle(document.documentElement).fontSize === (parseFloat(z) / 100 * 16) + 'px'",
+            arg=text_size, timeout=5000)
+    result = app_page.evaluate(_CLIPPED_JS)
+    assert result["docOverflow"] <= 0, f"the page scrolls sideways by {result['docOverflow']}px"
+    assert not result["clipped"], f"elements stick out of the page card: {result['clipped']}"
