@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [8.8.5] — 2026-11-26
+
+### Fixed
+- **Opening one header popover closes the other (#747).** The notifications panel and the account menu could both be open at once (each trigger stops the click, so the other never saw an outside click). Opening either now closes the other, and Back or Escape then closes whichever is open, returning focus to its button.
+- **Settings addresses keep other query parameters (#747).** Opening, moving inside or closing Settings, and the router's own address clean-ups (a legacy `?page=` link, an unknown path), now rewrite only `?settings` / `?page`; other parameters stay (a password-reset `?reset_token` is deliberately never carried into a Settings address). A repeated `?settings=a&settings=b` is cleaned up to one.
+- **A page that fails to render no longer leaves the router out of step (#747).** When the render during Back, Forward or boot throws, the address is still canonicalised, a pending Settings page is flushed and the last address is recorded (the error still propagates).
+- **An Escape handler that navigates can no longer break Back (#747).** If a dialog's own Escape handling switches page, the router keeps that navigation instead of running a `history.go` undo against an entry the navigation truncated.
+
+### Changed
+- Test strength: opening the popover from the keyboard now proves focus returns to its button after Back; the near-tautological `initRouter` Jest test is gone.
+
 ## [8.8.4] — 2026-11-26
 
 ### Fixed

@@ -76,6 +76,8 @@ export function parseLocation(pathname, search) {
 
     let settings = null;
     if (params.has('settings')) {
+        // A repeated ?settings=a&settings=b is not canonical: the first wins and the rewrite keeps one.
+        if (params.getAll('settings').length > 1) canonical = false;
         const raw = params.get('settings');
         if (SETTINGS_NAME.test(raw)) {
             settings = raw;
@@ -115,6 +117,9 @@ let bootIndex = null;
 // when indexes are unknown), so a user Back arriving meanwhile is not taken
 // for it. `undo` marks the return over a dialog: the view did not change.
 let expected = null;
+// Counts every address write the router makes (push, replace, step back), so an
+// overlay's own Escape handling that navigated is noticed even when it kept the index.
+let writes = 0;
 // The last Settings page recorded while an address was being applied (null:
 // none). Recording then is suppressed; once applied, flushPendingSettings
 // makes the address name the page Settings actually shows.
@@ -122,6 +127,20 @@ let pendingSettings = null;
 
 function syncLastPath() {
     lastPath = location.pathname + location.search;
+}
+
+// Query parameters the router does not own. It writes only ?settings and reads
+// the legacy ?page, so anything else (a parameter some other code adds) is kept
+// across its own rewrites of the same view; navigating to another view drops it.
+// Credential parameters are never kept: a password-reset link's ?reset_token stays
+// valid for an hour, and carrying it into Settings addresses (and the history
+// entries and links they produce) would spread a live credential.
+const NEVER_KEPT_PARAMS = ['settings', 'page', 'reset_token'];
+function withExtras(path) {
+    const params = new URLSearchParams(location.search || '');
+    for (const name of NEVER_KEPT_PARAMS) params.delete(name);
+    const rest = params.toString();
+    return rest ? path + (path.includes('?') ? '&' : '?') + rest : path;
 }
 
 // The index stored in a history state, or null for anything else.
@@ -155,6 +174,7 @@ function onScreenIndex() {
 // genuine pop.
 function pushEntry(path, settings = false) {
     expected = null;
+    writes++;
     const base = onScreenIndex();
     const index = base === null ? null : base + 1;
     history.pushState(entryState(index, settings), '', path);
@@ -165,6 +185,7 @@ function pushEntry(path, settings = false) {
 // carries ?settings (a page taking over the Settings entry drops it).
 function replaceEntry(path) {
     expected = null;
+    writes++;
     const index = onScreenIndex();
     const url = new URL(path, 'http://x');
     const settings = hasSettingsMarker() && parseLocation(url.pathname, url.search).settings !== null;
@@ -184,6 +205,7 @@ function canStepBackOverSettings() {
 // Step back over the Settings entry on screen (it carries the marker, so
 // this session pushed it from the same path without ?settings).
 function stepBackOverSettings() {
+    writes++;
     const path = location.pathname;
     expected = { index: onScreenIndex() - 1, path, undo: false };
     lastPath = path;
@@ -228,7 +250,7 @@ export function recordView(app, view, mode = 'push') {
             stepBackOverSettings();
             return;
         } else {
-            replaceEntry(location.pathname);
+            replaceEntry(withExtras(location.pathname));
             if (path === location.pathname + location.search) {
                 syncLastPath();
                 return;
@@ -247,7 +269,7 @@ export function recordSettings(settingsPage, mode = 'replace') {
         pendingSettings = settingsPage;
         return;
     }
-    const path = location.pathname + (settingsPage ? '?settings=' + settingsPage : '?settings');
+    const path = withExtras(location.pathname + (settingsPage ? '?settings=' + settingsPage : '?settings'));
     if (mode === 'push') {
         pushEntry(path, true);
         syncLastPath();
@@ -265,10 +287,10 @@ export function leaveSettings() {
     if (applying) return;
     if (parseLocation(location.pathname, location.search).settings === null) return;
     if (canStepBackOverSettings()) {
-        // Lands on the entry before ?settings (recordView never writes a search).
+        // Lands on the entry before ?settings.
         stepBackOverSettings();
     } else {
-        replaceEntry(location.pathname);
+        replaceEntry(withExtras(location.pathname));
         syncLastPath();
     }
 }
@@ -311,8 +333,8 @@ export function applySettingsFromLocation(app) {
         applySettings(app, settings);
     } finally {
         applying = false;
+        flushPendingSettings();
     }
-    flushPendingSettings();
 }
 
 // Show the view the address names (boot and popstate). Never pushes; a
@@ -329,13 +351,14 @@ export function applyLocation(app) {
         if (differs) app.switchPage(parsed.page, { subTab: parsed.subTab, resetToDefaults: parsed.page !== current });
         if (settingsReady) applySettings(app, parsed.settings);
     } finally {
+        // Also when a page render throws (the error still propagates): the address is
+        // canonicalised, a pending Settings page flushed and lastPath synced, so the
+        // router's state matches the address it was handed.
         applying = false;
+        if (!parsed.canonical) replaceEntry(withExtras(buildPath(parsed)));
+        flushPendingSettings();
+        syncLastPath();
     }
-    if (!parsed.canonical) {
-        replaceEntry(buildPath(parsed));
-    }
-    flushPendingSettings();
-    syncLastPath();
 }
 
 // ── Back closes the innermost thing first (#731) ─────────────────────────────
@@ -387,6 +410,11 @@ const claimedEscapes = new WeakSet();
 // Each popover calls this when it opens.
 export function notePopoverOpened(id) {
     popoverOpened.set(id, ++popoverSeq);
+    // Each popover closes itself when another opens (their triggers stop the click
+    // from reaching the document, so the outside-click close never ran for the other).
+    if (typeof document.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+        document.dispatchEvent(new CustomEvent('mf:popover-opened', { detail: { id } }));
+    }
 }
 
 function isShown(el) {
@@ -481,7 +509,17 @@ export function onPopState(app) {
     // A user pop landing first makes a pending undo's relative go() wrong:
     // drop the expectation and handle this pop as it comes.
     if (expected && expected.undo) expected = null;
+    const writesBefore = writes;
     if (lastPath !== null && closeInnermost(app)) {
+        // The overlay's own Escape handling navigated (a push, a replace or a Settings
+        // step back, even one that kept the entry's index): the undo's relative go()
+        // would target a truncated or rewritten entry, so keep what the handler did.
+        // A step back leaves its own `expected` for the pop it causes.
+        if (writes !== writesBefore) {
+            if (!expected) currentIndex = indexOf(history.state);
+            syncLastPath();
+            return;
+        }
         if (currentIndex !== null && newIndex !== null) {
             // Undo the pop (Back, Forward or several entries) in one step:
             // no entry is added or dropped, so Forward history survives.

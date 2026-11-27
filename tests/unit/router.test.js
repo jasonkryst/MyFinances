@@ -205,17 +205,6 @@ test('initRouter registers one popstate listener that applies the address', () =
     expect(calls).toEqual([['replace', undefined]]);
 });
 
-test('the initRouter listener flag is per module instance, so it cannot leak between tests', () => {
-    const first = fakeBrowser('/');
-    initRouter(fakeApp('health'));
-    expect(first.listeners.popstate).toHaveLength(1);
-    jest.resetModules();
-    ({ initRouter } = require('../../src/router.js'));
-    const second = fakeBrowser('/');
-    initRouter(fakeApp('health'));
-    expect(second.listeners.popstate).toHaveLength(1);
-});
-
 // ── Task 5 glue: recordSettings / leaveSettings / applySettingsFromLocation ──
 
 function settingsBrowser(pathname, search = '', modalOpen = false, state = null) {
@@ -745,13 +734,95 @@ test('a narrow list opened from a bare ?settings keeps it', () => {
     expect(env.calls).toEqual([]);
 });
 
-test('a page record made while an address is applied is not replayed later', () => {
+// ── #747: leftovers from the 8.8.4 review ────────────────────────────────────
+
+test('an Escape handler that navigates keeps the navigation: no go() undo against a truncated target', () => {
+    const { env, app } = visited('ledger', 'accounts');
+    const dialog = openDialog();
+    // The dialog's own Escape handling switches page (here: to income).
+    dialog.dispatchEvent = () => { app.switchPage('income'); return true; };
+    env.traverse(-1);
+    onPopState(app);
+    expect(env.calls.map(c => c[0])).toEqual(['push']);
+    expect(env.entries[env.at()].state).toEqual({ mf: 2 });
+    // The index now matches the position, so a later undo stays correct.
+    const dialog2 = openDialog();
+    env.calls.length = 0;
+    env.traverse(-1);
+    onPopState(app);
+    expect(dialog2.dispatched).toHaveLength(1);
+    expect(env.calls).toEqual([['go', 1]]);
+});
+
+test('Settings addresses keep unrelated query parameters (#747)', () => {
+    const env = settingsBrowser('/ledger', '?foo=1', false, { mf: 0 });
+    recordSettings('security', 'push');
+    expect(env.calls).toEqual([['push', '/ledger?settings=security&foo=1']]);
+    env.calls.length = 0;
+    recordSettings('backup', 'replace');
+    expect(env.calls).toEqual([['replace', '/ledger?settings=backup&foo=1']]);
+    env.calls.length = 0;
+    // Closing in place (an unmarked entry) drops only ?settings.
+    env.entries[env.at()].state = { mf: 0 };
+    leaveSettings();
+    expect(env.calls).toEqual([['replace', '/ledger?foo=1']]);
+});
+
+test('a canonical rewrite keeps unrelated parameters and drops only the legacy ?page= (#747)', () => {
+    const { calls } = fakeBrowser('/', '?page=strategy&foo=1');
+    const app = fakeApp('health');
+    initRouter(app);
+    applyLocation(app);
+    expect(calls).toContainEqual(['replace', '/plan?foo=1']);
+});
+
+test('a repeated ?settings is not canonical and collapses to one (#747)', () => {
+    const parsed = parseLocation('/', '?settings=a&settings=b');
+    expect(parsed).toMatchObject({ settings: 'a', canonical: false });
+    expect(buildPath(parsed)).toBe('/?settings=a');
+});
+
+test('a render that throws inside applyLocation still canonicalises, flushes and syncs (#747)', () => {
+    const { calls } = fakeBrowser('/', '?page=strategy');
+    const app = fakeApp('health');
+    app.switchPage = () => { throw new Error('render failed'); };
+    initRouter(app);
+    expect(() => applyLocation(app)).toThrow('render failed');
+    // The address was still rewritten in place, and applying was reset, so the
+    // next record is not swallowed.
+    expect(calls).toContainEqual(['replace', '/plan']);
+    app._currentPage = 'ledger';
+    recordView(app, { page: 'ledger' });
+    expect(calls).toContainEqual(['push', '/ledger']);
+});
+
+test('a throwing Settings open does not leave a stale page that a later apply replays (#747)', () => {
     const env = settingsBrowser('/ledger', '?settings', false, { mf: 0 });
     const app = wideSettingsApp(env, 'ledger');
-    app.openSettings = () => { env.modalOpen = true; recordSettings('security', 'replace'); env.modalOpen = false; };
+    app.openSettings = () => { env.modalOpen = true; recordSettings('security', 'replace'); throw new Error('boom'); };
     initRouter(app);
-    applySettingsFromLocation(app);
-    expect(env.calls).toEqual([]);
-    recordView(app, { page: 'ledger' }, 'replace');
-    expect(env.calls).toEqual([['replace', '/ledger']]);
+    expect(() => applySettingsFromLocation(app)).toThrow('boom');
+    // The failed apply itself still flushed the page it was handed, so the address names the
+    // page Settings shows (on the old code the flush was skipped and it stayed a bare ?settings).
+    expect(env.calls).toEqual([['replace', '/ledger?settings=security']]);
+});
+
+test('a password-reset token is never carried into a Settings address (#747)', () => {
+    const env = settingsBrowser('/', '?reset_token=abc123&foo=1', false, { mf: 0 });
+    recordSettings('security', 'push');
+    expect(env.calls).toEqual([['push', '/?settings=security&foo=1']]);
+    env.calls.length = 0;
+    // Nor by an in-place close or the canonical rewrite.
+    env.entries[env.at()].state = { mf: 0 };
+    leaveSettings();
+    expect(env.calls).toEqual([['replace', '/?foo=1']]);
+});
+
+test('an Escape handler that replaces the entry keeps the index and skips the undo (#747)', () => {
+    const { env, app } = visited('ledger', 'accounts');
+    const dialog = openDialog();
+    dialog.dispatchEvent = () => { recordView(app, { page: 'accounts', subTab: null }, 'replace'); return true; };
+    env.traverse(-1);
+    onPopState(app);
+    expect(env.calls.map(c => c[0])).toEqual(['replace']);
 });
