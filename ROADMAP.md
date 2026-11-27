@@ -1,7 +1,7 @@
 # MyFinances Roadmap
 
-**Last updated**: 2026-11-24
-**Current version**: 8.2.0
+**Last updated**: 2026-11-27
+**Current version**: 8.8.6
 
 ## How this is planned
 
@@ -20,9 +20,7 @@ Translating the app into Spanish and Polish is the main open effort. The Health 
 
 - **Bank import**, in this order:
   1. #690 Store posted transactions as Ledger rows and keep future occurrences projected. This is the foundation.
-  2. #260 Bank CSV/OFX import with auto-clear.
-  3. #269 The full bank CSV import pipeline (umbrella issue).
-  4. #529 A transactional bulk import endpoint instead of one request per record, which large imports need.
+  2. #269 The full bank CSV/OFX import pipeline with auto-clear (umbrella issue; #260 was folded into it).
 - #682 Optional TOTP two-factor authentication with recovery codes.
 - #362 A savable dashboard layout.
 
@@ -35,22 +33,15 @@ Translating the app into Spanish and Polish is the main open effort. The Health 
 - #510 Detect the browser language and persist locale and currency on the server.
 - #511 Percentages and decimals use `toFixed()`, so the decimal separator is not localized.
 - #465 Polish plural forms: `plural()` cannot express few/many.
-- #516 Server emails and the calendar feed are English-only with a hardcoded `$`. It pairs with #526.
+- #516 Server emails and the calendar feed are English-only with a hardcoded `$`.
 - #334 Community-contributed translation infrastructure.
-
-**Performance**
-- #713 Fewer modules before the first Health paint (app Lighthouse score 0.75 toward 0.8).
 
 **Maintenance**
 - #538 Break up the largest render functions.
-- #526 Extract the duplicated calendar/ICS logic into one shared module.
 
 **UX and features**
 - #684 A push channel for notifications for self-hosters (ntfy, Gotify, webhook or Web Push).
 - #685 Restore previous values or re-create deleted records from a change history entry.
-- #687 Optional month-to-month rollover for category budgets.
-- #688 Split one manual transaction across several categories.
-- #363 Desktop UI adjustment.
 
 **Documentation and operations**
 - #582 Off-host backups and a restore drill.
@@ -63,7 +54,29 @@ Translating the app into Spanish and Polish is the main open effort. The Health 
 
 **Home-network infrastructure.** #640 (block repeat offenders at the UniFi gateway with CrowdSec) and #642 (centralized logs with Loki, Alloy and Grafana) are tracked in the same list. They concern the network the app runs on, not app code.
 
-## Recently shipped (7.x)
+## From the 2026-11-27 audit
+
+Full report set: [docs/audit/AUDIT_SUMMARY_2026-11-27.md](docs/audit/AUDIT_SUMMARY_2026-11-27.md). Filed as issues:
+
+- #752 Server shuts down gracefully on `SIGTERM` (p2).
+- #754 Dim archived and paused cards without `opacity` (p2, accessibility contrast).
+- #753 Prune `password_reset_tokens` and `known_devices` in the hourly job.
+- #755 Route the 19 direct `toLocale*String` calls through the `utils.js` formatters.
+- #756 Revalidate fewer assets per load.
+- #757 to #760 Container hardening, CSP without Google hosts unless GA is on, login throttling, SHA-pinned Actions (security, Low severity, labelled p0).
+
+## Recently shipped (8.x)
+
+- **8.8: phone tab bar and routing polish.** A bottom tab bar and More sheet on phones, Back closes dialogs first, popovers close each other, and Change history reads as sentences (8.8.0 to 8.8.6).
+- **8.7: every page has an address,** so Back, Forward, refresh and bookmarks work (#730).
+- **8.6: desktop layout.** The page uses more of a large monitor and dialogs holding lists are wider (#363).
+- **8.5: category budget rollover (#687)** and a lighter first paint for Health (#713).
+- **8.4: one-request, all-or-nothing import (#529).**
+- **8.3: split a manual transaction across categories (#688).**
+- **8.2: reconciliation drafts and Ledger column choices follow you across devices (#587);** one shared calendar builder (#526).
+- **8.1 to 8.0: command palette record search (#686), a translated command palette and account menu,** and credentials as environment variables instead of Docker secret files (8.0.0).
+
+## Shipped earlier (7.x)
 
 Version 7.0.0 made the self-hosted server the only storage. The rest of the 7.x line, newest first. Details for each release are in [CHANGELOG.md](CHANGELOG.md).
 

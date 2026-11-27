@@ -9,7 +9,7 @@ _A modern, privacy-first web app to track accounts, debts, income, and spending,
 
 Self-hosted: your data lives in your own PostgreSQL server. MyFinances runs as a small Docker stack (nginx + Node.js API + PostgreSQL) that you deploy yourself (see [DEPLOYMENT.md](DEPLOYMENT.md)); the calculations run in your browser, and your data syncs across every device you sign in from. Since 7.0.0 the server is required: browser-only storage was removed.
 
-**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: November 4, 2026 (v7.0.0, [report](docs/audit/security/SECURITY_AUDIT_2026-11-04.md)) | **Last Scan**: 0 HIGH, 0 MEDIUM; CodeQL 0 open alerts
+**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: November 27, 2026 (v8.8.6, [report](docs/audit/security/SECURITY_AUDIT_2026-11-27.md)) | **Last Scan**: 0 HIGH, 0 MEDIUM; CodeQL 0 open alerts
 
 ---
 
@@ -471,7 +471,7 @@ form-action 'self'
 Every Playwright test runs against a real stack and wipes the server's data, so never point the tests at a deployment that holds real data. Setup, environment variables and the shard layout are in [tests/README.md](tests/README.md) and [docs/architecture/testing.md](docs/architecture/testing.md).
 
 ### Test Suites
-Counts are from 2026-11-23 (v7.32.1) and will drift; the CI run is the source of truth. The Playwright counts are test functions found with `grep` (parametrized cases run more); the Jest and server counts are what those runners report.
+Counts were last refreshed in the 2026-11-27 audit (v8.8.6; see [docs/audit/test/TESTING_AUDIT_2026-11-27.md](docs/audit/test/TESTING_AUDIT_2026-11-27.md)) and will drift; the CI run is the source of truth. The Playwright counts are test functions found with `grep` (parametrized cases run more); the Jest and server counts are what those runners report.
 
 | Suite | Where | Approx. count | What it covers |
 |-------|-------|---------------|----------------|
