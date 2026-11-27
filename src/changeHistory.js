@@ -4,8 +4,10 @@
 // browsing the history never touches the save chip or live refresh. Every
 // value is set with textContent; nothing here goes through innerHTML.
 import { t } from './i18n.js';
-import { formatShortDateTime, discardBody } from './utils.js';
-import { AUDIT_TABLE_ORDER, recordName, describeChanges, auditQuery } from './changeHistoryCore.js';
+import { formatShortDateTime, formatShortDate, discardBody } from './utils.js';
+import {
+    AUDIT_TABLE_ORDER, LEDGER_SOURCE_COLLECTIONS, recordName, keyedEntryLabel, humanizeKey, describeChanges, auditQuery
+} from './changeHistoryCore.js';
 
 export const CHANGE_HISTORY_PAGE_SIZE = 50;
 
@@ -29,6 +31,26 @@ export function tableLabel(table) {
     return t(`history.table.${table}`);
 }
 
+// Names for the ids in a Ledger key, read from the loaded app state. A record
+// that has since been deleted resolves to nothing and the row falls back to
+// the name stored in the audit snapshot.
+function labelContext() {
+    const app = window.app || {};
+    const find = (list, id) => (Array.isArray(list) ? list.find(r => String(r.id) === String(id)) : null);
+    return {
+        sourceName: (type, id) => {
+            const rec = find(app[LEDGER_SOURCE_COLLECTIONS[type]], id);
+            return rec ? (rec.name || rec.description || null) : null;
+        },
+        accountName: id => { const a = find(app.accounts, id); return a ? a.name : null; },
+        formatDate: iso => (/^\d{4}-\d{2}-\d{2}/.test(String(iso)) ? formatShortDate(String(iso).slice(0, 10)) : String(iso)),
+        settingLabel: key => {
+            const translated = t(`history.setting.${key}`);
+            return translated === `history.setting.${key}` ? humanizeKey(key) : translated;
+        }
+    };
+}
+
 function fillFilter(select) {
     const current = state.table;
     select.textContent = '';
@@ -49,7 +71,7 @@ function renderEntry(entry) {
     const op = ['create', 'update', 'delete'].includes(entry.op) ? entry.op : 'update';
     head.appendChild(el('span', `change-history-op change-history-op--${op}`, t(`history.op.${op}`)));
     head.appendChild(el('span', 'change-history-type', tableLabel(entry.table)));
-    const name = recordName(entry);
+    const name = recordName(entry) || keyedEntryLabel(entry, labelContext());
     if (name) head.appendChild(el('span', 'change-history-name', name));
     else if (entry.table !== 'plan_settings') head.appendChild(code(String(entry.rowId)));
     item.appendChild(head);
@@ -64,11 +86,18 @@ function renderEntry(entry) {
         list.setAttribute('aria-label', t('history.changesAria'));
         for (const change of changes) {
             const row = el('li', 'change-history-field');
-            row.appendChild(code(change.field));
+            row.appendChild(el('span', 'change-history-field-name', humanizeKey(change.field)));
             row.appendChild(el('span', 'change-history-sep', ': '));
-            row.appendChild(code(change.from));
-            row.appendChild(el('span', 'change-history-arrow', ' → '));
-            row.appendChild(code(change.to));
+            if (change.added || change.removed) {
+                const bits = [];
+                if (change.added.length) bits.push(t('history.added', { items: change.added.join(', ') }));
+                if (change.removed.length) bits.push(t('history.removed', { items: change.removed.join(', ') }));
+                row.appendChild(el('span', 'change-history-delta', bits.join('; ')));
+            } else {
+                row.appendChild(code(change.from));
+                row.appendChild(el('span', 'change-history-arrow', ' → '));
+                row.appendChild(code(change.to));
+            }
             list.appendChild(row);
         }
         item.appendChild(list);

@@ -60,7 +60,7 @@ def test_lists_create_change_delete_newest_first(app_page):
         assert rows.nth(i).locator('time').get_attribute('datetime')
     changed = rows.nth(1).locator('.change-history-field')
     assert changed.count() == 1
-    assert changed.first.inner_text().replace('\n', '') == 'startingBalance: 100 → 250'
+    assert changed.first.inner_text().replace('\n', '') == 'Starting balance: 100 → 250'
     # Creates and deletes carry no field list.
     assert rows.nth(0).locator('.change-history-fields').count() == 0
     assert rows.nth(2).locator('.change-history-fields').count() == 0
@@ -194,3 +194,37 @@ def test_replace_import_keeps_history(app_page):
     assert ('persons', 'create', 'Kept Person') in summary
     assert ('persons', 'delete', 'Kept Person') in summary
     assert ('accounts', 'create', 'Imported') in summary
+
+
+def test_keyed_rows_show_readable_text_not_keys(app_page):
+    """#749: a Cleared mark, an override and a setting read as words; bookkeeping
+    fields stay out of the list. Response stubbed so the keys are exact."""
+    page = app_page
+    page.evaluate("""() => {
+        const orig = window.fetch;
+        const at = new Date().toISOString();
+        const body = { hasMore: false, entries: [
+            { id: 4, table: 'settings', rowId: 'notifyFilterStatus', op: 'update', at,
+              before: { value: 'read' }, after: { value: 'unread' } },
+            { id: 3, table: 'ledger_amount_overrides', rowId: 'debt|15|7|2026-11-22', op: 'create', at,
+              before: null, after: { transactionName: 'Maurices', amount: 45 } },
+            { id: 2, table: 'ledger_cleared_transactions', rowId: 'debt|15|7|2026-11-22', op: 'create', at,
+              before: null, after: null },
+            { id: 1, table: 'debts', rowId: '15', op: 'update', at,
+              before: { name: 'Maurices', updatedAt: '2026-11-17', paidMonths: ['2026-09'] },
+              after: { name: 'Maurices', updatedAt: '2026-11-23', paidMonths: ['2026-09', '2026-10'] } }
+        ] };
+        window.fetch = (url, opts) => String(url).startsWith('/api/audit-log')
+            ? Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+            : orig(url, opts);
+    }""")
+    open_history(page)
+    rows = items(page)
+    assert rows.count() == 4
+    assert rows.nth(0).locator('.change-history-name').inner_text() == 'Notify filter status'
+    override_name = rows.nth(1).locator('.change-history-name').inner_text()
+    assert override_name.startswith('Maurices') and '|' not in override_name
+    # Unresolvable source and no stored name: falls back to the key rather than hiding the row.
+    assert rows.nth(2).locator('.change-history-name, code').first.inner_text()
+    # Only bookkeeping fields changed, so no field list is shown.
+    assert rows.nth(3).locator('.change-history-fields').count() == 0
