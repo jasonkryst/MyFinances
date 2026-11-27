@@ -328,13 +328,13 @@ If you discover a security vulnerability:
 
 ## Security Audit Results
 
-**Most Recent Audit**: November 4, 2026 (v7.0.0, PostgreSQL-only storage). Full report: [SECURITY_AUDIT_2026-11-04.md](docs/audit/security/SECURITY_AUDIT_2026-11-04.md)
+**Most Recent Audit**: November 27, 2026 (v8.8.6). Full report: [SECURITY_AUDIT_2026-11-27.md](docs/audit/security/SECURITY_AUDIT_2026-11-27.md). The previous audit (v7.0.0, PostgreSQL-only storage) is [SECURITY_AUDIT_2026-11-04.md](docs/audit/security/SECURITY_AUDIT_2026-11-04.md).
 
 ### Summary
 - Risk Level: **LOW**
-- Status: **PASSED**. No High or Medium vulnerabilities introduced by 7.0.0
+- Status: **PASSED**. No High or Medium findings; 5 Low and 3 Informational, tracked in the audit report
 - Live tooling at audit time: CodeQL 0 open alerts, Trivy pass, dependency-review pass, secret scanning 0 open alerts, `tests/security/` pass
-- Dependabot: 2 open alerts, both in the dev-only Jest/Stryker toolchain (`minimatch` medium, `deepmerge` low); nothing shipped to the browser or server is affected
+- Dependabot: 0 open alerts; code scanning: 0 open alerts; `npm audit --omit=dev`: 0 vulnerabilities (root and `server/`)
 
 ### Key Findings
 - ✅ All input sanitized client-side and re-sanitized server-side on every write

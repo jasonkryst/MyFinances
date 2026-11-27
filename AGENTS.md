@@ -9,7 +9,7 @@ Operational notes for automated agents (CI bots, Claude Code, Copilot and others
 Since 7.0.0 the app has no browser-only mode, so every Playwright test runs against a real stack (nginx + Node API + PostgreSQL). A static file server is not enough.
 
 ```powershell
-# Start the stack (first time: .\setup.ps1 or ./setup.sh creates secrets/)
+# Start the stack (first time: .\setup.ps1 or ./setup.sh creates `.env` with the generated credentials)
 docker compose up -d
 
 # Credentials of the stack's single user (these are the harness defaults).

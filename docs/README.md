@@ -22,7 +22,19 @@ Audit reports generated at key milestones. Subdirectories match the audit type.
 | `audit/other/` | Miscellaneous audits that don't fit another category |
 | `audit/documentation/` | Documentation audit reports — staleness, broken links, inconsistency with the codebase |
 
-Latest reports (newest first per category):
+Latest reports (newest first per category). The full 2026-11-27 set is summarised in [`audit/AUDIT_SUMMARY_2026-11-27.md`](audit/AUDIT_SUMMARY_2026-11-27.md):
+- [`audit/security/SECURITY_AUDIT_2026-11-27.md`](audit/security/SECURITY_AUDIT_2026-11-27.md) — November 27, 2026 — v8.8.6 security delta audit (no High/Medium; 5 Low, 3 Info)
+- [`audit/a11y/A11Y_AUDIT_REPORT_2026-11-27.md`](audit/a11y/A11Y_AUDIT_REPORT_2026-11-27.md) — November 27, 2026 — v8.8.6 accessibility delta (static; 7 prior findings verified resolved, 1 new)
+- [`audit/i18n/I18N_AUDIT_2026-11-27.md`](audit/i18n/I18N_AUDIT_2026-11-27.md) — November 27, 2026 — v8.8.6 internationalization delta (2,105 keys per locale; #504/#505 still open)
+- [`audit/features/FEATURES_AUDIT_2026-11-27.md`](audit/features/FEATURES_AUDIT_2026-11-27.md) — November 27, 2026 — status of F-01 to F-12 and the 8.x features (static)
+- [`audit/test/TESTING_AUDIT_2026-11-27.md`](audit/test/TESTING_AUDIT_2026-11-27.md) — November 27, 2026 — test inventory, resolved T-findings, residual debt
+- [`audit/database/DATABASE_AUDIT_2026-11-27.md`](audit/database/DATABASE_AUDIT_2026-11-27.md) — November 27, 2026 — 51 migrations, indexes, housekeeping, 1 Low
+- [`audit/performance/PERFORMANCE_AUDIT_2026-11-27.md`](audit/performance/PERFORMANCE_AUDIT_2026-11-27.md) — November 27, 2026 — status of the 2026-11-04 findings (not measured)
+- [`audit/documentation/DOCUMENTATION_AUDIT_2026-11-27.md`](audit/documentation/DOCUMENTATION_AUDIT_2026-11-27.md) — November 27, 2026 — markdown staleness audit (7 items fixed)
+- [`audit/other/BACKLOG_AUDIT_2026-11-27.md`](audit/other/BACKLOG_AUDIT_2026-11-27.md) — November 27, 2026 — open-issue triage and roadmap drift
+- [`audit/other/OTHER_AUDIT_2026-11-27.md`](audit/other/OTHER_AUDIT_2026-11-27.md) — November 27, 2026 — ops, repository hygiene, CI, governance
+
+Previous reports (2026-11-04 and older):
 - [`audit/security/SECURITY_AUDIT_2026-11-04.md`](audit/security/SECURITY_AUDIT_2026-11-04.md) — November 4, 2026 — v7.0.0 PostgreSQL-only storage review (no High/Medium findings)
 - [`audit/a11y/A11Y_AUDIT_REPORT_2026-11-04.md`](audit/a11y/A11Y_AUDIT_REPORT_2026-11-04.md) — November 4, 2026 — v7.0.0 WCAG 2.1 AA review of the server-only surfaces (0 Critical / 7 Major / 14 Minor)
 - [`audit/i18n/I18N_AUDIT_2026-11-04.md`](audit/i18n/I18N_AUDIT_2026-11-04.md) — November 4, 2026 — v7.0.0 internationalization review (2 High / 6 Medium / 8 Low; coverage guard 175/175 passing)
@@ -46,8 +58,6 @@ Latest reports (newest first per category):
 - [`audit/security/SECURITY_AUDIT_2026-06-19.md`](audit/security/SECURITY_AUDIT_2026-06-19.md) — June 19, 2026 (previous security audit)
 - [`audit/a11y/A11Y_AUDIT_REPORT_2026-06-19.md`](audit/a11y/A11Y_AUDIT_REPORT_2026-06-19.md) — June 19, 2026 (earlier accessibility audit)
 - [`audit/test/TEST_REPORT_2026-06-28.md`](audit/test/TEST_REPORT_2026-06-28.md) — June 28, 2026 (452 tests / 51 files, v4.2.0)
-
-> Some 2026-09-02 reports above were still being generated in parallel at the time this index was last updated — if a link 404s, the report may not have finished writing yet.
 
 ---
 
