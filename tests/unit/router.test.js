@@ -214,7 +214,8 @@ function settingsApp(env, page) {
 }
 
 test('recordSettings pushes on open, replaces inside, leaveSettings steps back', () => {
-    const env = settingsBrowser('/ledger');
+    const env = settingsBrowser('/ledger', '', false, { mf: 0 });
+    initRouter(fakeApp('ledger'));
     recordSettings('', 'push');
     recordSettings('security', 'replace');
     recordSettings('security', 'replace');
@@ -410,8 +411,9 @@ test('popstate with nothing open applies the address', () => {
 });
 
 test('the pop from leaveSettings stepping back is not treated as a user Back', () => {
-    const env = settingsBrowser('/accounts');
+    const env = settingsBrowser('/accounts', '', false, { mf: 0 });
     const app = settingsApp(env, 'accounts');
+    initRouter(app);
     for (const name of Object.values(EDIT_CANCELLERS)) app[name] = () => { throw new Error('cancelled ' + name); };
     globalThis.document.querySelectorAll = () => [];
     const input = fakeEl('ac-name-7');
@@ -529,6 +531,10 @@ test('a user pop to another index while an undo is pending is not taken for it',
     env.traverse(-1);                                  // a second user Back lands on 0
     onPopState(app);
     expect(app.switched.map(s => s[0])).toEqual(['health']);
+    // That pop dropped the undo: a later pop landing on index 2 is applied.
+    env.traverse(2);
+    onPopState(app);
+    expect(app.switched.map(s => s[0])).toEqual(['health', 'accounts']);
 });
 
 test('an entry without an index falls back to pushing the address back', () => {
@@ -542,13 +548,61 @@ test('an entry without an index falls back to pushing the address back', () => {
 });
 
 test('leaveSettings steps back only when the entry carries the Settings marker', () => {
-    const marked = settingsBrowser('/ledger', '?settings=security', true, { mf: 3, settings: true });
+    const marked = settingsBrowser('/ledger', '', true, { mf: 2 });
+    initRouter(settingsApp(marked, 'ledger'));
+    recordSettings('security', 'push');
     leaveSettings();
-    expect(marked.calls).toEqual([['back']]);
+    expect(marked.calls).toEqual([['push', '/ledger?settings=security'], ['back']]);
+
+    jest.resetModules();
+    ({ initRouter, leaveSettings } = require('../../src/router.js'));
     const unmarked = settingsBrowser('/ledger', '?settings=security', true, { mf: 3 });
+    initRouter(settingsApp(unmarked, 'ledger'));
     leaveSettings();
     expect(unmarked.calls).toEqual([['replace', '/ledger']]);
     expect(globalThis.history.state).toEqual({ mf: 3 });
+});
+
+test('a marked Settings entry from before a reload closes in place, not by a step back', () => {
+    // The entry before it belongs to the discarded document: back() would reboot.
+    const env = settingsBrowser('/ledger', '?settings=security', true, { mf: 3, settings: true });
+    initRouter(settingsApp(env, 'ledger'));
+    leaveSettings();
+    expect(env.calls).toEqual([['replace', '/ledger']]);
+    expect(globalThis.history.state).toEqual({ mf: 3 });
+});
+
+test('the palette choosing the page under a Settings entry from before a reload drops it in place', () => {
+    const env = settingsBrowser('/ledger', '?settings=security', false, { mf: 3, settings: true });
+    initRouter(settingsApp(env, 'ledger'));
+    recordView(fakeApp('ledger'), { page: 'ledger' });
+    expect(env.calls).toEqual([['replace', '/ledger']]);
+    expect(globalThis.history.state).toEqual({ mf: 3 });
+});
+
+test('a push before a pending undo lands is based on the entry on screen', () => {
+    const { env, app } = visited('ledger', 'accounts');
+    const dialog = openDialog();
+    env.traverse(-1);
+    onPopState(app);                                   // go(1) pending; on screen: index 1
+    dialog.hidden = true;
+    app.switchPage('income');                          // e.g. a click before go lands
+    expect(env.at()).toBe(2);
+    expect(globalThis.history.state).toEqual({ mf: 2 });
+    expect(env.entries.map(e => e.state && e.state.mf)).toEqual([0, 1, 2]);
+});
+
+test('a replace drops a pending undo, so a later pop to its index is applied', () => {
+    const { env, app } = visited('ledger', 'accounts');
+    const dialog = openDialog();
+    env.traverse(-1);
+    onPopState(app);                                   // undo pending, expects index 2
+    dialog.hidden = true;
+    app._currentPage = 'reports';                      // a view change that replaces
+    recordView(app, { page: 'reports', subTab: 'calendar' }, 'replace');
+    env.traverse(1);                                   // a genuine Forward to index 2
+    onPopState(app);
+    expect(app.switched.map(s => s[0])).toEqual(['accounts']);
 });
 
 test('Settings marks its pushed entry and keeps the mark on replace', () => {

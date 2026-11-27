@@ -420,6 +420,33 @@ def test_settings_reached_by_forward_closes_by_back(app_page):
     _wait_path(page, "/accounts")
 
 
+def test_settings_after_reload_closes_without_reboot(app_page):
+    # The marked Settings entry survives a reload, but the entry before it
+    # belongs to the discarded document: stepping back would reboot the app.
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    _open_settings(page)
+    page.reload()
+    wait_for_app_ready(page)
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=10000)
+    assert page.evaluate("() => history.state.settings") is True
+    length = _history_length(page)
+    page.evaluate("""() => {
+        window.__marker = 1;
+        window.__backCalls = 0;
+        const orig = history.back.bind(history);
+        history.back = () => { window.__backCalls++; return orig(); };
+    }""")
+    page.click("#settingsModalCloseBtn")
+    expect(page.locator("#settingsModal")).to_be_hidden(timeout=5000)
+    _wait_path(page, "/ledger")
+    # A cross-document back() reloads only later, so the spy is the reliable check.
+    assert page.evaluate("() => window.__backCalls") == 0, "closing Settings must not step back across the reload"
+    assert page.evaluate("() => window.__marker") == 1, "closing Settings must not reload the app"
+    assert _history_length(page) == length
+    assert page.evaluate("() => document.getElementById('ledgerSection').classList.contains('active')")
+
+
 def test_bookmarked_settings_closes_in_place(app_page):
     # Review Focus 4: a bookmarked ?settings entry has no marker; closing it
     # replaces the address in place and never steps back out of the app.

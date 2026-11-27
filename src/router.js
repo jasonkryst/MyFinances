@@ -99,6 +99,8 @@ let lastPath = null;
 // address back. The entry Settings' opening pushed also carries
 // `settings: true`, so closing Settings knows it can step back over it.
 let currentIndex = null;
+// The index of the entry this document loaded at (set by initRouter).
+let bootIndex = null;
 // A traversal the router started itself (history.go/back): { index, path,
 // undo }. Its popstate is recognised by the index it lands on (by the address
 // when indexes are unknown), so a user Back arriving meanwhile is not taken
@@ -128,8 +130,19 @@ function entryState(index, settings) {
     return state;
 }
 
+// The index of the entry actually on screen. While an undo is pending that is
+// the popped entry, not currentIndex (which still names where the undo goes).
+function onScreenIndex() {
+    return indexOf(history.state) ?? currentIndex;
+}
+
+// A push or replace the router writes invalidates a pending traversal: a
+// push truncates its target (the browser then ignores the go, no popstate),
+// and either way the expectation would only swallow a later genuine pop.
 function pushEntry(path, settings = false) {
-    const index = currentIndex === null ? null : currentIndex + 1;
+    expected = null;
+    const base = onScreenIndex();
+    const index = base === null ? null : base + 1;
     history.pushState(entryState(index, settings), '', path);
     currentIndex = index;
 }
@@ -137,19 +150,28 @@ function pushEntry(path, settings = false) {
 // Keeps the entry's index, and its Settings marker while the address still
 // carries ?settings (a page taking over the Settings entry drops it).
 function replaceEntry(path) {
-    const stored = indexOf(history.state);
-    const index = stored !== null ? stored : currentIndex;
+    expected = null;
+    const index = onScreenIndex();
     const url = new URL(path, 'http://x');
     const settings = hasSettingsMarker() && parseLocation(url.pathname, url.search).settings !== null;
     history.replaceState(entryState(index, settings), '', path);
     currentIndex = index;
 }
 
+// Settings' own entry can be stepped back over only when it is marked and the
+// entry before it belongs to this document: after a reload, entries below
+// bootIndex are the discarded document's, and history.back() would reload
+// the whole app (no popstate) instead of closing Settings.
+function canStepBackOverSettings() {
+    const index = onScreenIndex();
+    return hasSettingsMarker() && index !== null && bootIndex !== null && index - 1 >= bootIndex;
+}
+
 // Step back over the Settings entry on screen (it carries the marker, so
 // this session pushed it from the same path without ?settings).
 function stepBackOverSettings() {
     const path = location.pathname;
-    expected = { index: currentIndex === null ? null : currentIndex - 1, path, undo: false };
+    expected = { index: onScreenIndex() - 1, path, undo: false };
     lastPath = path;
     history.back();
 }
@@ -181,17 +203,16 @@ export function recordView(app, view, mode = 'push') {
     const path = buildPath({ page: view.page, subTab: view.subTab || null });
     if (path === location.pathname + location.search) return;
     // Leaving a ?settings address for a page (the palette does) never stacks
-    // on the Settings entry. Its own entry (marked) is stepped back over for
-    // the page under it and taken over for another page; a bookmarked one is
-    // dropped in place first.
+    // on the Settings entry. Its own entry (marked) is taken over for another
+    // page and stepped back over for the page under it (when that entry is in
+    // this document); otherwise ?settings is dropped in place first.
     const leavingSettings = parseLocation(location.pathname, location.search).settings !== null;
     if (leavingSettings && mode === 'push') {
-        if (hasSettingsMarker()) {
-            if (path === location.pathname) {
-                stepBackOverSettings();
-                return;
-            }
+        if (hasSettingsMarker() && path !== location.pathname) {
             mode = 'replace';
+        } else if (path === location.pathname && canStepBackOverSettings()) {
+            stepBackOverSettings();
+            return;
         } else {
             replaceEntry(location.pathname);
             if (path === location.pathname + location.search) {
@@ -220,12 +241,13 @@ export function recordSettings(settingsPage, mode = 'replace') {
 }
 
 // Settings closed by its button or Escape: step back over the entry opening
-// pushed (marked, also when reached again by Forward or a reload), else drop
-// ?settings in place (a bookmark: never back out of the app).
+// pushed (marked, also when reached again by Forward), else drop ?settings in
+// place: a bookmark (never back out of the app) or an entry from before a
+// reload (stepping back would reboot the app).
 export function leaveSettings() {
     if (applying) return;
     if (parseLocation(location.pathname, location.search).settings === null) return;
-    if (hasSettingsMarker()) {
+    if (canStepBackOverSettings()) {
         // Lands on the entry before ?settings (recordView never writes a search).
         stepBackOverSettings();
     } else {
@@ -387,6 +409,9 @@ export function onPopState(app) {
         if (!undo) applyLocation(app);
         return;
     }
+    // A user pop landing first makes a pending undo's relative go() wrong:
+    // drop the expectation and handle this pop as it comes.
+    if (expected && expected.undo) expected = null;
     if (lastPath !== null && closeInnermost(app)) {
         if (currentIndex !== null && newIndex !== null) {
             // Undo the pop (Back, Forward or several entries) in one step:
@@ -398,6 +423,7 @@ export function onPopState(app) {
             return;
         }
         // Unknown index: put the address back by pushing it (pre-#734).
+        expected = null;
         history.pushState(null, '', lastPath);
         currentIndex = null;
         return;
@@ -415,5 +441,6 @@ export function initRouter(app) {
         currentIndex = 0;
         history.replaceState({ mf: 0 }, '');
     }
+    bootIndex = currentIndex;
     window.addEventListener('popstate', () => onPopState(app));
 }
