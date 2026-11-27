@@ -527,6 +527,35 @@ def test_back_closes_more_sheet(app_page):
 
 
 @pytest.mark.ui
+def test_escape_closes_dialog_above_more_sheet(app_page):
+    """#734: a dialog opened over the sheet gets the Escape first; the sheet's
+    capture-phase handler must not swallow it. The next Escape closes the sheet."""
+    page = app_page
+    _open_sheet(page)
+    page.evaluate("""() => {
+        const d = document.createElement('div');
+        d.id = 'dialogAboveSheet';
+        d.setAttribute('role', 'dialog');
+        d.setAttribute('aria-modal', 'true');
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = 'Inside';
+        d.appendChild(b);
+        d.addEventListener('keydown', (e) => { if (e.key === 'Escape') d.classList.add('hidden'); });
+        document.body.appendChild(d);
+        b.focus();
+    }""")
+    dialog = page.locator("#dialogAboveSheet")
+    expect(dialog).to_be_visible(timeout=5000)
+    page.keyboard.press("Escape")
+    expect(dialog).to_be_hidden(timeout=5000)
+    expect(page.locator(SHEET)).to_be_visible()
+    page.keyboard.press("Escape")
+    page.locator(SHEET).wait_for(state="hidden", timeout=5000)
+    assert _inert_ids(page) == []
+
+
+@pytest.mark.ui
 def test_gate_closes_more_sheet(app_page):
     """A 401 while the sheet is open shows the sign-in gate over a closed
     sheet; the sheet's `inert` on the gate must not leave the page dead."""

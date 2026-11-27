@@ -504,3 +504,61 @@ def test_palette_same_page_over_settings_leaves_no_duplicate(app_page):
     page.go_back()
     page.wait_for_selector("#accountsSection.active", timeout=5000)
     _wait_path(page, "/accounts")
+
+
+# ── #734: Back closes the header popovers too ────────────────────────────────
+
+
+def _back_closes_popover(page, trigger_id, popover_id):
+    _nav(page, "accounts", "accountsSection")
+    _nav(page, "ledger", "ledgerSection")
+    index = page.evaluate("() => history.state.mf")
+    page.click(f"#{trigger_id}")
+    popover = page.locator(f"#{popover_id}")
+    expect(popover).to_be_visible(timeout=5000)
+    length = _history_length(page)
+
+    page.go_back()
+    expect(popover).to_be_hidden(timeout=5000)
+    page.wait_for_function("(i) => history.state && history.state.mf === i", arg=index, timeout=5000)
+    _wait_path(page, "/ledger")
+    assert page.evaluate("() => document.getElementById('ledgerSection').classList.contains('active')")
+    assert _history_length(page) == length, "a popover adds no history entry and its undo none either"
+    page.wait_for_function("(id) => document.activeElement === document.getElementById(id)",
+                           arg=trigger_id, timeout=5000)
+
+    # Nothing open now: the next Back changes the page.
+    page.go_back()
+    page.wait_for_selector("#accountsSection.active", timeout=5000)
+    _wait_path(page, "/accounts")
+
+
+def test_back_closes_account_menu(app_page):
+    _back_closes_popover(app_page, "accountMenuBtn", "accountMenuDropdown")
+
+
+def test_back_closes_notifications_panel(app_page):
+    _back_closes_popover(app_page, "notificationsBtn", "notificationsPanel")
+
+
+def test_dialog_above_popover_closes_first(app_page):
+    # A dialog opened while a popover is open ranks above it: one Back (one
+    # Escape) closes only the dialog, the next one the popover.
+    page = app_page
+    _nav(page, "accounts", "accountsSection")
+    _nav(page, "ledger", "ledgerSection")
+    index = page.evaluate("() => history.state.mf")
+    page.click("#notificationsBtn")
+    expect(page.locator("#notificationsPanel")).to_be_visible(timeout=5000)
+    _open_shortcuts(page)
+
+    page.go_back()
+    expect(page.locator("#keyboardShortcutsModal")).to_be_hidden(timeout=5000)
+    page.wait_for_function("(i) => history.state && history.state.mf === i", arg=index, timeout=5000)
+    _wait_path(page, "/ledger")
+    expect(page.locator("#notificationsPanel")).to_be_visible()
+
+    page.go_back()
+    expect(page.locator("#notificationsPanel")).to_be_hidden(timeout=5000)
+    _wait_path(page, "/ledger")
+    assert page.evaluate("() => document.getElementById('ledgerSection').classList.contains('active')")

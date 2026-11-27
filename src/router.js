@@ -373,6 +373,21 @@ const EDIT_INPUT_PREFIX = {
 
 const OVERLAY_SELECTOR = '[role="dialog"], [role="alertdialog"], .modal, [data-overlay]';
 
+// #734: the header popovers (not dialogs) Back closes too: popover id -> the
+// wrapper holding it and its trigger button. They rank below any dialog.
+const POPOVERS = { notificationsPanel: 'notificationsWrap', accountMenuDropdown: 'accountMenuWrap' };
+// Popover id -> when it last opened (a counter), for two open at once.
+const popoverOpened = new Map();
+let popoverSeq = 0;
+// Escape events a popover already closed for, so a second popover's handler
+// on the same event leaves its own open.
+const claimedEscapes = new WeakSet();
+
+// Each popover calls this when it opens.
+export function notePopoverOpened(id) {
+    popoverOpened.set(id, ++popoverSeq);
+}
+
 function isShown(el) {
     return !el.classList.contains('hidden') && el.getClientRects().length > 0;
 }
@@ -392,13 +407,36 @@ function isGateUp() {
 
 // The open overlay Back should close: not a gate, not Settings (closed through
 // its address), preferring the one holding focus, else the last in DOM order.
+// With no dialog open, an open header popover: the one whose wrapper (popover
+// plus trigger) holds focus, else the one opened last.
 export function topOverlay() {
     const shown = Array.from(document.querySelectorAll(OVERLAY_SELECTOR))
         .filter(el => !GATE_IDS.includes(el.id) && el.id !== 'settingsModal' && isShown(el));
-    if (shown.length === 0) return null;
     const active = document.activeElement;
-    const holding = active ? shown.filter(el => el.contains(active)) : [];
-    return holding.length ? holding[holding.length - 1] : shown[shown.length - 1];
+    if (shown.length) {
+        const holding = active ? shown.filter(el => el.contains(active)) : [];
+        return holding.length ? holding[holding.length - 1] : shown[shown.length - 1];
+    }
+    const popovers = Object.keys(POPOVERS)
+        .map(id => document.getElementById(id))
+        .filter(el => el && isShown(el));
+    if (popovers.length === 0) return null;
+    const focused = popovers.find(el => {
+        const wrap = document.getElementById(POPOVERS[el.id]);
+        return Boolean(active && wrap && wrap.contains(active));
+    });
+    if (focused) return focused;
+    return popovers.reduce((a, b) => ((popoverOpened.get(b.id) || 0) > (popoverOpened.get(a.id) || 0) ? b : a));
+}
+
+// For a popover's document-level Escape handler, registered in the capture
+// phase (so it runs before a dialog's own handler hides the dialog above):
+// true when this Escape is the popover's to close, i.e. it is the top overlay
+// and no other popover closed for this event already.
+export function claimEscape(e, el) {
+    if (e.key !== 'Escape' || claimedEscapes.has(e) || topOverlay() !== el) return false;
+    claimedEscapes.add(e);
+    return true;
 }
 
 // Close the innermost overlay or inline edit; true when something was open.
