@@ -39,7 +39,7 @@ def test_tab_bar_visible_on_phone_only(app_page):
     page.set_viewport_size(PHONE)
     bar = page.locator(BAR)
     bar.wait_for(state="visible", timeout=5000)
-    assert page.locator("#navToggle").is_hidden()
+    assert page.locator("#navToggle").count() == 0, "the hamburger is gone"
     assert page.locator("#navMenu").is_hidden()
     assert bar.get_attribute("aria-label"), "the bar is a named landmark"
     labels = [t.strip() for t in page.locator(f"{BAR} .phone-tab").all_inner_texts()]
@@ -343,21 +343,30 @@ def test_more_is_not_current_off_the_sheet(app_page):
 
 
 @pytest.mark.ui
-@pytest.mark.parametrize("dark", [False, True], ids=["light", "dark"])
-def test_tab_bar_contrast(app_page, dark):
+@pytest.mark.parametrize("theme", ["light", "dark", "high-contrast"])
+def test_tab_bar_contrast(app_page, theme):
     page = app_page
     page.set_viewport_size(PHONE)
-    if dark:
-        page.evaluate("() => { document.body.classList.add('dark-mode'); "
-                      "document.documentElement.setAttribute('data-theme','dark'); }")
+    if theme != "light":
+        page.evaluate("""(hc) => { document.body.classList.add('dark-mode');
+            if (hc) document.body.classList.add('high-contrast-mode');
+            document.documentElement.setAttribute('data-theme', 'dark'); }""", theme == "high-contrast")
     _tab(page, "ledger").click()
     page.wait_for_selector("#ledgerSection.active", timeout=5000)
     active = text_contrast(page.locator(f'{BAR} .phone-tab[data-page="ledger"] .phone-tab-label'))
     inactive = text_contrast(page.locator(f'{BAR} .phone-tab[data-page="reports"] .phone-tab-label'))
     more = text_contrast(page.locator(f"{BAR} #phoneMoreBtn .phone-tab-label"))
-    for name, res in (("active", active), ("inactive", inactive), ("more", more)):
+    # The hover backgrounds are lighter or darker than the resting ones: measure them too.
+    _tab(page, "reports").hover()
+    hovered = text_contrast(page.locator(f'{BAR} .phone-tab[data-page="reports"] .phone-tab-label'))
+    for name, res in (("active", active), ("inactive", inactive), ("more", more), ("hovered", hovered)):
         assert res["ratio"] >= 4.5, f"{name} tab label contrast {res['ratio']:.2f} ({res})"
     assert active["fg"] != inactive["fg"], "the active tab must look different"
+    if theme == "high-contrast":
+        assert active["fg"] == [255, 255, 255], active
+        shadow = page.evaluate("(sel) => getComputedStyle(document.querySelector(sel)).boxShadow",
+                               f'{BAR} .phone-tab[data-page="ledger"]')
+        assert "rgb(255, 214, 10)" in shadow, f"active tab indicator: {shadow}"
 
 
 # ── More sheet (Task 4) ──────────────────────────────────────────────────────
@@ -527,6 +536,35 @@ def test_back_closes_more_sheet(app_page):
 
 
 @pytest.mark.ui
+def test_escape_closes_dialog_above_more_sheet(app_page):
+    """#734: a dialog opened over the sheet gets the Escape first; the sheet's
+    capture-phase handler must not swallow it. The next Escape closes the sheet."""
+    page = app_page
+    _open_sheet(page)
+    page.evaluate("""() => {
+        const d = document.createElement('div');
+        d.id = 'dialogAboveSheet';
+        d.setAttribute('role', 'dialog');
+        d.setAttribute('aria-modal', 'true');
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = 'Inside';
+        d.appendChild(b);
+        d.addEventListener('keydown', (e) => { if (e.key === 'Escape') d.classList.add('hidden'); });
+        document.body.appendChild(d);
+        b.focus();
+    }""")
+    dialog = page.locator("#dialogAboveSheet")
+    expect(dialog).to_be_visible(timeout=5000)
+    page.keyboard.press("Escape")
+    expect(dialog).to_be_hidden(timeout=5000)
+    expect(page.locator(SHEET)).to_be_visible()
+    page.keyboard.press("Escape")
+    page.locator(SHEET).wait_for(state="hidden", timeout=5000)
+    assert _inert_ids(page) == []
+
+
+@pytest.mark.ui
 def test_gate_closes_more_sheet(app_page):
     """A 401 while the sheet is open shows the sign-in gate over a closed
     sheet; the sheet's `inert` on the gate must not leave the page dead."""
@@ -604,6 +642,9 @@ def test_more_sheet_contrast(app_page, dark):
     for name, r in res.items():
         assert r["ratio"] >= 4.5, f"{name} contrast {r['ratio']:.2f} ({r})"
     assert res["active"]["fg"] != res["page"]["fg"], "the current page must look different"
+    page.locator(f"{SHEET} .phone-more-close").hover()
+    close = text_contrast(page.locator(f"{SHEET} .phone-more-close"))
+    assert close["ratio"] >= 4.5, f"hovered close button contrast {close['ratio']:.2f} ({close})"
 
 
 # ── Header menus stay above the sticky Reports tab strip ─────────────────────

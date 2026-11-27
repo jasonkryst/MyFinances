@@ -123,7 +123,8 @@ Many of these are enforced by tests, so CI fails if one is missed.
   `aria-describedby` at it. A full-screen overlay makes the rest of the page
   inert with `makeBackgroundInert()` (`src/overlayFocus.js`). It must close on
   Escape and add no history entry, because Back closes it by sending Escape
-  (`closeInnermost` in `src/router.js`). An error about one
+  (`closeInnermost` in `src/router.js`); a popover (menu, panel) counts too and
+  claims Escape through `claimEscape`. An error about one
   field is linked to it with `markFieldInvalid()` (`src/utils.js`).
 - **Contrast.** Text colours must reach 4.5:1. Use `var(--danger-text)` for
   error text, and don't dim text with `opacity`.

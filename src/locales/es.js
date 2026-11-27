@@ -1367,7 +1367,6 @@ export default {
     'expenses.byCategory': 'Gastos por categoría',
     'expenses.total': '{amount} en total',
     'expenses.errBill': 'Introduce un nombre y un importe válidos para la factura.',
-    'expenses.errBillInvalid': 'Datos de factura no válidos.',
     'expenses.errExpense': 'Introduce un nombre, un importe y una fecha válidos para el gasto.',
     'expenses.errExpenseInvalid': 'Datos de gasto no válidos.',
     'cashflow.tabSummary': 'Resumen',

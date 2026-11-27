@@ -259,7 +259,7 @@ def test_mobile_tab_bar_names_and_current_page(audit_results):
     assert bar["label"], f"the tab bar needs an accessible name: {bar}"
     assert all(bar["names"]), f"every tab needs a visible name: {bar}"
     assert bar["current"] == ["ledger"], f"only the Ledger tab should be current: {bar}"
-    assert bar["toggleHidden"] is True, f"the hamburger must be hidden at phone width: {bar}"
+    assert bar["toggleGone"] is True, f"the hamburger no longer exists: {bar}"
 
 
 @pytest.mark.a11y

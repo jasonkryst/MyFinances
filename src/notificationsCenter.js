@@ -11,6 +11,7 @@ import { getCsrfCookie } from './storage.js';
 import { getSetting, setSetting } from './settings.js';
 import { NOTIFY_FILTER_TYPE, NOTIFY_FILTER_STATUS, NOTIFY_FILTER_ACCOUNT } from './settingsSchema.js';
 import { filtersFromSettings, filtersToSettings, filtersToQuery, filterNotifications } from './notificationsFilter.js';
+import { notePopoverOpened, claimEscape } from './router.js';
 
 // unreadCount is the bell's count: unread alerts matching the saved Type and
 // Account filters (#649). Only the bell's own GET sets it. allUnreadCount is
@@ -451,6 +452,7 @@ export function initNotificationsCenter(app) {
     const open = () => {
         panel.classList.remove('hidden');
         btn.setAttribute('aria-expanded', 'true');
+        notePopoverOpened(panel.id);
         render();
         refreshNotifications();
     };
@@ -487,11 +489,12 @@ export function initNotificationsCenter(app) {
     document.addEventListener('click', (e) => {
         if (!wrap.contains(e.target)) close();
     });
+    // Capture phase, and only when the panel is the top overlay (#734): a
+    // dialog opened above it takes the Escape (and the router's Back) first.
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !panel.classList.contains('hidden')) {
-            close();
-            btn.focus();
-        }
-    });
+        if (panel.classList.contains('hidden') || !claimEscape(e, panel)) return;
+        close();
+        btn.focus();
+    }, true);
     renderBadge();
 }

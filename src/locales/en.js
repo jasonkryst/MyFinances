@@ -1389,7 +1389,6 @@ export default {
     'expenses.byCategory': 'Expenses by Category',
     'expenses.total': '{amount} total',
     'expenses.errBill': 'Please enter a valid bill name and amount.',
-    'expenses.errBillInvalid': 'Invalid bill data.',
     'expenses.errExpense': 'Please enter a valid expense name, amount, and date.',
     'expenses.errExpenseInvalid': 'Invalid expense data.',
 

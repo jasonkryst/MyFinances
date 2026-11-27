@@ -10,7 +10,7 @@ import { initUndoToast } from './undo.js';
 import { installOwnershipListeners } from './debtOwnership.js';
 import { t } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
-import { recordView, currentSubTab } from './router.js';
+import { recordView, currentSubTab, topOverlay, notePopoverOpened, claimEscape } from './router.js';
 import { makeBackgroundInert } from './overlayFocus.js';
 
 // #713: page renderers and forms live in appFeatures.js, loaded after the
@@ -105,29 +105,11 @@ export function initializeEventListeners(app) {
         reportsCalendarShortcutBtn.addEventListener('click', () => navigateToReportsCalendar(app));
     }
 
-    // Mobile menu toggle
-    const navToggle = document.getElementById('navToggle');
-    const topNav = document.getElementById('topNav');
-    if (navToggle && topNav) {
-        navToggle.addEventListener('click', () => {
-            const isOpen = topNav.classList.contains('menu-open');
-            topNav.classList.toggle('menu-open');
-            navToggle.setAttribute('aria-expanded', String(!isOpen));
-        });
-    }
-
     installPhoneTabBarKeyboardHide();
 
     // Navigation: page switching
     document.querySelectorAll('.page-button').forEach(btn => {
         btn.addEventListener('click', () => {
-            // Close mobile menu when a page is selected
-            if (topNav && topNav.classList.contains('menu-open')) {
-                topNav.classList.remove('menu-open');
-                if (navToggle) {
-                    navToggle.setAttribute('aria-expanded', 'false');
-                }
-            }
             const page = btn.getAttribute('data-page');
             if (page) {
                 app.switchPage(page);
@@ -670,6 +652,7 @@ export function initAccountMenu(app) {
     const open = (which = null) => {
         dropdown.classList.remove('hidden');
         btn.setAttribute('aria-expanded', 'true');
+        notePopoverOpened(dropdown.id);
         if (which) focusItem(which);
     };
     const toggle = (which = null) => (isOpen() ? close() : open(which));
@@ -711,11 +694,14 @@ export function initAccountMenu(app) {
     document.addEventListener('click', (e) => {
         if (!wrap.contains(e.target)) close();
     });
-    // Close on Escape; focus returns to the button when it was inside the menu.
+    // Close on Escape; focus returns to the button when it was inside the menu
+    // (or lost to <body>). Capture phase, and only while the menu is the top
+    // overlay (#734): a dialog opened above it takes the Escape (and Back) first.
     document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape' || !isOpen()) return;
-        close({ restoreFocus: wrap.contains(document.activeElement) });
-    });
+        if (!isOpen() || !claimEscape(e, dropdown)) return;
+        const active = document.activeElement;
+        close({ restoreFocus: !active || active === document.body || wrap.contains(active) });
+    }, true);
 }
 
 export function switchTab(app, tabName) {
@@ -978,6 +964,10 @@ function handlePhoneMoreSheetKeydown(app, e) {
     const sheet = document.getElementById('phoneMoreSheet');
     if (!sheet || !isPhoneMoreSheetOpen()) return;
     if (e.key === 'Escape') {
+        // A dialog opened above the sheet (#734) closes first: leave the key
+        // to its own handler; the next Escape reaches the sheet.
+        const top = topOverlay();
+        if (top && top !== sheet) return;
         // Only this sheet: no other global Escape handler acts on it.
         e.preventDefault();
         e.stopPropagation();
@@ -1101,12 +1091,17 @@ export function switchPage(app, pageName, { subTab = null, resetToDefaults = tru
     }
 
     app._currentPage = pageName;
-    renderPageData(app, pageName, { subTab, resetToDefaults });
-    // #730: the address follows the page (a no-op when it is already there
-    // or while Back/Forward or boot is applying an address).
-    recordView(app, { page: pageName, subTab: currentSubTab(app, pageName, subTab) });
-    // #731: the page swap may have removed a focused field without focusout.
-    updatePhoneTabBarHidden(document.activeElement);
+    try {
+        renderPageData(app, pageName, { subTab, resetToDefaults });
+    } finally {
+        // #730: the address follows the page (a no-op when it is already there
+        // or while Back/Forward or boot is applying an address). #734: also
+        // when the render throws, so the address matches the section shown;
+        // the error still propagates.
+        recordView(app, { page: pageName, subTab: currentSubTab(app, pageName, subTab) });
+        // #731: the page swap may have removed a focused field without focusout.
+        updatePhoneTabBarHidden(document.activeElement);
+    }
 }
 
 /**

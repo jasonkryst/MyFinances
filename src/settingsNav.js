@@ -136,9 +136,15 @@ export function initSettingsNav(modal) {
         if (overlay === modal) return; // handled by the modal's own listener
         onKeydown(event);
     });
-    // Review focus 2: crossing the breakpoint keeps the current page.
+    // Review focus 2: crossing the breakpoint keeps the current page. #734:
+    // the address follows what is shown (the narrow list is the bare
+    // ?settings, a page names itself); a replace, so no entry is added.
     const mq = window.matchMedia(WIDE_QUERY);
-    const onChange = () => { if (!modal.classList.contains('hidden')) apply(); };
+    const onChange = () => {
+        if (modal.classList.contains('hidden')) return;
+        apply();
+        recordSettings(isSettingsNarrow() && !drilledIn ? '' : activePage, 'replace');
+    };
     if (mq.addEventListener) mq.addEventListener('change', onChange);
     else if (mq.addListener) mq.addListener(onChange);
 }

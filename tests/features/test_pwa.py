@@ -46,13 +46,6 @@ REQUIRED_MANIFEST_FIELDS = [
     'id', 'categories',
 ]
 
-KNOWN_PAGE_NAMES = {
-    'health', 'accounts', 'liabilities', 'income', 'savings',
-    'strategy', 'reports', 'ledger', 'recurring', 'reconcile',
-    'retirement'
-}
-
-
 @pytest.mark.feature
 def test_manifest_has_required_fields(manifest_json):
     for field in REQUIRED_MANIFEST_FIELDS:
@@ -96,21 +89,41 @@ def test_manifest_shortcuts_structure(manifest_json):
         assert 'url' in s, f"shortcut missing 'url': {s}"
 
 
+def _router_addresses():
+    """Every address `buildPath` in src/router.js can produce (no ?settings),
+    read from its route tables: '/', '/plan', '/ledger', '/reports/calendar' ..."""
+    with open(os.path.join(PROJECT_ROOT, 'src', 'router.js'), 'r', encoding='utf-8') as f:
+        src = f.read()
+    pages_src = re.search(r"ROUTE_PAGES = \[(.*?)\]", src, re.S).group(1)
+    pages = re.findall(r"'([a-z]+)'", pages_src)
+    tabs_src = re.search(r"ROUTE_SUB_TABS = \{(.*?)\};", src, re.S).group(1)
+    sub_tabs = {m.group(1): re.findall(r"'([a-z]+)'", m.group(2))
+                for m in re.finditer(r"(\w+): \[(.*?)\]", tabs_src, re.S)}
+    segment = {p: p for p in pages}
+    # Overrides come from the route table's own SEGMENT_BY_PAGE.<page> = '<segment>' lines.
+    segment.update(re.findall(r"SEGMENT_BY_PAGE\.(\w+) = '([^']*)'", src))
+    addresses = set()
+    for page in pages:
+        addresses.add('/' + segment[page])
+        for tab in sub_tabs.get(page, []):
+            addresses.add(f'/{segment[page]}/{tab}')
+    return addresses
+
+
 @pytest.mark.feature
 def test_manifest_shortcut_urls_use_known_page_names(manifest_json):
-    """Each shortcut is a path address (#730) naming a page the app handles:
-    Health is `/`, Plan is `/plan`, every other page is `/<page>[/<sub-tab>]`."""
+    """Each shortcut is exactly an address the router's `buildPath` can produce
+    (#730): Health is `/`, Plan is `/plan`, Reports is `/reports/calendar`..."""
     from urllib.parse import urlparse
-    segment_to_page = {'': 'health', 'plan': 'strategy'}
-    segment_to_page.update({p: p for p in KNOWN_PAGE_NAMES if p not in ('health', 'strategy')})
+    addresses = _router_addresses()
+    assert {'/', '/plan', '/ledger', '/reports/calendar'} <= addresses, sorted(addresses)
     for shortcut in manifest_json.get('shortcuts', []):
         url = shortcut.get('url', '')
         parsed = urlparse(url)
         assert not parsed.query, f"shortcut '{shortcut.get('name')}' uses a query, not a path address: {url!r}"
-        first = parsed.path.lstrip('/').split('/')[0]
-        assert first in segment_to_page, (
-            f"shortcut '{shortcut.get('name')}' uses unknown path {url!r}; "
-            f"valid first segments: {sorted(segment_to_page)}"
+        assert parsed.path in addresses, (
+            f"shortcut '{shortcut.get('name')}' url {url!r} is not an address the router builds: "
+            f"{sorted(addresses)}"
         )
 
 

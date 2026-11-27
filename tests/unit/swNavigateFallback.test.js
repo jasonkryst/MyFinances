@@ -8,6 +8,16 @@ const vm = require('vm');
 const SW_SOURCE = fs.readFileSync(path.join(__dirname, '..', '..', 'sw.js'), 'utf8');
 const SHELL = { shell: true };
 
+// Minimal real-shaped Request: the install handler builds one per precache URL.
+class FakeRequest {
+    constructor(url, init = {}) {
+        this.url = new URL(url, 'http://x').href;
+        this.method = init.method || 'GET';
+        this.mode = init.mode || 'cors';
+        this.cache = init.cache || 'default';
+    }
+}
+
 function loadWorker() {
     const listeners = {};
     const self = {
@@ -24,7 +34,7 @@ function loadWorker() {
     const context = vm.createContext({
         self,
         URL,
-        Request: function Request() {},
+        Request: FakeRequest,
         console,
         caches: { open: async () => cache, keys: async () => [], delete: async () => true },
         fetch: () => Promise.reject(new Error('offline')),

@@ -252,24 +252,23 @@ def test_deep_link_opens_sub_tab(app_page):
 
 def test_deep_link_sub_tab_survives_lazy_render(app_page_no_sw):
     # Review Focus 2: the page renders only once appFeatures.js arrives; that
-    # deferred render must keep the sub-tab the address names. The request is
-    # held (not slept on) until the Liabilities section is already showing.
+    # deferred render must keep the sub-tab the address names. The handler holds
+    # the request until the Liabilities section is already showing, checks that
+    # nothing has rendered yet, then lets it through (no polling, no sleeping).
     page = app_page_no_sw
-    held = []
-    page.route("**/src/appFeatures.js*", lambda route: held.append(route))
-    with page.expect_request("**/src/appFeatures.js*", timeout=30000):
-        page.goto(BASE + "liabilities/expenses", wait_until="commit", timeout=60000)
-    page.wait_for_selector("#liabilitiesSection.active", timeout=30000)
-    for _ in range(100):  # the route handler runs on the next dispatch
-        if held:
-            break
-        page.evaluate("() => 0")
-    assert held, "appFeatures.js should be requested and held"
-    assert page.evaluate("() => !document.querySelector('#expensesPanel.visible')"), \
-        "nothing renders before appFeatures.js arrives"
-    for route in held:
+    seen = {}
+
+    def hold_until_section_shows(route):
+        page.wait_for_selector("#liabilitiesSection.active", timeout=30000)
+        seen["rendered_early"] = page.evaluate("() => !!document.querySelector('#expensesPanel.visible')")
         route.continue_()
+
+    page.route("**/src/appFeatures.js*", hold_until_section_shows)
+    page.goto(BASE + "liabilities/expenses", wait_until="commit", timeout=60000)
+    page.wait_for_selector("#expensesPanel.visible", timeout=30000)
     page.unroute("**/src/appFeatures.js*")
+    assert seen.get("rendered_early") is False, \
+        f"appFeatures.js should be requested and held, and nothing renders before it arrives: {seen}"
     wait_for_app_ready(page)
     page.wait_for_selector("#expensesPanel.visible", timeout=10000)
     assert page.is_hidden("#debtsPanel")
@@ -363,9 +362,12 @@ def test_back_to_spending_sets_address(app_page):
     page.click("#spendingDrilldownViewLedgerBtn")
     page.wait_for_selector("#ledgerSection.active", timeout=5000)
     # Another Reports tab is remembered by the time Back to Spending is used.
-    page.evaluate("""() => document.querySelectorAll('.rpt-tab-btn').forEach(b => {
-        b.classList.toggle('rpt-tab-btn--active', b.dataset.rptab === 'networth');
-    })""")
+    # The Reports tab buttons stay in the DOM behind the Ledger. dispatch_event("click") runs the
+    # real handler, which pushes /reports/networth while the Ledger is still on screen (leaving
+    # the Ledger would clear the Back to Spending link). The `before + 1` assertion below relies
+    # on that: `before` is read after this push, so only Back to Spending's own push is counted.
+    page.locator('.rpt-tab-btn[data-rptab="networth"]').dispatch_event("click")
+    page.wait_for_selector("#rptPanel-networth.rpt-tab-panel--active", state="attached", timeout=5000)
     before = _history_length(page)
     page.click("#ledgerCrossNavBackBtn")
     page.wait_for_selector("#rptPanel-spending.rpt-tab-panel--active", timeout=5000)
@@ -531,3 +533,67 @@ def test_back_between_liabilities_tabs_keeps_expense_month(app_page):
     assert _path(page) == "/liabilities/expenses"
     assert page.evaluate("() => app._expenseMonthOffset") == -1
     assert page.text_content(label) == moved
+
+
+# ── #734 Task 2: router hardening ───────────────────────────────────────────
+
+WIDE = {"width": 1280, "height": 900}
+
+
+def test_render_error_still_records_address(app_page):
+    # Review Focus 5: a page whose render throws still gets its address, and
+    # the error still reaches the caller.
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    thrown = page.evaluate("""() => {
+        const orig = app.renderPeopleList;
+        app.renderPeopleList = function () {
+            app.renderPeopleList = orig;
+            throw new Error('render boom');
+        };
+        try { app.switchPage('people'); return null; } catch (e) { return e.message; }
+    }""")
+    assert thrown == "render boom", "the render error must propagate"
+    assert _active(page, "peopleSection")
+    assert _path(page) == "/people"
+    page.go_back()
+    page.wait_for_selector("#ledgerSection.active", timeout=5000)
+    assert _path(page) == "/ledger"
+
+
+def test_bare_settings_on_wide_screen_is_canonicalised(app_page):
+    page = app_page
+    page.set_viewport_size(WIDE)
+    _goto(page, "?settings")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=10000)
+    shown = _shown_settings_page(page)
+    assert shown
+    _wait_path(page, f"/?settings={shown}")
+
+    # A name that is no Settings page shows the default page, and says so.
+    _goto(page, "ledger?settings=nope")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=10000)
+    shown = _shown_settings_page(page)
+    assert shown and shown != "nope"
+    _wait_path(page, f"/ledger?settings={shown}")
+
+
+def test_resize_narrow_to_wide_updates_settings_address(app_page):
+    page = app_page
+    _nav(page, "ledger", "ledgerSection")
+    page.set_viewport_size(NARROW)
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
+    page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
+    assert _path(page) == "/ledger?settings"
+    before = _history_length(page)
+    page.set_viewport_size(WIDE)
+    page.wait_for_function("() => location.search.startsWith('?settings=')", timeout=5000)
+    shown = _shown_settings_page(page)
+    assert _path(page) == f"/ledger?settings={shown}"
+    # Back on a narrow screen the list shows again, and so does the address.
+    page.set_viewport_size(NARROW)
+    _wait_path(page, "/ledger?settings")
+    assert _history_length(page) == before, "a width change replaces the address"
+    page.go_back()
+    _wait_settings_closed(page)
+    _wait_path(page, "/ledger")

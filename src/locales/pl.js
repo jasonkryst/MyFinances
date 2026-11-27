@@ -1367,7 +1367,6 @@ export default {
     'expenses.byCategory': 'Wydatki wg kategorii',
     'expenses.total': 'Razem: {amount}',
     'expenses.errBill': 'Wpisz prawidłową nazwę i kwotę rachunku.',
-    'expenses.errBillInvalid': 'Nieprawidłowe dane rachunku.',
     'expenses.errExpense': 'Wpisz prawidłową nazwę, kwotę i datę wydatku.',
     'expenses.errExpenseInvalid': 'Nieprawidłowe dane wydatku.',
     'cashflow.tabSummary': 'Podsumowanie',
