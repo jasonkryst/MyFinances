@@ -150,8 +150,9 @@ function onScreenIndex() {
 }
 
 // A push or replace the router writes invalidates a pending traversal: a
-// push truncates its target (the browser then ignores the go, no popstate),
-// and either way the expectation would only swallow a later genuine pop.
+// push may truncate its target (the browser can then ignore the go, with no
+// popstate), and either way the expectation would only swallow a later
+// genuine pop.
 function pushEntry(path, settings = false) {
     expected = null;
     const base = onScreenIndex();
