@@ -694,6 +694,10 @@ export function initAccountMenu(app) {
     document.addEventListener('click', (e) => {
         if (!wrap.contains(e.target)) close();
     });
+    // Another popover (the notifications panel) opening closes this one; focus stays where the user put it.
+    document.addEventListener('mf:popover-opened', (e) => {
+        if (isOpen() && e.detail && e.detail.id !== dropdown.id) close();
+    });
     // Close on Escape; focus returns to the button when it was inside the menu
     // (or lost to <body>). Capture phase, and only while the menu is the top
     // overlay (#734): a dialog opened above it takes the Escape (and Back) first.

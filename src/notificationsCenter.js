@@ -489,6 +489,10 @@ export function initNotificationsCenter(app) {
     document.addEventListener('click', (e) => {
         if (!wrap.contains(e.target)) close();
     });
+    // Another popover (the account menu) opening closes this one; focus stays where the user put it.
+    document.addEventListener('mf:popover-opened', (e) => {
+        if (!panel.classList.contains('hidden') && e.detail && e.detail.id !== panel.id) close();
+    });
     // Capture phase, and only when the panel is the top overlay (#734): a
     // dialog opened above it takes the Escape (and the router's Back) first.
     document.addEventListener('keydown', (e) => {

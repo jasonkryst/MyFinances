@@ -542,6 +542,7 @@ jobs:
             tests/ui/test_debt_actions.py \
             tests/ui/test_mobile_density.py \
             tests/ui/test_mobile_clipping_fixes.py \
+            tests/ui/test_routing_leftovers.py \
             --maxfail=15 \
             -v
 
