@@ -460,11 +460,9 @@ export function closeInnermost(app) {
             return true;
         }
     }
-    if (app.editingDebtId != null) {
-        // The Add Debt form in edit mode shows its Cancel button.
-        const btn = document.getElementById('cancelEditBtn');
-        if (btn && isShown(btn)) { app.cancelEdit(); return true; }
-        if (isEditShown(app, 'editingDebtId')) { app.cancelInlineEdit(); return true; }
+    if (app.editingDebtId != null && isEditShown(app, 'editingDebtId')) {
+        app.cancelInlineEdit();
+        return true;
     }
     return false;
 }

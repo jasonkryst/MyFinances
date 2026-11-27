@@ -205,6 +205,17 @@ test('initRouter registers one popstate listener that applies the address', () =
     expect(calls).toEqual([['replace', undefined]]);
 });
 
+test('the initRouter listener flag is per module instance, so it cannot leak between tests', () => {
+    const first = fakeBrowser('/');
+    initRouter(fakeApp('health'));
+    expect(first.listeners.popstate).toHaveLength(1);
+    jest.resetModules();
+    ({ initRouter } = require('../../src/router.js'));
+    const second = fakeBrowser('/');
+    initRouter(fakeApp('health'));
+    expect(second.listeners.popstate).toHaveLength(1);
+});
+
 // ── Task 5 glue: recordSettings / leaveSettings / applySettingsFromLocation ──
 
 function settingsBrowser(pathname, search = '', modalOpen = false, state = null) {
@@ -341,7 +352,7 @@ test.each(Object.entries(EDIT_INPUTS))('closeInnermost cancels a shown %s edit',
 test('an editing field whose edit UI is not shown does not swallow Back', () => {
     fakeBrowser('/liabilities/expenses');
     const hiddenRow = fakeEl('inline-name-3', { hidden: true });
-    overlayDocument({ byId: { 'inline-name-3': hiddenRow, 'cancelEditBtn': fakeEl('cancelEditBtn', { hidden: true }) } });
+    overlayDocument({ byId: { 'inline-name-3': hiddenRow } });
     const app = editApp('liabilities');
     app.editingDebtId = 3;        // rendered on the hidden Debts panel
     app.editingAccountId = 7;     // not rendered at all (another page)
@@ -350,16 +361,13 @@ test('an editing field whose edit UI is not shown does not swallow Back', () => 
     expect(app.cancelled).toEqual([]);
 });
 
-test('a debt edit uses the form canceller while #cancelEditBtn is shown, else the inline one', () => {
+test('an inline debt edit is cancelled while its row is shown', () => {
     fakeBrowser('/liabilities/debts');
-    const btn = fakeEl('cancelEditBtn');
-    overlayDocument({ byId: { cancelEditBtn: btn, 'inline-name-3': fakeEl('inline-name-3') } });
+    overlayDocument({ byId: { 'inline-name-3': fakeEl('inline-name-3') } });
     const app = editApp('liabilities');
     app.editingDebtId = 3;
     expect(closeInnermost(app)).toBe(true);
-    btn.hidden = true;
-    expect(closeInnermost(app)).toBe(true);
-    expect(app.cancelled).toEqual(['cancelEdit', 'cancelInlineEdit']);
+    expect(app.cancelled).toEqual(['cancelInlineEdit']);
 });
 
 test('an overlay is closed with Escape before any inline edit', () => {

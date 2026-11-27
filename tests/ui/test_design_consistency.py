@@ -67,7 +67,7 @@ def test_phone_tabs_are_44px_and_do_not_cover_account_menu(app_page):
     })""")
     assert len(boxes) == 5
     assert all(b['w'] >= 44 and b['h'] >= 44 for b in boxes), boxes
-    assert page.locator('#navToggle').is_hidden()
+    assert page.locator('#navToggle').count() == 0
 
     page.click('#accountMenuBtn')
     page.wait_for_selector('#accountMenuDropdown:not(.hidden)')

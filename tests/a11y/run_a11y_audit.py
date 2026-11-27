@@ -264,7 +264,7 @@ JS_LANDMARKS = """
 """
 
 JS_TAP_TARGETS = """
-() => Array.from(document.querySelectorAll('.page-button, .nav-toggle, button'))
+() => Array.from(document.querySelectorAll('.page-button, button'))
     .map(b => {
         const r = b.getBoundingClientRect();
         return { text: (b.textContent || b.getAttribute('aria-label') || '').trim().slice(0, 24),
@@ -465,14 +465,13 @@ def collect_audit_findings(headless=True):
                 """() => {
                     const bar = document.getElementById('phoneTabBar');
                     const tabs = [...bar.querySelectorAll('.phone-tab')];
-                    const toggle = document.getElementById('navToggle');
                     return {
                         visible: getComputedStyle(bar).display !== 'none',
                         label: bar.getAttribute('aria-label'),
                         current: tabs.filter(t => t.getAttribute('aria-current') === 'page')
                             .map(t => t.dataset.page || t.id),
                         names: tabs.map(t => (t.textContent || '').trim()),
-                        toggleHidden: !toggle.getClientRects().length,
+                        toggleGone: !document.getElementById('navToggle'),
                     };
                 }"""
             )

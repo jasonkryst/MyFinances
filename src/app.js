@@ -57,7 +57,6 @@ const renderBudgetPage = lazyFeature('renderBudgetPage');
 const addBill = lazyFeature('addBill');
 const deleteBill = lazyFeature('deleteBill');
 const startEditBill = lazyFeature('startEditBill');
-const saveEditBill = lazyFeature('saveEditBill');
 const cancelEditBill = lazyFeature('cancelEditBill');
 const addExpense = lazyFeature('addExpense');
 const deleteExpense = lazyFeature('deleteExpense');
@@ -940,11 +939,6 @@ export class DebtTrackerApp {
     /** Enter inline edit mode for a bill. */
     startEditBill(id) {
         return startEditBill(this, id);
-    }
-
-    /** Save inline bill edits. */
-    saveEditBill(id) {
-        return saveEditBill(this, id);
     }
 
     /** Cancel bill edit. */

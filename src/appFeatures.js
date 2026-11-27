@@ -7,7 +7,7 @@
 export { addDebt, deleteDebt, archiveDebt, unarchiveDebt, showUpdateBalanceModal, updateDebtBalance, saveEdit, cancelEdit, renderDebtsList, startEdit, cancelInlineEdit, saveInlineEdit } from './debts.js';
 export { showAccelerateModal } from './debtBreakEven.js';
 export { refreshAccountSelectors, updateAccountFormRetirementVisibility, renderAccountsList, addAccount, deleteAccount, startEditAccount, cancelEditAccount, saveEditAccount, archiveAccount, unarchiveAccount, renderAccountBalanceBreakdown } from './accounts.js';
-export { renderBudgetPage, addBill, deleteBill, startEditBill, saveEditBill, cancelEditBill, addExpense, deleteExpense, startEditExpense, saveEditExpense, cancelEditExpense } from './bills.js';
+export { renderBudgetPage, addBill, deleteBill, startEditBill, cancelEditBill, addExpense, deleteExpense, startEditExpense, saveEditExpense, cancelEditExpense } from './bills.js';
 export { renderBalanceChart, renderPieChart, renderProgressChart, renderDebtDistributionChart, renderDebtToIncomeChart, renderPayoffGanttChart } from './charts.js';
 export { initLiveRefresh, refreshFromServer } from './liveRefresh.js';
 export { initNotificationsCenter, refreshNotifications } from './notificationsCenter.js';

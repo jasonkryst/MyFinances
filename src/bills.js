@@ -381,23 +381,6 @@ export function startEditBill(app, id) {
     renderBudgetPage(app);
 }
 
-// Save inline bill edits.
-export async function saveEditBill(app, id) {
-    const idx = app.bills.findIndex(b => b.id === id);
-    if (idx === -1) return;
-    const name      = normalizeText(document.getElementById(`be-name-${id}`).value, 80);
-    const amount    = sanitizeFiniteNumber(document.getElementById(`be-amount-${id}`).value, NaN, { min: 0 });
-    const dueDay    = sanitizeInteger(document.getElementById(`be-dueday-${id}`).value, null, { min: 1, max: 31 });
-    const category  = normalizeText(document.getElementById(`be-cat-${id}`).value, 40);
-    const acctEl    = document.getElementById(`be-acct-${id}`);
-    const accountId = acctEl?.value ? parseInt(acctEl.value) : null;
-    if (!name || isNaN(amount) || amount < 0) { await showAlertModal(t('expenses.errBillInvalid')); return; }
-    app.bills[idx] = { ...app.bills[idx], name, amount, dueDay, category, accountId };
-    app.editingBillId = null;
-    pgPatch(app, `/api/bills/${app.bills[idx].id}`, app.bills[idx]);
-    renderBudgetPage(app);
-}
-
 // Cancel bill edit.
 export function cancelEditBill(app) {
     app.editingBillId = null;

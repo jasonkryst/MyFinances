@@ -105,29 +105,11 @@ export function initializeEventListeners(app) {
         reportsCalendarShortcutBtn.addEventListener('click', () => navigateToReportsCalendar(app));
     }
 
-    // Mobile menu toggle
-    const navToggle = document.getElementById('navToggle');
-    const topNav = document.getElementById('topNav');
-    if (navToggle && topNav) {
-        navToggle.addEventListener('click', () => {
-            const isOpen = topNav.classList.contains('menu-open');
-            topNav.classList.toggle('menu-open');
-            navToggle.setAttribute('aria-expanded', String(!isOpen));
-        });
-    }
-
     installPhoneTabBarKeyboardHide();
 
     // Navigation: page switching
     document.querySelectorAll('.page-button').forEach(btn => {
         btn.addEventListener('click', () => {
-            // Close mobile menu when a page is selected
-            if (topNav && topNav.classList.contains('menu-open')) {
-                topNav.classList.remove('menu-open');
-                if (navToggle) {
-                    navToggle.setAttribute('aria-expanded', 'false');
-                }
-            }
             const page = btn.getAttribute('data-page');
             if (page) {
                 app.switchPage(page);
